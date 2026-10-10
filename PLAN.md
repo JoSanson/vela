@@ -50,9 +50,9 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 4.11 Onboarding 3 screens, empty states, vela://shortcuts
 
 ## Phase 5 — Polish
-- [ ] 5.1 Animations (transform/opacity, motion), theming across shell, grain
-- [ ] 5.2 Accessibility: keyboard everywhere, focus visible, ARIA roles (sidebar tree, command bar combobox)
-- [ ] 5.3 Error states (net errors, cert interstitial), tray/dock niceties
+- [x] 5.1 Animations (transform/opacity, motion), theming across shell, grain
+- [x] 5.2 Accessibility: keyboard everywhere, focus visible, ARIA roles (sidebar tree, command bar combobox)
+- [x] 5.3 Error states (net errors, cert interstitial), tray/dock niceties
 
 ## Phase 6 — Perf
 - [x] 6.1 `pnpm perf`: cold start → sidebar interactive, shell RSS, tab switch, command bar open, bundle size, tracing for jank
@@ -63,16 +63,16 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [ ] 7.2 release.yml on tag → electron-builder → GitHub Releases; codeql.yml; audit.yml daily
 - [ ] 7.3 engine-watch.yml every 6 h (bump Electron → CI → automerge → tag → release / issue on red)
 - [ ] 7.4 renovate.json (Electron prioritised, automerge minor/patch)
-- [ ] 7.5 electron-updater: check at launch + 6 h, silent download, install on quit, release notes UI
+- [x] 7.5 electron-updater: check at launch + 6 h, silent download, install on quit, release notes UI
 - [ ] 7.6 RELEASING.md (signing secrets), `pnpm ci:local`
 - [ ] 7.7 v0.1.0 release; v0.1.1 auto-update proof script
 
 ## Phase 8 — P1
 - [x] 8.1 Content blocker (@ghostery/adblocker-electron, per-site toggle, counter)
-- [ ] 8.2 Site Control Center popover
-- [ ] 8.3 Advanced themes (palette from image, glass)
+- [x] 8.2 Site Control Center popover
+- [x] 8.3 Advanced themes (palette from image, glass)
 - [x] 8.4 Reader mode (@mozilla/readability)
-- [ ] 8.5 Unpacked Chrome extensions (MV3 subset doc + 2 extensions tested)
+- [x] 8.5 Unpacked Chrome extensions (MV3 subset doc + 2 extensions tested)
 
 ## Phase 9 — Final review (2 passes minimum)
 - [ ] 9.1 Senior Chromium-engineer review pass 1 → tasks → fix → full DoD

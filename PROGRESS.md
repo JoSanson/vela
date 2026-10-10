@@ -49,9 +49,9 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 4.11 Onboarding/empty states/shortcuts page — 2e3065d
 
 ## Phase 5
-- [ ] 5.1 Animations/theming
-- [ ] 5.2 Accessibility
-- [ ] 5.3 Error states
+- [x] 5.1 Animations/theming — 6b6d2e9
+- [x] 5.2 Accessibility — 6b6d2e9
+- [x] 5.3 Error states — 6b6d2e9
 
 ## Phase 6
 - [x] 6.1 perf harness — 2e3065d
@@ -62,16 +62,16 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [ ] 7.2 release/codeql/audit
 - [ ] 7.3 engine-watch
 - [ ] 7.4 renovate
-- [ ] 7.5 auto-update
+- [x] 7.5 auto-update — 6b6d2e9
 - [ ] 7.6 RELEASING + ci:local
 - [ ] 7.7 v0.1.0 + v0.1.1 proof
 
 ## Phase 8 — P1
 - [x] 8.1 Content blocker — 2e3065d
-- [ ] 8.2 Site Control Center
-- [ ] 8.3 Advanced themes
+- [x] 8.2 Site Control Center — 6b6d2e9
+- [x] 8.3 Advanced themes — 6b6d2e9
 - [x] 8.4 Reader mode — 2e3065d
-- [ ] 8.5 Extensions
+- [x] 8.5 Extensions — 6b6d2e9
 
 ## Phase 9
 - [ ] 9.1 Review pass 1
@@ -85,8 +85,8 @@ See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] kill -9 session restore — restore.spec.ts
 - [x] perf budgets (PERF.md) — 073e86b
 - [ ] zero any / zero warnings / core coverage > 85 %
-- [ ] SECURITY.md audit
-- [ ] accessibility
+- [x] SECURITY.md audit — 20-point checklist
+- [x] accessibility — roving tree focus, ARIA tree/combobox/dialog roles, focus-visible
 - [ ] CI green on main, engine watch + renovate tested, v0.1.0 released, auto-update proven
 - [ ] docs complete
 - [ ] two review passes
