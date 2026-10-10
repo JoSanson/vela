@@ -10,7 +10,6 @@
   transition:
     background-color var(--dur-fast) var(--ease-out),
     transform var(--dur-press) var(--ease-out);
-  will-change: transform;
 }
 
 .row:hover {

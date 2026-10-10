@@ -1,5 +1,5 @@
 import { todayTabs } from '@vela/core';
-import type { PointerEvent } from 'react';
+import { useMemo, type PointerEvent } from 'react';
 import { invoke, modKey } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
@@ -16,6 +16,8 @@ export function TodayList({ onDragStart }: Props) {
   const core = useShell((s) => s.core);
   const space = core.spaces[core.activeSpaceId];
   const listRef = useFlip<HTMLDivElement>(space?.today.join(',') ?? '');
+  const spaceId = space?.id ?? '';
+  const container = useMemo(() => ({ kind: 'today' as const, spaceId }), [spaceId]);
   if (!space) return null;
   const tabs = todayTabs(core, space.id);
   const hasPinned = space.pinned.length > 0;
@@ -74,7 +76,7 @@ export function TodayList({ onDragStart }: Props) {
             tab={t}
             active={space.activeTabId === t.id}
             inSplit={!!space.split?.panes.includes(t.id)}
-            container={{ kind: 'today', spaceId: space.id }}
+            container={container}
             index={i}
             onDragStart={onDragStart}
           />

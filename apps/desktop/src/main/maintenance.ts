@@ -21,8 +21,12 @@ export function installMaintenance(ctx: AppContext): Maintenance {
     if (!prefs.memorySaverEnabled || prefs.memorySaverMinutes <= 0) return;
     const state = ctx.store.state;
     const visible = new Set(visibleTabIds(state));
-    const cutoff = Date.now() - prefs.memorySaverMinutes * 60_000;
-    for (const id of ctx.tabs.liveTabIds()) {
+    // Each live tab costs ~20 MB of renderer plus ~25 MB of GPU memory: past a dozen, background
+    // tabs are put to sleep sooner than the configured delay.
+    const live = ctx.tabs.liveTabIds();
+    const minutes = live.length > 12 ? Math.min(prefs.memorySaverMinutes, 5) : prefs.memorySaverMinutes;
+    const cutoff = Date.now() - minutes * 60_000;
+    for (const id of live) {
       const tab = state.tabs[id];
       if (!tab || visible.has(id) || tab.sleeping || tab.alwaysActive || tab.audible) continue;
       if (tab.lastActiveAt > cutoff) continue;

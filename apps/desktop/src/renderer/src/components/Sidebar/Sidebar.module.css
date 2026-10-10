@@ -22,6 +22,9 @@
   padding-bottom: 8px;
   scrollbar-width: thin;
   scrollbar-color: var(--fg-faint) transparent;
+  /* Own compositor layer: scrolling under the grain overlay otherwise re-rasterises every frame. */
+  will-change: transform;
+  contain: paint;
 }
 
 .slideRight {

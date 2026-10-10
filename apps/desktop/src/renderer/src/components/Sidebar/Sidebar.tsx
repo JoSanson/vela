@@ -140,6 +140,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
         onWheel={onWheel}
         onKeyDown={onTreeKeyDown}
         key={core.activeSpaceId}
+        data-flip-viewport=""
       >
         <PinnedList onDragStart={onPointerDown} />
         <TodayList onDragStart={onPointerDown} />

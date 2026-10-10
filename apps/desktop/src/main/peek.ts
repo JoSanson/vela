@@ -93,8 +93,15 @@ export class PeekManager {
       push();
     };
     const onFavicon = (_e: unknown, favicons: string[]): void => {
-      if (this.state) this.state.favicon = favicons[0] ?? null;
-      push();
+      const icon = favicons[0];
+      const resolver = this.ctx.tabs.faviconResolver;
+      if (!icon || !resolver) return;
+      // Never hand a remote URL to the overlay: it goes through the favicon cache like tabs do.
+      void resolver(wc.session, wc.getURL() || url, icon).then((internal) => {
+        if (!internal || this.view !== view || !this.state) return;
+        this.state.favicon = internal;
+        push();
+      });
     };
     wc.on('did-start-loading', push);
     wc.on('did-stop-loading', push);
@@ -154,7 +161,10 @@ export class PeekManager {
         /* detached */
       }
     }
-    if (!view.webContents.isDestroyed()) view.webContents.close();
+    // Closing while a frame is in flight logs GPU mailbox errors: let the detach land first.
+    setTimeout(() => {
+      if (!view.webContents.isDestroyed()) view.webContents.close();
+    }, 16);
   }
 
   close(): void {

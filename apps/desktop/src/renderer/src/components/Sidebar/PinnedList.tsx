@@ -1,5 +1,5 @@
 import { pinnedTree, type Container, type Folder, type Id } from '@vela/core';
-import type { PointerEvent } from 'react';
+import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
@@ -89,6 +89,14 @@ export function PinnedList({ onDragStart }: Props) {
   const listRef = useFlip<HTMLDivElement>(
     items.map((it) => (it.kind === 'folder' ? it.folder.id : it.tab.id)).join(','),
   );
+  // Container objects are derived once per folder set so memo(TabRow) sees stable props on every tick.
+  const spaceId = space?.id ?? '';
+  const containers = useMemo(() => {
+    const m = new Map<string, Container>();
+    for (const f of Object.values(core.folders)) m.set(f.id, { kind: 'folder', folderId: f.id });
+    m.set('pinned', { kind: 'pinned', spaceId });
+    return m;
+  }, [core.folders, spaceId]);
   if (!space) return null;
   const parentOf = new Map<Id, Id>();
   for (const f of Object.values(core.folders)) for (const c of f.children) parentOf.set(c, f.id);
@@ -96,10 +104,13 @@ export function PinnedList({ onDragStart }: Props) {
     const p = parentOf.get(id);
     if (p)
       return {
-        container: { kind: 'folder', folderId: p },
+        container: containers.get(p) ?? { kind: 'folder', folderId: p },
         index: core.folders[p]?.children.indexOf(id) ?? 0,
       };
-    return { container: { kind: 'pinned', spaceId: space.id }, index: space.pinned.indexOf(id) };
+    return {
+      container: containers.get('pinned') ?? { kind: 'pinned', spaceId: space.id },
+      index: space.pinned.indexOf(id),
+    };
   };
   return (
     <div
