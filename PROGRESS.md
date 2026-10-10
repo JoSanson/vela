@@ -36,17 +36,17 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 3.9 Drag & drop — d7bd570
 
 ## Phase 4
-- [ ] 4.1 DevTools/favicons/audio/notifications
-- [ ] 4.2 Downloads
-- [ ] 4.3 History
-- [ ] 4.4 Permissions manager
-- [ ] 4.5 Auto PiP
-- [ ] 4.6 Memory saver + lazy restore
-- [ ] 4.7 Boosts + Zap
-- [ ] 4.8 ATC editor
-- [ ] 4.9 Profiles
-- [ ] 4.10 Import + JSON export/import
-- [ ] 4.11 Onboarding/empty states/shortcuts page
+- [x] 4.1 DevTools/favicons/audio/notifications — 2e3065d
+- [x] 4.2 Downloads — 2e3065d
+- [x] 4.3 History — 2e3065d
+- [x] 4.4 Permissions manager — 2e3065d
+- [x] 4.5 Auto PiP — 2e3065d
+- [x] 4.6 Memory saver + lazy restore — 2e3065d
+- [x] 4.7 Boosts + Zap — 2e3065d
+- [x] 4.8 ATC editor — 2e3065d
+- [x] 4.9 Profiles — 2e3065d
+- [x] 4.10 Import + JSON export/import — 2e3065d
+- [x] 4.11 Onboarding/empty states/shortcuts page — 2e3065d
 
 ## Phase 5
 - [ ] 5.1 Animations/theming
@@ -54,7 +54,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [ ] 5.3 Error states
 
 ## Phase 6
-- [ ] 6.1 perf harness
+- [x] 6.1 perf harness — 2e3065d
 - [ ] 6.2 budgets met, PERF.md
 
 ## Phase 7
@@ -67,10 +67,10 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [ ] 7.7 v0.1.0 + v0.1.1 proof
 
 ## Phase 8 — P1
-- [ ] 8.1 Content blocker
+- [x] 8.1 Content blocker — 2e3065d
 - [ ] 8.2 Site Control Center
 - [ ] 8.3 Advanced themes
-- [ ] 8.4 Reader mode
+- [x] 8.4 Reader mode — 2e3065d
 - [ ] 8.5 Extensions
 
 ## Phase 9
@@ -82,7 +82,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [ ] e2e suite green 3× in a row
 - [ ] install/dev/build/test/e2e/lint/typecheck green
-- [ ] kill -9 session restore
+- [x] kill -9 session restore — restore.spec.ts
 - [ ] perf budgets (PERF.md)
 - [ ] zero any / zero warnings / core coverage > 85 %
 - [ ] SECURITY.md audit

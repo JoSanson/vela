@@ -37,17 +37,17 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 3.9 Drag & drop everywhere (reorder, folder, favorites, between spaces, into split)
 
 ## Phase 4 — Pages, media, lightness, comfort
-- [ ] 4.1 DevTools, favicons, titles, audio badge + mute, notifications
-- [ ] 4.2 Downloads panel with progress; vela://downloads
-- [ ] 4.3 History (SQLite) + vela://history
-- [ ] 4.4 Permissions manager per site + vela://settings/permissions
-- [ ] 4.5 Auto PiP on tab switch (and return)
-- [ ] 4.6 Memory saver (sleep after N min, exceptions, indicator) + lazy session restore
-- [ ] 4.7 Boosts: per-domain CSS/JS, Zap element picker, presets, export/import
-- [ ] 4.8 Air Traffic Control rules editor
-- [ ] 4.9 Profiles (session partitions) attached to spaces
-- [ ] 4.10 Import Chrome/Brave/Edge (bookmarks + history) at first run; JSON export/import of all state
-- [ ] 4.11 Onboarding 3 screens, empty states, vela://shortcuts
+- [x] 4.1 DevTools, favicons, titles, audio badge + mute, notifications
+- [x] 4.2 Downloads panel with progress; vela://downloads
+- [x] 4.3 History (SQLite) + vela://history
+- [x] 4.4 Permissions manager per site + vela://settings/permissions
+- [x] 4.5 Auto PiP on tab switch (and return)
+- [x] 4.6 Memory saver (sleep after N min, exceptions, indicator) + lazy session restore
+- [x] 4.7 Boosts: per-domain CSS/JS, Zap element picker, presets, export/import
+- [x] 4.8 Air Traffic Control rules editor
+- [x] 4.9 Profiles (session partitions) attached to spaces
+- [x] 4.10 Import Chrome/Brave/Edge (bookmarks + history) at first run; JSON export/import of all state
+- [x] 4.11 Onboarding 3 screens, empty states, vela://shortcuts
 
 ## Phase 5 — Polish
 - [ ] 5.1 Animations (transform/opacity, motion), theming across shell, grain
@@ -55,7 +55,7 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [ ] 5.3 Error states (net errors, cert interstitial), tray/dock niceties
 
 ## Phase 6 — Perf
-- [ ] 6.1 `pnpm perf`: cold start → sidebar interactive, shell RSS, tab switch, command bar open, bundle size, tracing for jank
+- [x] 6.1 `pnpm perf`: cold start → sidebar interactive, shell RSS, tab switch, command bar open, bundle size, tracing for jank
 - [ ] 6.2 Meet budgets, commit PERF.md
 
 ## Phase 7 — CI/CD & autonomy
@@ -68,10 +68,10 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [ ] 7.7 v0.1.0 release; v0.1.1 auto-update proof script
 
 ## Phase 8 — P1
-- [ ] 8.1 Content blocker (@ghostery/adblocker-electron, per-site toggle, counter)
+- [x] 8.1 Content blocker (@ghostery/adblocker-electron, per-site toggle, counter)
 - [ ] 8.2 Site Control Center popover
 - [ ] 8.3 Advanced themes (palette from image, glass)
-- [ ] 8.4 Reader mode (@mozilla/readability)
+- [x] 8.4 Reader mode (@mozilla/readability)
 - [ ] 8.5 Unpacked Chrome extensions (MV3 subset doc + 2 extensions tested)
 
 ## Phase 9 — Final review (2 passes minimum)
