@@ -64,7 +64,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 7.4 renovate — 289e50c
 - [x] 7.5 auto-update — 6b6d2e9
 - [x] 7.6 RELEASING + ci:local — 289e50c / package.json ci:local
-- [ ] 7.7 v0.1.0 + v0.1.1 proof
+- [x] 7.7 v0.1.0 + v0.1.1 proof — tag `v0.1.0` on this commit; auto-update proven locally (UPDATE-PROOF.md, generic feed v0.1.0→v0.1.1); GitHub release runs once pushed (D013)
 
 ## Phase 8 — P1
 - [x] 8.1 Content blocker — 2e3065d
@@ -75,8 +75,8 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 
 ## Phase 9
 - [x] 9.1 Review pass 1 — f83f6b0 (36 findings fixed)
-- [ ] 9.2 Review pass 2
-- [ ] 9.3 Docs complete
+- [x] 9.2 Review pass 2 — f11bbab (3 HIGH, 6 MEDIUM, 11 LOW + docs fixed; e2e 53/53 ×3, perf all ✅, coverage 98.5 %)
+- [x] 9.3 Docs complete — f11bbab (README install status, SECURITY/ARCHITECTURE/EXTENSIONS accuracy, D017/D018, CHANGELOG)
 
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
@@ -89,4 +89,4 @@ See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] accessibility — roving tree focus, ARIA tree/combobox/dialog roles, focus-visible
 - [~] CI green on main, engine watch + renovate tested, v0.1.0 released, auto-update proven — workflows + Renovate ready, auto-update proven locally (UPDATE-PROOF.md); GitHub run requires the owner's push (D013)
 - [x] docs complete — README (GIF), ARCHITECTURE, DECISIONS, SECURITY, RELEASING, CHANGELOG, docs/EXTENSIONS, PERF, UPDATE-PROOF
-- [ ] two review passes
+- [x] two review passes — f83f6b0 (pass 1, 36 findings), f11bbab (pass 2, 20 findings + docs)

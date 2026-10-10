@@ -65,7 +65,7 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 7.4 renovate.json (Electron prioritised, automerge minor/patch)
 - [x] 7.5 electron-updater: check at launch + 6 h, silent download, install on quit, release notes UI
 - [x] 7.6 RELEASING.md (signing secrets), `pnpm ci:local`
-- [ ] 7.7 v0.1.0 release; v0.1.1 auto-update proof script
+- [x] 7.7 v0.1.0 release; v0.1.1 auto-update proof script
 
 ## Phase 8 — P1
 - [x] 8.1 Content blocker (@ghostery/adblocker-electron, per-site toggle, counter)
@@ -76,5 +76,5 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 
 ## Phase 9 — Final review (2 passes minimum)
 - [x] 9.1 Senior Chromium-engineer review pass 1 → tasks → fix → full DoD
-- [ ] 9.2 Pass 2 → full DoD
-- [ ] 9.3 Docs: README (GIF), ARCHITECTURE, SECURITY, RELEASING, CHANGELOG
+- [x] 9.2 Pass 2 → full DoD
+- [x] 9.3 Docs: README (GIF), ARCHITECTURE, SECURITY, RELEASING, CHANGELOG
