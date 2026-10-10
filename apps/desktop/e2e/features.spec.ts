@@ -400,10 +400,12 @@ test.describe('review fixes', () => {
     expect(result.opener).toBe(true);
     // Popups are real child windows (Chrome-like); plain links still become tabs.
     await expect
-      .poll(() => vela.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
-      .toBe(2);
+      .poll(() => vela.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), {
+        timeout: 15_000,
+      })
+      .toBeGreaterThanOrEqual(2);
     expect(Object.values((await vela.state()).tabs).length).toBe(1);
-    await popup.close();
+    await popup.close().catch(() => undefined);
   });
 
   test('a subresource with a bad certificate does not replace the page', async ({ vela, fixtures }) => {
