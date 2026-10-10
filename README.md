@@ -61,7 +61,7 @@ the hardening checklist, [DECISIONS.md](DECISIONS.md) for the why, and
 | Toggle sidebar             | `⌘S`                |
 | Split view / close pane    | `⌘⇧D` / `⌘⇧W`       |
 | Find in page               | `⌘F`                |
-| Reader mode                | `⌘⇧R`               |
+| Reader mode                | `⌘⌥R`               |
 | Spaces                     | `Ctrl+1…9`, `⌘⌥←/→` |
 | New space                  | `⌘⇧N`               |
 | Archived tabs / History    | `⌘⇧A` / `⌘Y`        |

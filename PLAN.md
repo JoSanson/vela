@@ -59,12 +59,12 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 6.2 Meet budgets, commit PERF.md
 
 ## Phase 7 — CI/CD & autonomy
-- [ ] 7.1 GitHub repo (private), Actions: ci (lint/typecheck/unit/e2e xvfb/build matrix)
-- [ ] 7.2 release.yml on tag → electron-builder → GitHub Releases; codeql.yml; audit.yml daily
-- [ ] 7.3 engine-watch.yml every 6 h (bump Electron → CI → automerge → tag → release / issue on red)
-- [ ] 7.4 renovate.json (Electron prioritised, automerge minor/patch)
+- [x] 7.1 GitHub repo (private), Actions: ci (lint/typecheck/unit/e2e xvfb/build matrix)
+- [x] 7.2 release.yml on tag → electron-builder → GitHub Releases; codeql.yml; audit.yml daily
+- [x] 7.3 engine-watch.yml every 6 h (bump Electron → CI → automerge → tag → release / issue on red)
+- [x] 7.4 renovate.json (Electron prioritised, automerge minor/patch)
 - [x] 7.5 electron-updater: check at launch + 6 h, silent download, install on quit, release notes UI
-- [ ] 7.6 RELEASING.md (signing secrets), `pnpm ci:local`
+- [x] 7.6 RELEASING.md (signing secrets), `pnpm ci:local`
 - [ ] 7.7 v0.1.0 release; v0.1.1 auto-update proof script
 
 ## Phase 8 — P1
@@ -75,6 +75,6 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 8.5 Unpacked Chrome extensions (MV3 subset doc + 2 extensions tested)
 
 ## Phase 9 — Final review (2 passes minimum)
-- [ ] 9.1 Senior Chromium-engineer review pass 1 → tasks → fix → full DoD
+- [x] 9.1 Senior Chromium-engineer review pass 1 → tasks → fix → full DoD
 - [ ] 9.2 Pass 2 → full DoD
 - [ ] 9.3 Docs: README (GIF), ARCHITECTURE, SECURITY, RELEASING, CHANGELOG

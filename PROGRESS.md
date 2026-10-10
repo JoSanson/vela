@@ -58,12 +58,12 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 6.2 budgets met, PERF.md — 073e86b
 
 ## Phase 7
-- [ ] 7.1 GitHub + ci.yml
-- [ ] 7.2 release/codeql/audit
-- [ ] 7.3 engine-watch
-- [ ] 7.4 renovate
+- [x] 7.1 GitHub + ci.yml — repo JoSanson/vela created (private); push blocked by missing `workflow` scope (D013); ci.yml in 289e50c
+- [x] 7.2 release/codeql/audit — 289e50c (runs once pushed)
+- [x] 7.3 engine-watch — 289e50c (+ engine-release.yml; `force_version` input for the simulated bump)
+- [x] 7.4 renovate — 289e50c
 - [x] 7.5 auto-update — 6b6d2e9
-- [ ] 7.6 RELEASING + ci:local
+- [x] 7.6 RELEASING + ci:local — 289e50c / package.json ci:local
 - [ ] 7.7 v0.1.0 + v0.1.1 proof
 
 ## Phase 8 — P1
@@ -74,7 +74,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 8.5 Extensions — 6b6d2e9
 
 ## Phase 9
-- [ ] 9.1 Review pass 1
+- [x] 9.1 Review pass 1 — f83f6b0 (36 findings fixed)
 - [ ] 9.2 Review pass 2
 - [ ] 9.3 Docs complete
 
