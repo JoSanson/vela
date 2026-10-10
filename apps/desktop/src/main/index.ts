@@ -1,6 +1,8 @@
 import { activeSpace, type CoreState } from '@vela/core';
 import { app, BrowserWindow, session } from 'electron';
 import { join } from 'node:path';
+import v8 from 'node:v8';
+import { runInNewContext } from 'node:vm';
 import { runCommand } from './commands';
 import type { AppContext } from './context';
 import { openDatabase } from './db/database';
@@ -44,8 +46,9 @@ const perf: Record<string, number> = {
 if (process.env.VELA_USER_DATA) app.setPath('userData', process.env.VELA_USER_DATA);
 app.setName('Vela');
 // Lets the main process release full-resolution capture bitmaps right after thumbnails are made
-// (see TabManager.snapshot); only affects main-process JS, renderers are untouched.
-app.commandLine.appendSwitch('js-flags', '--expose-gc');
+// (see TabManager.scheduleGc); only affects main-process JS, renderers are untouched.
+v8.setFlagsFromString('--expose-gc');
+(globalThis as { gc?: () => void }).gc = runInNewContext('gc') as () => void;
 app.setAppUserModelId('app.vela.browser');
 registerInternalScheme();
 

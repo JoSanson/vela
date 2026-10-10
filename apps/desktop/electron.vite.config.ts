@@ -10,7 +10,12 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin({ exclude: bundled })],
     build: {
       sourcemap: true,
-      rollupOptions: { input: { index: resolve(dir, 'src/main/index.ts') } },
+      rollupOptions: {
+        input: {
+          index: resolve(dir, 'src/main/index.ts'),
+          adblockUpdate: resolve(dir, 'src/main/workers/adblockUpdate.ts'),
+        },
+      },
     },
   },
   preload: {

@@ -80,8 +80,12 @@ export async function measureColdStart(runs = 3) {
 const SHELL = ['Browser', 'Tab'];
 
 /** 2. Shell RAM with zero tabs after a 2 s settle. */
+const nudgeGc = (app) => app.evaluate(() => globalThis.gc?.());
+
 export async function measureShellMemory(app) {
-  await sleep(2000);
+  await sleep(1500);
+  await nudgeGc(app);
+  await sleep(500);
   const sample = await memorySample(app);
   const key = memoryKey(sample);
   const rss = (types) => sumMB(sample, 'rssMB', types);
@@ -115,7 +119,9 @@ export async function measureSleepingTab(app, fixtures) {
   const withTab = await memorySample(app);
 
   await app.evaluate((_e, id) => globalThis.__vela.ctx.tabs.sleep(id), sleeper);
-  await sleep(1000);
+  await sleep(800);
+  await nudgeGc(app);
+  await sleep(700);
   const after = await memorySample(app);
   const gone = await app.evaluate(
     (_e, id) => globalThis.__vela.ctx.tabs.webContents(id) === undefined,

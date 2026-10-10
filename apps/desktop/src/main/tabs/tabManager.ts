@@ -515,6 +515,7 @@ export class TabManager {
       url: wc.getURL() || tab.url,
     });
     this.destroyView(tabId);
+    this.scheduleGc();
   }
 
   wake(tabId: Id): void {

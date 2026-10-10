@@ -10,6 +10,10 @@ files:
   - '!**/*.map'
 asarUnpack:
   - '**/*.node'
+extraResources:
+  - from: resources/adblock
+    to: adblock
+    filter: ['engine.bin', 'engine.json']
 npmRebuild: false
 nodeGypRebuild: false
 electronLanguages:
