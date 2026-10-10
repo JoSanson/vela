@@ -43,7 +43,7 @@ pnpm test              # vitest (core + main unit)
 pnpm e2e               # playwright _electron (build first)
 pnpm lint / typecheck / format
 pnpm perf              # startup / memory / tab-switch budgets → PERF.md
-pnpm ci:local          # lint + typecheck + test + build + e2e, same as CI
+pnpm ci:local          # lint + typecheck + format:check + coverage + build + e2e + perf, same as CI
 ```
 
 ## Conventions

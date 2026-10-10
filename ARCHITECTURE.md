@@ -48,7 +48,8 @@ Vela is an Electron app with three kinds of processes and one source of truth.
 1. **Main owns the model.** Every mutation is a `CoreAction` dispatched to the `Store`
    (`main/store.ts`), which runs the core reducer. Subscribers react: `TabManager.reconcile`
    creates/attaches/detaches native views, the persist loop writes SQLite (debounced 150 ms,
-   flushed on quit), and the shell/overlay receive the full new snapshot via `state/changed`.
+   flushed on quit), and the shell/overlay receive the new state via `state/changed` (without the
+   archive, which is queried on demand through `archive/search`, see D016).
 2. **Renderers mirror.** On load a renderer calls `snapshot/get` (state + prefs + overlay state),
    stores it in Zustand, and applies every `state/changed`. Renderer-only UI state (sidebar width,
    find bar, inline edits) never leaves the renderer.

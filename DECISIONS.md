@@ -114,3 +114,21 @@ Context: every navigation tick (title/favicon/loading) re-sent the whole state, 
 5000 archive entries, to three renderers.
 Choice: `state/changed` carries `archive: []`; the archive page and the command bar fetch
 `archive/search` on demand. Native layout/re-stacking happens only when the visible panes change.
+
+## D017 — Favicon URLs carry a per-launch token
+
+A `Referer` check alone does not protect `vela://favicon/<host>` (review pass 2): a hostile page
+can load it with `referrerpolicy="no-referrer"` and learn, through `onload`/`onerror`, which hosts
+the user visited. The served path is now `vela://favicon/<token>/<host>` with a random 128-bit
+token per launch. Persisted URLs (tab state, history) stay tokenless; the renderer inserts the
+current token (from `snapshot/get`) when it renders an `<img>`. Icons that cannot be cached are
+not shown rather than loaded from the remote URL, so the shell genuinely never contacts websites.
+
+## D018 — Peek promotion hands the view over before the dispatch
+
+"Open as tab" from Peek used to dispatch `tab/open` and then adopt the peek view; `reconcile` ran
+in between and created a second renderer for the same URL (leaked, never attached). The view is now
+registered in `TabManager` first (`openWithView`), then the tab is opened: reconcile finds the
+existing view and attaches it. Same ordering rule for "unloading" a pinned tab: the active tab
+changes before `tab/reset`, so no throw-away renderer is spawned.
+

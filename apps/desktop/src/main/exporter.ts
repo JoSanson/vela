@@ -1,7 +1,7 @@
 import { createDefaultState, type CoreState, type Folder, type Space, type Tab } from '@vela/core';
 import { DEFAULT_PREFS, type Boost, type Prefs } from '@vela/shared';
 import { app, dialog } from 'electron';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AppContext } from './context';
 
@@ -34,12 +34,14 @@ const SAFE_URL = /^(https?:\/\/|vela:\/\/)/i;
 export function sanitizeImported(input: CoreState): CoreState {
   const tabs: Record<string, Tab> = {};
   for (const t of Object.values(input.tabs)) {
-    if (typeof t.url === 'string' && SAFE_URL.test(t.url)) {
+    if (typeof t.id === 'string' && typeof t.url === 'string' && SAFE_URL.test(t.url)) {
       tabs[t.id] = { ...t, loaded: false, loading: false, audible: false, sleeping: false };
     }
   }
   const folders: Record<string, Folder> = {};
-  for (const f of Object.values(input.folders)) if (input.spaces[f.spaceId]) folders[f.id] = { ...f };
+  for (const f of Object.values(input.folders))
+    if (typeof f.id === 'string' && input.spaces[f.spaceId] && Array.isArray(f.children))
+      folders[f.id] = { ...f };
   const known = (id: string): boolean => id in tabs || id in folders;
   const spaces: Record<string, Space> = Object.fromEntries(
     Object.values(input.spaces).map((s) => {
@@ -82,22 +84,31 @@ export function importState(ctx: AppContext, json: string): void {
   const state = sanitizeImported({ ...base, ...raw.state });
   if (!state.spaceOrder.length || !state.spaces[state.activeSpaceId])
     throw new Error('Export file has no valid space');
-  // Irreversible: keep a copy of the current database next to it first.
+  // Irreversible: keep a copy of the current database next to it first (last three kept).
   try {
     ctx.db.exec(
       `VACUUM INTO '${join(ctx.userData, `state-before-import-${Date.now()}.db`).replace(/'/g, "''")}'`,
     );
+    const backups = readdirSync(ctx.userData)
+      .filter((f) => /^state-before-import-\d+\.db$/.test(f))
+      .sort();
+    for (const old of backups.slice(0, -3)) rmSync(join(ctx.userData, old), { force: true });
   } catch (err) {
     console.warn('[import] backup failed', err);
   }
   ctx.tabs.destroyAll();
   ctx.store.dispatch({ type: 'state/replace', state });
-  if (raw.prefs) {
-    // Never take paths/tokens from a file: extensions and window geometry stay local.
-    const { extensionPaths: _ext, windowBounds: _wb, ...rest } = raw.prefs;
+  if (raw.prefs && typeof raw.prefs === 'object') {
+    // Only known keys with the expected shape; paths and window geometry never come from a file.
+    const incoming = raw.prefs as unknown as Record<string, unknown>;
+    const next: Record<string, unknown> = { ...DEFAULT_PREFS };
+    for (const [key, def] of Object.entries(DEFAULT_PREFS)) {
+      const v = incoming[key];
+      if (v === undefined || key === 'extensionPaths' || key === 'windowBounds') continue;
+      if (Array.isArray(def) ? Array.isArray(v) : typeof v === typeof def) next[key] = v;
+    }
     ctx.prefs.set({
-      ...DEFAULT_PREFS,
-      ...rest,
+      ...(next as unknown as Prefs),
       extensionPaths: ctx.prefs.value.extensionPaths,
       windowBounds: ctx.prefs.value.windowBounds,
     });

@@ -141,8 +141,8 @@ export class ContentBlocker {
 
   attach(ses: Session): void {
     this.sessions.add(ses);
-    if (this.engine) this.apply(ses);
-    else void this.ensureLoaded();
+    if (!this.engine) void this.ensureLoaded();
+    this.apply(ses);
   }
 
   /**
@@ -151,7 +151,6 @@ export class ContentBlocker {
    * forwards to whichever engine is current, plus the preload + webRequest hooks per session.
    */
   private apply(ses: Session): void {
-    if (!this.engine) return;
     const wantOn = this.prefs.value.blockerEnabled;
     const isOn = this.wired.has(ses);
     if (wantOn && !isOn) {
@@ -174,7 +173,12 @@ export class ContentBlocker {
         else callback({});
       });
       ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+        // The engine loads lazily with the first session: hold the first requests until it is in.
         if (this.engine) this.engine.onBeforeRequest(details, callback);
+        else if (this.initPromise)
+          void this.initPromise.then(() =>
+            this.engine ? this.engine.onBeforeRequest(details, callback) : callback({}),
+          );
         else callback({});
       });
       this.wired.set(ses, id);

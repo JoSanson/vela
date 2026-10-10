@@ -7,6 +7,7 @@ import {
   type ShellSnapshot,
 } from '@vela/shared';
 import { create } from 'zustand';
+import { setFaviconToken } from '../components/Favicon';
 import { vela } from './api';
 
 export interface ShellStore {
@@ -61,7 +62,8 @@ export const useShell = create<ShellStore>((set) => ({
   iconPickerFor: null,
   topStrip: 0,
   siteControlOpen: false,
-  hydrate: (snap) =>
+  hydrate: (snap) => {
+    setFaviconToken(snap.faviconToken);
     set({
       ready: true,
       core: snap.state,
@@ -72,7 +74,8 @@ export const useShell = create<ShellStore>((set) => ({
       overlay: snap.overlay,
       sidebarVisible: !snap.prefs.sidebarHidden,
       sidebarWidth: snap.prefs.sidebarWidth,
-    }),
+    });
+  },
   setCore: (core) => set({ core }),
   setPrefs: (prefs) => set({ prefs }),
   setOverlay: (overlay) => set({ overlay }),

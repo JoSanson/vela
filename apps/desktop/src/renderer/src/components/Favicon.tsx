@@ -8,6 +8,21 @@ interface Props {
   size?: number;
 }
 
+let faviconToken = '';
+
+/** Per-launch secret from `snapshot/get`; persisted favicon URLs are tokenless. */
+export function setFaviconToken(token: string): void {
+  faviconToken = token;
+}
+
+const FAVICON_PREFIX = 'vela://favicon/';
+
+export function faviconSrc(url: string): string {
+  return url.startsWith(FAVICON_PREFIX)
+    ? `${FAVICON_PREFIX}${faviconToken}/${url.slice(FAVICON_PREFIX.length)}`
+    : url;
+}
+
 export function Favicon({ tab, size = 16 }: Props) {
   const [broken, setBroken] = useState(false);
   const style = { width: size, height: size, fontSize: size * 0.75 };
@@ -30,7 +45,7 @@ export function Favicon({ tab, size = 16 }: Props) {
       <img
         className={`${styles.img} ${tab.sleeping ? styles.sleeping : ''}`}
         style={style}
-        src={tab.favicon}
+        src={faviconSrc(tab.favicon)}
         alt=""
         draggable={false}
         onError={() => setBroken(true)}

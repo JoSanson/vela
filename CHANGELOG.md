@@ -8,6 +8,28 @@ All notable changes to Vela are documented here. The format follows
 
 ## [0.1.0] - 2026-10-10
 
+### Security (review pass 2)
+
+- Favicon URLs carry a per-launch secret token; icons that cannot be cached are not loaded from
+  the remote URL (D017).
+- Certificate interstitial also covers redirect targets and fragment URLs; subresource and
+  redirect cases are e2e-tested against a local self-signed server.
+- Reader-mode sanitiser also walks the children of removed elements.
+- Dead `app/pickFile` / `app/readFile` / `tab/pip` / `certificate/error` IPC channels removed.
+
+### Fixed (review pass 2)
+
+- Update notes could be re-shown after every overlay close once queued; hide hooks are one-shot.
+- macOS Dock re-activation created an invisible window (and was skipped when a Little window
+  was open).
+- Peek "Open as tab" leaked a second renderer and showed a reloaded page instead of the peeked one
+  (D018); unloading a pinned tab spawned a throw-away renderer.
+- Permission prompts no longer replace an open command bar/switcher; camera + microphone stop at
+  the first denial; screen-share loopback audio only on Windows.
+- Unreserved shortcuts survive a page's `stopPropagation()`; Zap selector type-checked; prefs
+  listeners isolated; ATC wildcard runs collapsed and capped; import backups pruned; Peek view
+  destroyed with the window; archive page refreshes when tabs change.
+
 ### Added
 
 - Arc-style sidebar: global Favorites grid, per-space Pinned tabs with nested folders, Today tabs,

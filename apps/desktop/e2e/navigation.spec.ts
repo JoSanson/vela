@@ -171,6 +171,12 @@ test.describe('peek', () => {
     await expect.poll(async () => Object.values((await vela.state()).tabs).length).toBe(2);
     const st = await vela.state();
     expect(Object.values(st.tabs).some((t) => t.url.includes('localhost') && t.kind === 'today')).toBe(true);
+    // The peek view itself becomes the tab's view: no second renderer for the same page.
+    const count = await vela.app.evaluate(
+      ({ webContents }) =>
+        webContents.getAllWebContents().filter((w) => w.getURL().includes('Pinned-external')).length,
+    );
+    expect(count).toBe(1);
   });
 });
 

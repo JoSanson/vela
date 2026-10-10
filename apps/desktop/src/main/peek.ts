@@ -16,6 +16,7 @@ export class PeekManager {
   view: WebContentsView | null = null;
   state: PeekState | null = null;
   private fromTabId: Id | null = null;
+  private unwire: (() => void) | null = null;
   private lastClickAt = new Map<Id, number>();
 
   constructor(private readonly ctx: Pick<AppContext, 'tabs' | 'overlay' | 'windows' | 'store' | 'history'>) {
@@ -83,21 +84,33 @@ export class PeekManager {
       const target = this.ctx.overlay.view?.webContents;
       if (target) emit(target, 'peek/changed', this.state);
     };
-    wc.on('did-start-loading', push);
-    wc.on('did-stop-loading', push);
-    wc.on('did-navigate', (_e, u) => {
+    const onNavigate = (_e: unknown, u: string): void => {
       this.ctx.history.recordVisit(u, wc.getTitle());
       push();
-    });
-    wc.on('did-navigate-in-page', push);
-    wc.on('page-title-updated', (_e, title) => {
+    };
+    const onTitle = (_e: unknown, title: string): void => {
       this.ctx.history.setTitle(wc.getURL(), title);
       push();
-    });
-    wc.on('page-favicon-updated', (_e, favicons) => {
+    };
+    const onFavicon = (_e: unknown, favicons: string[]): void => {
       if (this.state) this.state.favicon = favicons[0] ?? null;
       push();
-    });
+    };
+    wc.on('did-start-loading', push);
+    wc.on('did-stop-loading', push);
+    wc.on('did-navigate', onNavigate);
+    wc.on('did-navigate-in-page', push);
+    wc.on('page-title-updated', onTitle);
+    wc.on('page-favicon-updated', onFavicon);
+    // Once promoted to a tab, TabManager.wire() owns these events.
+    this.unwire = () => {
+      wc.off('did-start-loading', push);
+      wc.off('did-stop-loading', push);
+      wc.off('did-navigate', onNavigate);
+      wc.off('did-navigate-in-page', push);
+      wc.off('page-title-updated', onTitle);
+      wc.off('page-favicon-updated', onFavicon);
+    };
     wc.setWindowOpenHandler(({ url: u }) => {
       if (/^https?:/i.test(u)) void wc.loadURL(u);
       return { action: 'deny' };
@@ -132,6 +145,7 @@ export class PeekManager {
     const view = this.view;
     this.view = null;
     this.state = null;
+    this.unwire = null;
     if (!view) return;
     if (win && !win.isDestroyed()) {
       try {
@@ -166,11 +180,12 @@ export class PeekManager {
     } catch {
       /* ignore */
     }
+    this.unwire?.();
+    this.unwire = null;
     this.view = null;
     this.state = null;
     this.fromTabId = null;
-    this.ctx.store.dispatch({ type: 'tab/open', tab, activate: true });
-    this.ctx.tabs.adopt(tab.id, view);
+    this.ctx.tabs.openWithView(tab, view);
     const target = this.ctx.overlay.view?.webContents;
     if (target) emit(target, 'peek/changed', null);
     if (this.ctx.overlay.current.kind === 'peek') this.ctx.overlay.hide();

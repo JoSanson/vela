@@ -1,6 +1,7 @@
 import type { CoreAction } from '@vela/core';
 import type { Prefs, ShellSnapshot } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { setFaviconToken } from '../components/Favicon';
 import { ArchivePage } from './ArchivePage';
 import { DownloadsPage } from './DownloadsPage';
 import { ErrorPage } from './ErrorPage';
@@ -49,6 +50,7 @@ export function PagesApp() {
   const refresh = useCallback(async (): Promise<void> => {
     const s = await tryInvoke('snapshot/get', undefined);
     if (s) {
+      setFaviconToken(s.faviconToken);
       setSnap(s);
       setFailed(false);
     } else {
@@ -59,8 +61,10 @@ export function PagesApp() {
     let cancelled = false;
     void tryInvoke('snapshot/get', undefined).then((s) => {
       if (cancelled) return;
-      if (s) setSnap(s);
-      else setFailed(true);
+      if (s) {
+        setFaviconToken(s.faviconToken);
+        setSnap(s);
+      } else setFailed(true);
     });
     return () => {
       cancelled = true;

@@ -13,7 +13,8 @@ export class OverlayManager {
   view: WebContentsView | null = null;
   current: OverlayState = { kind: 'none', payload: null };
   visible = false;
-  private hideHooks: (() => void)[] = [];
+  private hideHooks: ((kind: OverlayKind) => void)[] = [];
+  private onceHooks: (() => void)[] = [];
 
   constructor(
     private readonly windows: WindowManager,
@@ -71,14 +72,24 @@ export class OverlayManager {
     }
   }
 
-  onHide(fn: () => void): void {
+  /** Runs after every hide with the kind that was open. */
+  onHide(fn: (kind: OverlayKind) => void): void {
     this.hideHooks.push(fn);
+  }
+
+  /** Runs once, after the next hide; returns an unsubscribe. */
+  onceHide(fn: () => void): () => void {
+    this.onceHooks.push(fn);
+    return () => {
+      this.onceHooks = this.onceHooks.filter((f) => f !== fn);
+    };
   }
 
   hide(): void {
     const mw = this.windows.main;
     if (!this.view) return;
     const wasVisible = this.visible;
+    const wasKind = this.current.kind;
     this.current = { kind: 'none', payload: null };
     emit(this.view.webContents, 'overlay/changed', this.current);
     if (this.visible && mw && !mw.win.isDestroyed()) {
@@ -89,7 +100,10 @@ export class OverlayManager {
       }
     }
     this.visible = false;
-    if (wasVisible) for (const fn of this.hideHooks) fn();
+    if (wasVisible) {
+      for (const fn of this.hideHooks) fn(wasKind);
+      for (const fn of this.onceHooks.splice(0)) fn();
+    }
     const active = this.tabs.activeTabId();
     if (active) this.tabs.focusTab(active);
     else mw?.win.webContents.focus();

@@ -6,7 +6,7 @@ const channel = (name: string): string => `vela:${name}`;
 
 declare const location: { protocol: string } | undefined;
 declare const window: {
-  addEventListener: (type: 'keydown', cb: (e: KeyEvent) => void) => void;
+  addEventListener: (type: 'keydown', cb: (e: KeyEvent) => void, capture?: boolean) => void;
 };
 interface KeyEvent {
   key: string;
@@ -67,15 +67,20 @@ function matches(e: KeyEvent, accelerator: string): boolean {
   return /^[a-z]$/.test(key) && e.code === `Key${key.toUpperCase()}`;
 }
 if (typeof window !== 'undefined') {
-  window.addEventListener('keydown', (e) => {
-    if (!e.isTrusted) return;
-    const hit = UNRESERVED.find(([, acc]) => matches(e, acc));
-    if (!hit) return;
-    // Page listeners run after this one (registered first); decide once dispatch has finished.
-    setTimeout(() => {
-      if (!e.defaultPrevented) ipcRenderer.send(channel('shortcut'), hit[0]);
-    }, 0);
-  });
+  // Capture phase so a page calling stopPropagation() cannot hide the key; the decision itself
+  // waits until the whole dispatch (page listeners included) has run.
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (!e.isTrusted) return;
+      const hit = UNRESERVED.find(([, acc]) => matches(e, acc));
+      if (!hit) return;
+      setTimeout(() => {
+        if (!e.defaultPrevented) ipcRenderer.send(channel('shortcut'), hit[0]);
+      }, 0);
+    },
+    true,
+  );
 }
 
 /**

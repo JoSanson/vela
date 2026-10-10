@@ -39,12 +39,14 @@ export function hardenSession(ses: Session): void {
     const origin = safeOrigin(details.requestingUrl || wc?.getURL() || '');
     if (!origin || !wc) return callback(false);
     if (permission === 'media') {
-      // Decide camera and microphone separately so a mic-only grant never implies the camera.
+      // Decide camera and microphone separately so a mic-only grant never implies the camera;
+      // stop at the first denial so the user is not asked a second, already-moot question.
       const types = (details as { mediaTypes?: string[] }).mediaTypes ?? ['audio', 'video'];
       const wanted = types.map((t) => (t === 'video' ? 'camera' : 'microphone'));
-      void Promise.all(wanted.map((p) => decider(origin, p, wc.id))).then((ds) =>
-        callback(ds.every((d) => d === 'allow')),
-      );
+      void (async () => {
+        for (const p of wanted) if ((await decider(origin, p, wc.id)) !== 'allow') return callback(false);
+        callback(true);
+      })();
       return;
     }
     void decider(origin, permission, wc.id).then((d) => callback(d === 'allow'));
@@ -59,7 +61,8 @@ export function hardenSession(ses: Session): void {
       const sources = await desktopCapturer.getSources({ types: ['screen'] });
       const primary = sources[0];
       if (!primary) return callback({});
-      callback({ video: primary, audio: 'loopback' });
+      // System audio loopback is only implemented on Windows.
+      callback(process.platform === 'win32' ? { video: primary, audio: 'loopback' } : { video: primary });
     });
   });
   ses.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) => {
@@ -97,10 +100,18 @@ export function safeOrigin(url: string): string {
 
 const pendingMainFrame = new Map<number, string>();
 
+function noFragment(url: string): string {
+  const i = url.indexOf('#');
+  return i === -1 ? url : url.slice(0, i);
+}
+
 export function installAppSecurity(ctx: AppContext): void {
   app.on('web-contents-created', (_e, wc) => {
     wc.on('did-start-navigation', (details) => {
       if (details.isMainFrame && !details.isSameDocument) pendingMainFrame.set(wc.id, details.url);
+    });
+    wc.on('did-redirect-navigation', (details) => {
+      if (details.isMainFrame) pendingMainFrame.set(wc.id, details.url);
     });
     wc.once('destroyed', () => pendingMainFrame.delete(wc.id));
     wc.on('will-attach-webview', (e) => e.preventDefault());
@@ -120,8 +131,9 @@ export function installAppSecurity(ctx: AppContext): void {
     if (!tabId) return;
     // Subresources (iframes, images, XHR) with bad certificates are simply blocked; only a failing
     // main-frame navigation gets the interstitial.
-    const pending = pendingMainFrame.get(wc.id);
-    if (pending !== url && wc.getURL() !== '' && wc.getURL() !== url) return;
+    const pending = noFragment(pendingMainFrame.get(wc.id) ?? '');
+    const current = noFragment(wc.getURL());
+    if (pending !== noFragment(url) && current !== '' && current !== noFragment(url)) return;
     const detail = JSON.stringify({
       error,
       issuer: certificate.issuerName,

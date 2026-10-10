@@ -62,13 +62,17 @@ export class PermissionManager {
     const tabId = this.tabIdOf(wcId);
     if (!tabId) return Promise.resolve('deny');
     return new Promise((resolve) => {
-      const pending: Pending = {
-        prompt: { id: crypto.randomUUID(), tabId, origin, permission: kind },
-        resolve,
-      };
-      this.queue.push(pending);
       const wc = webContents.fromId(wcId);
       const abort = (): void => this.abandon(pending);
+      const pending: Pending = {
+        prompt: { id: crypto.randomUUID(), tabId, origin, permission: kind },
+        resolve: (d) => {
+          wc?.off('did-navigate', abort);
+          wc?.off('destroyed', abort);
+          resolve(d);
+        },
+      };
+      this.queue.push(pending);
       wc?.once('did-navigate', abort);
       wc?.once('destroyed', abort);
       this.pump();
@@ -117,8 +121,20 @@ export class PermissionManager {
     for (const p of this.queue.splice(0)) p.resolve('deny');
   }
 
+  private waitingForOverlay = false;
+
   private pump(): void {
     if (this.current || this.queue.length === 0) return;
+    // Never replace an overlay the user is interacting with (command bar, switcher…): wait for it.
+    if (this.overlay.visible && this.overlay.current.kind !== 'permissionPrompt') {
+      if (this.waitingForOverlay) return;
+      this.waitingForOverlay = true;
+      this.overlay.onceHide(() => {
+        this.waitingForOverlay = false;
+        this.pump();
+      });
+      return;
+    }
     const next = this.queue.shift();
     if (!next) return;
     this.current = next;

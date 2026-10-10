@@ -10,6 +10,8 @@ export interface ShellSnapshot {
   platform: Platform;
   windowId: number;
   overlay: OverlayState;
+  /** Per-launch secret inserted into `vela://favicon/` URLs by the renderer. */
+  faviconToken: string;
   /** Which tab (if any) this window is a "Little" window for. */
   little: { tabId: Id } | null;
 }
@@ -117,16 +119,6 @@ export interface UpdateStatus {
   error: string | null;
 }
 
-export interface CertificateInfo {
-  url: string;
-  error: string;
-  issuer: string;
-  subject: string;
-  validFrom: number;
-  validTo: number;
-  fingerprint: string;
-}
-
 export interface BrowserImportSource {
   id: 'chrome' | 'brave' | 'edge';
   name: string;
@@ -222,7 +214,6 @@ export interface IpcInvokeMap {
   };
   'tab/preview': { req: { tabId: Id; width: number }; res: TabPreview };
   'tab/reader': { req: { tabId: Id }; res: ReaderResult | null };
-  'tab/pip': { req: { tabId: Id; enter: boolean }; res: boolean };
 
   'layout/set': { req: Layout; res: undefined };
   'window/action': {
@@ -304,11 +295,6 @@ export interface IpcInvokeMap {
   'theme/fromImagePath': { req: { path: string }; res: ThemePalette | null };
   'app/openExternal': { req: { url: string }; res: undefined };
   'app/relaunch': { req: undefined; res: undefined };
-  'app/pickFile': {
-    req: { title: string; filters?: { name: string; extensions: string[] }[] };
-    res: string | null;
-  };
-  'app/readFile': { req: { path: string }; res: string };
 }
 
 export type OverlayKind =
@@ -338,7 +324,6 @@ export interface IpcEventMap {
   'downloads/changed': DownloadItemState[];
   'permissions/prompt': PermissionPrompt;
   'update/changed': UpdateStatus;
-  'certificate/error': CertificateInfo & { tabId: Id };
   'window/fullscreen': boolean;
   'zap/pick': { tabId: Id; selector: string };
   'little/changed': LittleState;

@@ -36,7 +36,7 @@ Electron implements a subset of the Chrome extension platform. What works in Vel
 
 ## Tested extensions
 
-The e2e suite (`apps/desktop/e2e/extensions.spec.ts`) downloads two popular open-source releases
+The e2e suite (`apps/desktop/e2e/p1.spec.ts`, "extensions" block) downloads two popular open-source releases
 and loads them:
 
 1. **Dark Reader** (`darkreader-chrome-mv3.zip`) — loads, is listed with its version, its popup URL

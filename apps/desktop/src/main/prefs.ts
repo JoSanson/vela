@@ -24,7 +24,13 @@ export class PrefsStore {
   set(patch: Partial<Prefs>): Prefs {
     this.value = { ...this.value, ...patch };
     this.persist();
-    for (const l of this.listeners) l(this.value);
+    for (const l of this.listeners) {
+      try {
+        l(this.value);
+      } catch (err) {
+        console.error('[prefs] listener failed', err);
+      }
+    }
     return this.value;
   }
 

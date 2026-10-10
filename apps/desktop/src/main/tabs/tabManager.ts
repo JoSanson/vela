@@ -133,23 +133,29 @@ export class TabManager {
     if (active && active !== prevActive) this.focusTab(active);
   }
 
-  /** Registers an already-loaded view (peek / little window) as the view of a core tab. */
-  adopt(tabId: Id, view: WebContentsView): void {
-    const tab = this.state.tabs[tabId];
-    if (!tab || view.webContents.isDestroyed()) return;
-    this.views.set(tabId, view);
-    this.wire(tabId, view.webContents);
-    for (const hook of this.viewHooks) hook(tabId, view.webContents);
+  /**
+   * Opens a new core tab backed by an already-loaded view (peek → "open as tab"). The view is
+   * registered before the dispatch so reconcile attaches it instead of creating a second one.
+   */
+  openWithView(tab: Tab, view: WebContentsView): void {
     const wc = view.webContents;
-    this.patch(tabId, {
-      loaded: true,
-      sleeping: false,
-      url: wc.getURL() || tab.url,
-      title: wc.getTitle(),
-      canGoBack: wc.navigationHistory.canGoBack(),
-      canGoForward: wc.navigationHistory.canGoForward(),
+    if (wc.isDestroyed()) return;
+    this.views.set(tab.id, view);
+    this.wire(tab.id, wc);
+    for (const hook of this.viewHooks) hook(tab.id, wc);
+    this.deps.store.dispatch({
+      type: 'tab/open',
+      tab: {
+        ...tab,
+        loaded: true,
+        sleeping: false,
+        url: wc.getURL() || tab.url,
+        title: wc.getTitle() || tab.title,
+        canGoBack: wc.navigationHistory.canGoBack(),
+        canGoForward: wc.navigationHistory.canGoForward(),
+      },
+      activate: true,
     });
-    this.reconcile(this.state, null);
   }
 
   /** Builds a tab-like WebContentsView (same security posture) without registering it. */
@@ -328,10 +334,11 @@ export class TabManager {
         this.deps.history.setFavicon(pageUrl, favicon);
         return;
       }
+      // Only cached (vela://favicon) icons reach the shell: it must never fetch from websites itself.
       void resolver(wc.session, pageUrl, favicon).then((internal) => {
-        const value = internal ?? favicon;
-        if (!wc.isDestroyed() && this.state.tabs[id]) this.patch(id, { favicon: value });
-        this.deps.history.setFavicon(pageUrl, value);
+        if (!internal) return;
+        if (!wc.isDestroyed() && this.state.tabs[id]) this.patch(id, { favicon: internal });
+        this.deps.history.setFavicon(pageUrl, internal);
       });
     });
     wc.on('audio-state-changed', (e) => this.patch(id, { audible: e.audible }));
@@ -482,18 +489,19 @@ export class TabManager {
       this.deps.store.dispatch({ type: 'tab/close', id: tabId, now: Date.now(), reason: 'closed' });
       return;
     }
-    // Pinned & favorites survive Cmd+W: unload them and move on.
+    // Pinned & favorites survive Cmd+W: unload them and move on. The tab leaves the visible set
+    // before `tab/reset`, otherwise reconcile would spawn a fresh renderer for it.
     const spaceId = tab.spaceId ?? state.activeSpaceId;
     const space = state.spaces[spaceId];
     const next = pickNextActive(state, spaceId, tabId);
     this.destroyView(tabId);
     if (space?.split?.panes.includes(tabId))
       this.deps.store.dispatch({ type: 'split/remove', spaceId, tabId });
-    this.deps.store.dispatch({ type: 'tab/reset', id: tabId });
     if (space?.activeTabId === tabId) {
       if (next) this.deps.store.dispatch({ type: 'tab/activate', id: next, now: Date.now() });
       else this.deps.store.dispatch({ type: 'space/setActiveTab', spaceId, tabId: null });
     }
+    this.deps.store.dispatch({ type: 'tab/reset', id: tabId });
   }
 
   closeActive(): void {

@@ -312,37 +312,53 @@ test.describe('import & export', () => {
   });
 });
 
+/** Local https server with a self-signed certificate (never trusted by Chromium). */
+async function startSelfSignedServer(): Promise<{ url: string; close: () => void }> {
+  const dir = mkdtempSync(join(tmpdir(), 'vela-cert-'));
+  execFileSync(
+    'openssl',
+    [
+      'req',
+      '-x509',
+      '-newkey',
+      'rsa:2048',
+      '-nodes',
+      '-keyout',
+      join(dir, 'k.pem'),
+      '-out',
+      join(dir, 'c.pem'),
+      '-subj',
+      '/CN=localhost',
+      '-days',
+      '1',
+    ],
+    { stdio: 'ignore' },
+  );
+  const server = createHttpsServer(
+    { key: readFileSync(join(dir, 'k.pem')), cert: readFileSync(join(dir, 'c.pem')) },
+    (req, res) => {
+      if (req.url?.endsWith('.png')) {
+        res.writeHead(200, { 'Content-Type': 'image/png' });
+        res.end(Buffer.alloc(8));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<title>Secure</title><h1 id="secure">secure page</h1>');
+    },
+  );
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  return {
+    url: `https://localhost:${(server.address() as AddressInfo).port}/`,
+    close: () => {
+      server.close();
+      rmSync(dir, { recursive: true, force: true });
+    },
+  };
+}
+
 test.describe('certificate errors', () => {
   test('shows an interstitial for a self-signed certificate and lets the user proceed', async ({ vela }) => {
-    const dir = mkdtempSync(join(tmpdir(), 'vela-cert-'));
-    execFileSync(
-      'openssl',
-      [
-        'req',
-        '-x509',
-        '-newkey',
-        'rsa:2048',
-        '-nodes',
-        '-keyout',
-        join(dir, 'k.pem'),
-        '-out',
-        join(dir, 'c.pem'),
-        '-subj',
-        '/CN=localhost',
-        '-days',
-        '1',
-      ],
-      { stdio: 'ignore' },
-    );
-    const server = createHttpsServer(
-      { key: readFileSync(join(dir, 'k.pem')), cert: readFileSync(join(dir, 'c.pem')) },
-      (_req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end('<title>Secure</title><h1 id="secure">secure page</h1>');
-      },
-    );
-    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-    const url = `https://localhost:${(server.address() as AddressInfo).port}/`;
+    const { url, close } = await startSelfSignedServer();
     try {
       await evalMain(vela, `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(url)}, noAtc: true })`);
       const page = await vela.tabPage('vela://error');
@@ -353,8 +369,23 @@ test.describe('certificate errors', () => {
       const secure = await vela.tabPage('https://localhost');
       await expect(secure.locator('#secure')).toHaveText('secure page');
     } finally {
-      server.close();
-      rmSync(dir, { recursive: true, force: true });
+      close();
+    }
+  });
+
+  test('a redirect into a bad certificate still shows the interstitial', async ({ vela, fixtures }) => {
+    const { url, close } = await startSelfSignedServer();
+    try {
+      await vela.openTab(`${fixtures}/page/Redirector`);
+      const page = await vela.tabPage('/page/Redirector');
+      await page.evaluate((to) => {
+        location.href = `/redirect?to=${encodeURIComponent(to)}`;
+      }, url);
+      const error = await vela.tabPage('vela://error');
+      await expect(error.getByTestId('error-cert')).toBeVisible();
+      await expect(error.getByTestId('error-cert')).toContainText('localhost');
+    } finally {
+      close();
     }
   });
 });
@@ -408,16 +439,79 @@ test.describe('review fixes', () => {
     await popup.close().catch(() => undefined);
   });
 
-  test('a subresource with a bad certificate does not replace the page', async ({ vela, fixtures }) => {
-    await vela.openTab(`${fixtures}/page/Subres`);
-    const page = await vela.tabPage('/page/Subres');
-    await page.evaluate(() => {
-      const img = document.createElement('img');
-      img.src = 'https://self-signed.badssl.invalid/x.png';
-      document.body.appendChild(img);
-    });
-    await new Promise((r) => setTimeout(r, 800));
-    expect(page.url()).toContain('/page/Subres');
+  test('a subresource with a bad certificate is blocked without replacing the page', async ({
+    vela,
+    fixtures,
+  }) => {
+    const { url, close } = await startSelfSignedServer();
+    try {
+      await vela.openTab(`${fixtures}/page/Subres`);
+      const page = await vela.tabPage('/page/Subres');
+      const loaded = await page.evaluate(
+        (src) =>
+          new Promise<string>((resolve) => {
+            const img = document.createElement('img');
+            img.onload = () => resolve('loaded');
+            img.onerror = () => resolve('error');
+            img.src = src;
+            document.body.appendChild(img);
+          }),
+        `${url}x.png`,
+      );
+      expect(loaded).toBe('error');
+      await new Promise((r) => setTimeout(r, 500));
+      expect(page.url()).toContain('/page/Subres');
+      await expect(page.getByTestId('heading')).toHaveText('Subres');
+    } finally {
+      close();
+    }
+  });
+
+  test('a permission request waits for the open command bar instead of replacing it', async ({
+    vela,
+    fixtures,
+  }) => {
+    await vela.openTab(`${fixtures}/page/Perm2`);
+    const page = await vela.tabPage('/page/Perm2');
+    await vela.command('newTab');
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('command-bar')).toBeVisible();
+    const req = page.evaluate(() => Notification.requestPermission());
+    await new Promise((r) => setTimeout(r, 500));
+    await expect(overlay.getByTestId('command-bar')).toBeVisible();
+    await expect(overlay.getByTestId('permission-prompt')).toHaveCount(0);
+    await overlay.keyboard.press('Escape');
+    await expect(overlay.getByTestId('permission-prompt')).toBeVisible();
+    await overlay.getByTestId('permission-allow').click();
+    expect(await req).toBe('granted');
+  });
+
+  test('favicons are only served with the per-launch token', async ({ vela, fixtures }) => {
+    const id = await vela.openTab(`${fixtures}/page/FavToken`);
+    await expect.poll(async () => (await vela.state()).tabs[id]?.favicon ?? '').toContain('vela://favicon/');
+    const page = await vela.tabPage('/page/FavToken');
+    const host = new URL(fixtures).host;
+    const probe = (src: string) =>
+      page.evaluate(
+        (s) =>
+          new Promise<string>((resolve) => {
+            const img = document.createElement('img');
+            img.referrerPolicy = 'no-referrer';
+            img.onload = () => resolve('loaded');
+            img.onerror = () => resolve('error');
+            img.src = s;
+          }),
+        src,
+      );
+    expect(await probe(`vela://favicon/${host}`)).toBe('error');
+    expect(await probe(`vela://favicon/deadbeef/${host}`)).toBe('error');
+    const token = await evalMain<string>(vela, 'return __vela.ctx.favicons.token');
+    const stored = (await vela.state()).tabs[id]?.favicon ?? '';
+    const served = await vela.app.evaluate(
+      ({ net }, u) => net.fetch(u).then((r) => r.status),
+      stored.replace('vela://favicon/', `vela://favicon/${token}/`),
+    );
+    expect(served).toBe(200);
   });
 
   test('unreserved shortcuts reach Vela only when the page lets them through', async ({ vela, fixtures }) => {

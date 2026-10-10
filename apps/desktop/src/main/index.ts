@@ -1,5 +1,5 @@
 import { activeSpace, type CoreState } from '@vela/core';
-import { app, BrowserWindow, session } from 'electron';
+import { app, session } from 'electron';
 import { join } from 'node:path';
 import v8 from 'node:v8';
 import { runInNewContext } from 'node:vm';
@@ -191,7 +191,7 @@ async function boot(): Promise<void> {
     };
   }
 
-  const serveFavicon = (host: string) => favicons.serve(host);
+  const serveFavicon = (path: string) => favicons.serve(path);
   sessions.addConfigurator((ses) => {
     installInternalProtocol(ses, rendererDir, devUrl, serveFavicon);
     hardenSession(ses);
@@ -207,7 +207,9 @@ async function boot(): Promise<void> {
     boosts.attach(wc);
     wc.on('did-navigate', () => blocker.resetTab(wc.id));
   });
-  overlay.onHide(() => permissions.dismissAll());
+  overlay.onHide((kind) => {
+    if (kind === 'permissionPrompt') permissions.dismissAll();
+  });
   installAppSecurity(c);
   installPageContextMenu(c);
   installFind(c);
@@ -288,7 +290,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0 && ctx) {
+  if (ctx?.windows.main === null) {
     const c = ctx;
     void c.windows.createMain(activeSpace(c.store.state)?.theme.from ?? '#1b1b22').then(() => {
       c.tabs.reconcile(c.store.state, null);

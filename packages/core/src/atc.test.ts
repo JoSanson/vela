@@ -9,6 +9,12 @@ describe('compileAtcPattern', () => {
     expect(atcPatternMatches('', 'https://github.com/')).toBe(false);
   });
 
+  it('collapses wildcard runs and refuses pathological patterns', () => {
+    expect(compileAtcPattern('*********github.com')?.source).toBe(compileAtcPattern('*github.com')?.source);
+    expect(compileAtcPattern('*a*b*c*d*e*f*g*h*i*')).toBeNull();
+    expect(atcPatternMatches('**.github.com', 'https://gist.github.com/x')).toBe(true);
+  });
+
   it('compiles a case-insensitive regexp', () => {
     const re = compileAtcPattern('GitHub.com');
     expect(re).toBeInstanceOf(RegExp);

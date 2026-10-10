@@ -41,11 +41,14 @@ export class WindowManager {
     const bounds = WindowManager.sanitizeBounds(prefs.windowBounds);
     const layout: Layout = { sidebarWidth: prefs.sidebarWidth, sidebarVisible: !prefs.sidebarHidden };
     const mw = new MainWindow({ bounds, layout, backgroundColor, glass: prefs.glass });
-    this.prefs.subscribe((p) => {
+    const unsubscribePrefs = this.prefs.subscribe((p) => {
       if (!mw.win.isDestroyed()) mw.setGlass(p.glass);
     });
     this.main = mw;
     const { win } = mw;
+    win.once('ready-to-show', () => {
+      if (!win.isDestroyed() && !win.isVisible()) win.show();
+    });
     const persistBounds = (): void => {
       if (win.isDestroyed() || win.isFullScreen() || win.isMinimized()) return;
       this.prefs.set({ windowBounds: win.getNormalBounds() });
@@ -64,6 +67,7 @@ export class WindowManager {
     win.on('enter-full-screen', () => this.onLayoutChange?.());
     win.on('leave-full-screen', () => this.onLayoutChange?.());
     win.on('closed', () => {
+      unsubscribePrefs();
       if (this.main === mw) this.main = null;
     });
     this.onCreated?.(mw);

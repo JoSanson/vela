@@ -10,15 +10,11 @@ import { extractReadable } from '../reader';
 import { paletteFromFile, pickImageAndExtract } from '../themeFromImage';
 import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
-import { dialog } from 'electron';
-import { readFileSync } from 'node:fs';
 import { emit, handle, isTrustedShell } from './typed';
 import { ipcMain } from 'electron';
 import { channel, UNRESERVED_SHORTCUTS } from '@vela/shared';
 
 const UNRESERVED_IDS = new Set(UNRESERVED_SHORTCUTS.map((s) => s.id));
-
-const pickedFiles = new Set<string>();
 
 export function registerCoreHandlers(ctx: AppContext): void {
   const { store, prefs, tabs, windows, overlay } = ctx;
@@ -36,6 +32,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
       platform: process.platform as ShellSnapshot['platform'],
       windowId: event.sender.id,
       overlay: overlay.current,
+      faviconToken: ctx.favicons.token,
       little: windows.littleFor(event.sender.id) ? { tabId: 'little' } : null,
     };
   });
@@ -306,20 +303,6 @@ export function registerCoreHandlers(ctx: AppContext): void {
     return undefined;
   });
 
-  handle('app/pickFile', 'internal', async ({ title, filters }) => {
-    const win = windows.main?.win;
-    const opts = { title, properties: ['openFile' as const], ...(filters ? { filters } : {}) };
-    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
-    const picked = res.canceled ? null : (res.filePaths[0] ?? null);
-    if (picked) pickedFiles.add(picked);
-    return picked;
-  });
-  // Only files the user just picked through the dialog can be read back by internal pages.
-  handle('app/readFile', 'internal', ({ path }) => {
-    if (!pickedFiles.has(path)) throw new Error('readFile: path was not picked by the user');
-    return readFileSync(path, 'utf8');
-  });
-
   handle('app/openExternal', 'internal', async ({ url }) => {
     if (/^(https?|mailto):/i.test(url)) await shell.openExternal(url);
     return undefined;
@@ -335,6 +318,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
     mw.win.on('enter-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', true));
     mw.win.on('leave-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', false));
     mw.win.on('closed', () => {
+      ctx.peek.close();
       tabs.destroyAll();
       overlay.destroy();
     });

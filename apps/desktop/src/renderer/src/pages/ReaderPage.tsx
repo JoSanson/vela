@@ -76,6 +76,8 @@ export function sanitizeArticle(html: string): string {
     for (const child of [...el.children]) {
       const tag = child.tagName.toLowerCase();
       if (!ALLOWED_TAGS.has(tag)) {
+        // Lifted children must be sanitised too, otherwise <foo><img onerror=…></foo> slips through.
+        walk(child);
         child.replaceWith(...child.childNodes);
         continue;
       }

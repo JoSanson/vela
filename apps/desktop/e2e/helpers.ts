@@ -52,6 +52,11 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       );
       return;
     }
+    if (p === '/redirect') {
+      res.writeHead(302, { Location: u.searchParams.get('to') ?? '/' });
+      res.end();
+      return;
+    }
     if (p === '/slow') {
       setTimeout(() => {
         res.writeHead(200, { 'Content-Type': 'text/html' });

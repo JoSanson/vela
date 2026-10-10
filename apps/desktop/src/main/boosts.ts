@@ -140,9 +140,10 @@ export class BoostsManager {
   async zap(wc: WebContents): Promise<string | null> {
     const host = hostOf(wc.getURL());
     if (!host) return null;
-    const selector = (await wc.executeJavaScript(ZAP_PICKER, true).catch(() => null)) as string | null;
+    const selector: unknown = await wc.executeJavaScript(ZAP_PICKER, true).catch(() => null);
     // The picker runs in the page's world: never trust its output as CSS source.
-    if (!selector || selector.length > 500 || /[{};\\]|\/\*|@/.test(selector)) return null;
+    if (typeof selector !== 'string' || !selector || selector.length > 500 || /[{};\\]|\/\*|@/.test(selector))
+      return null;
     const existing = this.repo.forHost(host)[0];
     const boost: Boost = existing
       ? { ...existing, zapped: [...new Set([...existing.zapped, selector])], updatedAt: Date.now() }

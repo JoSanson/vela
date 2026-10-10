@@ -11,9 +11,12 @@ function escapeRe(s: string): string {
  *  - `https://app.x.io/foo*` → full URL glob
  * `*` matches any run of characters; matching is case-insensitive.
  */
+const MAX_WILDCARDS = 8;
+
 export function compileAtcPattern(pattern: string): RegExp | null {
-  const p = pattern.trim().toLowerCase();
-  if (!p) return null;
+  // Runs of `*` collapse and their count is capped: `.*` chains backtrack on every openUrl().
+  const p = pattern.trim().toLowerCase().replace(/\*+/g, '*');
+  if (!p || (p.match(/\*/g)?.length ?? 0) > MAX_WILDCARDS) return null;
   const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//.test(p);
   const hasPath =
     p.includes('/') && !hasScheme ? true : hasScheme && p.replace(/^[a-z]+:\/\//, '').includes('/');

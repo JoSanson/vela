@@ -33,7 +33,7 @@ Electron security checklist point by point against the code, and describes the t
 | 15 | Do not use `shell.openExternal` with untrusted content | ✅ | Only `https?:`/`mailto:` URLs reach `openExternal` (`handlers.ts`, `tabManager.ts`, `contextMenu.ts`). |
 | 16 | Use a current version of Electron | ✅ | Pinned exact (`44.7.0`), bumped automatically by `engine-watch.yml` and Renovate within 24 h of a stable release. |
 | 17 | Validate the `sender` of all IPC messages | ✅ | `ipc/typed.ts::handle` checks `trustedShell` ids or (`internal` access) `senderFrame.url.startsWith('vela://') && senderFrame.parent === null`. Untrusted senders throw. |
-| 18 | Avoid usage of the `file://` protocol, prefer custom protocols | ✅ | Internal pages use the privileged `vela://` scheme (`standard`, `secure`, `supportFetchAPI`); only the shell page itself is `file://` in production (read-only bundle). |
+| 18 | Avoid usage of the `file://` protocol, prefer custom protocols | ✅ | Internal pages use the privileged `vela://` scheme (`standard`, `secure`, `supportFetchAPI`); only Vela's own shells (main window, overlay, Little bar) are `file://` in production (read-only bundle, `will-navigate` blocked). |
 | 19 | Check which fuses you want to change | ⚠️ | Default Electron fuses. `RunAsNode`/`EnableNodeCliInspectArguments` are left enabled so `ELECTRON_RUN_AS_NODE` tooling works; flipping them in `electron-builder.yml` afterPack is a one-liner once signing is in place. |
 | 20 | Do not expose Electron APIs to untrusted web content | ✅ | `contextBridge` exposes only typed `invoke/send/on` wrappers over `vela:`-prefixed channels; `ipcRenderer` itself is never exposed. |
 
@@ -45,19 +45,29 @@ Electron security checklist point by point against the code, and describes the t
 - **User agent**: the `Electron/…` and `Vela/…` tokens are stripped (`sessions.ts`) so sites apply
   their Chrome code paths; no extra identifying headers are added.
 - **Favicons** are fetched by main through the tab's own session and served from SQLite as
-  `vela://favicon/<host>`; the shell never contacts websites. Requests carrying a web `Referer`
-  are refused so a page cannot probe which hosts were visited.
+  `vela://favicon/<token>/<host>`; icons that cannot be cached (too large, non-image, network error)
+  are simply not shown, so the shell never contacts websites. `<token>` is a 128-bit per-launch
+  secret handed only to Vela's documents through `snapshot/get` (persisted URLs are tokenless and
+  the renderer inserts it): a web page cannot probe visited hosts even with `referrerpolicy=no-referrer`.
+  Requests with a web `Referer` are refused as well.
 - **Certificate errors on subresources** (images, iframes, XHR) are simply blocked; only a failing
-  main-frame navigation shows the interstitial.
-- **Internal pages** can only read back files the user just picked through the native dialog
-  (`app/pickFile` → `app/readFile`), and `extensions/load` ignores paths coming from pages.
-- **Zap selectors** returned by the page are validated (no `{}`/`;`/comments, length-capped) before
-  being compiled into user CSS.
+  main-frame navigation (including the target of a redirect) shows the interstitial. Both cases
+  are covered by e2e tests against a local self-signed server.
+- **Internal pages** never receive file contents or paths: imports go through `import/fromFile`
+  (main opens the dialog and reads the file itself) and `extensions/load` ignores paths coming
+  from pages.
+- **Zap selectors** returned by the page are validated (must be a string, no `{}`/`;`/comments,
+  length-capped) before being compiled into user CSS.
 - **Keyboard shortcuts**: reserved ones (⌘T/W/L, Ctrl+Tab, …) are menu accelerators; unreserved
   ones (⌘S, ⌘D, ⌘F, zoom, Ctrl+1…9, …) reach the page first and only act when the page did not
-  `preventDefault()`, like Chrome.
-- **Import** of a JSON export backs up the database (`VACUUM INTO`) and sanitises every id/URL
-  (only `http(s)`/`vela://`, dangling references dropped, no extension paths from the file).
+  `preventDefault()`, like Chrome (the preload listens in the capture phase so `stopPropagation()`
+  cannot hide the key).
+- **Permission prompts** never replace an overlay the user is interacting with (command bar,
+  switcher…): they wait for it to close. Camera and microphone are decided separately, stopping at
+  the first denial. System-audio loopback for screen sharing is only requested on Windows.
+- **Import** of a JSON export backs up the database (`VACUUM INTO`, last three kept) and sanitises
+  the state (string ids, only `http(s)`/`vela://` URLs, dangling references dropped, prefs
+  shape-checked key by key, no extension paths or window geometry from the file).
 - **Downloads** are written to `~/Downloads` with unique names; no automatic opening.
 - **Boosts** (user CSS/JS) are injected only on the host the user configured, with `cssOrigin: 'user'`.
 - **Zap picker** runs in the page's main world but only returns a selector string.

@@ -36,7 +36,8 @@ export function registerInternalScheme(): void {
  * vela://<page>/<path>  → pages.html (SPA, routes on location.host) or a bundled asset.
  * Registered per session so tabs in any profile can show internal pages.
  */
-export type FaviconProvider = (host: string) => { mime: string; data: Buffer } | null;
+/** Receives the path after `vela://favicon/` (`<token>/<host>`); the provider validates the token. */
+export type FaviconProvider = (path: string) => { mime: string; data: Buffer } | null;
 
 export function installInternalProtocol(
   ses: Session,
@@ -48,11 +49,11 @@ export function installInternalProtocol(
   ses.protocol.handle(INTERNAL_SCHEME, async (request) => {
     const url = new URL(request.url);
     if (url.hostname === 'favicon') {
-      // Only Vela's own documents may read cached favicons (web pages could otherwise probe history).
+      // Only Vela's own documents may read cached favicons (web pages could otherwise probe history):
+      // the path carries a per-launch secret token (a page can suppress the Referer, not guess it).
       const referer = request.headers.get('Referer') ?? '';
       if (referer && !/^(vela|file):/.test(referer)) return new Response(null, { status: 403 });
-      const host = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
-      const icon = favicons(host);
+      const icon = favicons(decodeURIComponent(url.pathname.replace(/^\/+/, '')));
       if (!icon) return new Response(null, { status: 404 });
       return new Response(new Uint8Array(icon.data), {
         status: 200,

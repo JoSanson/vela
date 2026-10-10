@@ -33,7 +33,8 @@ export function ArchivePage() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const archiveLen = snap?.state.archive.length ?? 0;
+  // The broadcast state carries no archive: a change in the tab set is the refresh signal.
+  const tabCount = snap ? Object.keys(snap.state.tabs).length : 0;
   useEffect(() => {
     let cancelled = false;
     void tryInvoke('archive/search', { query: debounced, limit: LIMIT }).then((res) => {
@@ -44,7 +45,7 @@ export function ArchivePage() {
     return () => {
       cancelled = true;
     };
-  }, [debounced, reload, archiveLen]);
+  }, [debounced, reload, tabCount]);
 
   const list = useMemo(() => items ?? [], [items]);
   const rowHeight = useCallback(() => ROW_H, []);

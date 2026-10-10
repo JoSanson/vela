@@ -21,14 +21,18 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
 - **Auto PiP**, **Boosts** (per-site CSS/JS + Zap element picker), built-in **content blocker**,
   **reader mode**, downloads, history, per-site permissions, import from Chrome/Brave/Edge,
   unpacked Chrome extensions, in-app auto-updates.
-- **Chromium always fresh.** A scheduled workflow bumps Electron within 24 h of a stable release,
-  runs the full CI and publishes a release automatically.
+- **Chromium always fresh.** A scheduled workflow (`engine-watch.yml`) bumps Electron within 24 h
+  of a stable release, runs the full CI and publishes a release automatically.
 
 ## Install
 
-Download the installer for your OS from the GitHub Releases page (`.dmg`/`.zip` for macOS arm64 and
-x64, `.exe` for Windows, `.AppImage`/`.deb` for Linux). Builds are unsigned until signing secrets
-are configured (see [RELEASING.md](RELEASING.md)); on macOS right-click → Open the first time.
+Until the repository is pushed to GitHub (see [DECISIONS.md](DECISIONS.md) D013) there is no public
+release: build locally with `pnpm build` (installers land in `apps/desktop/release/`). Once the
+`release.yml` workflow runs, installers are attached to GitHub Releases (`.dmg`/`.zip` for macOS
+arm64 and x64, `.exe` for Windows, `.AppImage`/`.deb` for Linux) and the in-app updater picks them
+up; the update flow was proven locally against a generic feed ([UPDATE-PROOF.md](UPDATE-PROOF.md)).
+Builds are unsigned until signing secrets are configured (see [RELEASING.md](RELEASING.md)); on
+macOS right-click → Open the first time.
 
 ## Develop
 
