@@ -298,8 +298,10 @@ export interface IpcInvokeMap {
   'extensions/list': { req: undefined; res: ExtensionInfo[] };
   'extensions/load': { req: { path?: string }; res: ExtensionInfo | null };
   'extensions/remove': { req: { id: string }; res: undefined };
+  'extensions/popup': { req: { id: string }; res: boolean };
 
   'theme/fromImage': { req: undefined; res: ThemePalette | null };
+  'theme/fromImagePath': { req: { path: string }; res: ThemePalette | null };
   'app/openExternal': { req: { url: string }; res: undefined };
   'app/relaunch': { req: undefined; res: undefined };
   'app/pickFile': {

@@ -208,3 +208,19 @@
     transform: translate(-50%, -50%) scale(1);
   }
 }
+
+.fromImage {
+  height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.fromImage:hover {
+  background: var(--surface-active);
+}

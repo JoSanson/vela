@@ -133,6 +133,7 @@ export interface CoreStateLike {
       spaceId: string | null;
       audible: boolean;
       muted: boolean;
+      zoom: number;
     }
   >;
   folders: Record<string, { id: string; name: string; children: string[]; collapsed: boolean }>;
@@ -219,6 +220,10 @@ export async function launchVela(
   };
   /** Captures shell + every attached tab view + overlay and composites them like the real window. */
   const shot = async (name: string): Promise<void> => {
+    // Let entrance animations finish so captures are deterministic.
+    await shell
+      .evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
+      .catch(() => undefined);
     const layers = await app.evaluate(async ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0];
       if (!win)

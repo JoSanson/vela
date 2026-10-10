@@ -91,5 +91,9 @@ export default tseslint.config(
     files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
   },
+  {
+    files: ['apps/desktop/e2e/fixtures/**/*.js'],
+    languageOptions: { globals: { ...globals.browser, chrome: 'readonly' } },
+  },
   prettier,
 );

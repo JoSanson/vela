@@ -125,6 +125,18 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                   aria-label={`Theme ${p.from} ${p.to}`}
                 />
               ))}
+              <button
+                className={styles.fromImage}
+                onClick={() =>
+                  void invoke('theme/fromImage', undefined).then(
+                    (p) => p && setTheme({ ...theme, from: p.from, to: p.to }),
+                  )
+                }
+                title="Extract a palette from an image"
+                data-testid="theme-from-image"
+              >
+                <Icon name="palette" size={14} /> From image
+              </button>
               <label className={styles.custom} title="Custom colors">
                 <input
                   type="color"

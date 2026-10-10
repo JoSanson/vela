@@ -8,6 +8,7 @@ import type { OverlayManager } from './overlay';
 import type { PeekManager } from './peek';
 import type { BoostsManager } from './boosts';
 import type { ContentBlocker } from './blocker';
+import type { ExtensionManager } from './extensions';
 import type { DownloadManager } from './downloads';
 import type { FaviconCache } from './favicons';
 import type { PermissionManager } from './permissions';
@@ -35,6 +36,7 @@ export interface AppContext {
   permissions: PermissionManager;
   boosts: BoostsManager;
   blocker: ContentBlocker;
+  extensions: ExtensionManager;
   favicons: FaviconCache;
   updater: UpdateManager;
   openLittle: (url: string) => void;

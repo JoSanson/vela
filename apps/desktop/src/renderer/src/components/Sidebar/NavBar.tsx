@@ -6,6 +6,8 @@ import styles from './NavBar.module.css';
 
 export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const tab = useShell(selectActiveTab);
+  const siteControlOpen = useShell((s) => s.siteControlOpen);
+  const setSiteControlOpen = useShell((s) => s.setSiteControlOpen);
   const fullscreen = useShell((s) => s.fullscreen);
   const id = tab?.id;
   return (
@@ -55,9 +57,24 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         aria-label="Address and search"
         data-testid="url-pill"
       >
-        {tab?.url.startsWith('https://') && <Icon name="shield" size={12} className={styles.lock} />}
         <span className={styles.urlText}>{tab ? prettyUrl(tab.url) : 'Search or enter URL'}</span>
       </button>
+      {tab && (
+        <button
+          className={`${styles.site} no-drag`}
+          onClick={() => setSiteControlOpen(!siteControlOpen)}
+          aria-label="Site controls"
+          aria-expanded={siteControlOpen}
+          title="Site controls"
+          data-testid="site-control-button"
+        >
+          <Icon
+            name="shield"
+            size={13}
+            className={tab.url.startsWith('https://') ? styles.lockOk : styles.lock}
+          />
+        </button>
+      )}
     </div>
   );
 }

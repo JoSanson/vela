@@ -35,7 +35,8 @@ export class ContentBlocker {
   }
 
   private bundledFile(): string {
-    const base = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources');
+    // Dev/e2e: out/main/ → apps/desktop/resources; packaged: Contents/Resources (extraResources).
+    const base = app.isPackaged ? process.resourcesPath : join(__dirname, '..', '..', 'resources');
     return join(base, 'adblock', 'engine.bin');
   }
 

@@ -130,9 +130,11 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     case 'shortcuts':
       tabs.openUrl({ input: 'vela://shortcuts', noAtc: true });
       return;
-    case 'readerMode':
-      toShell('readerMode');
+    case 'readerMode': {
+      const tid = (payload as { tabId?: string } | undefined)?.tabId ?? activeId;
+      if (tid) ctx.peek.open(`vela://reader/?tab=${encodeURIComponent(tid)}`, tid);
       return;
+    }
     case 'zap': {
       const tid = (payload as { tabId?: string } | undefined)?.tabId ?? activeId;
       if (!tid) return;

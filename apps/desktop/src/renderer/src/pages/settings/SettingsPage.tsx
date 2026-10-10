@@ -4,13 +4,15 @@ import { PageShell } from '../PageShell';
 import { AboutSection } from './AboutSection';
 import { AtcSection } from './AtcSection';
 import { BoostsSection } from './BoostsSection';
+import { ExtensionsSection } from './ExtensionsSection';
 import { GeneralSection } from './GeneralSection';
 import { ImportSection } from './ImportSection';
 import { PermissionsSection } from './PermissionsSection';
 import styles from './Settings.module.css';
 import { SpacesSection } from './SpacesSection';
 
-export type SectionId = 'general' | 'spaces' | 'atc' | 'permissions' | 'boosts' | 'import' | 'about';
+export type SectionId =
+  'general' | 'spaces' | 'atc' | 'permissions' | 'boosts' | 'extensions' | 'import' | 'about';
 
 const SECTIONS: { id: SectionId; label: string; icon: IconName }[] = [
   { id: 'general', label: 'General', icon: 'sliders' },
@@ -18,6 +20,7 @@ const SECTIONS: { id: SectionId; label: string; icon: IconName }[] = [
   { id: 'atc', label: 'Air Traffic Control', icon: 'send' },
   { id: 'permissions', label: 'Permissions', icon: 'shield' },
   { id: 'boosts', label: 'Boosts', icon: 'zap' },
+  { id: 'extensions', label: 'Extensions', icon: 'puzzle' },
   { id: 'import', label: 'Import & export', icon: 'download' },
   { id: 'about', label: 'About & updates', icon: 'info' },
 ];
@@ -60,6 +63,7 @@ export function SettingsPage() {
           {active === 'atc' && <AtcSection />}
           {active === 'permissions' && <PermissionsSection />}
           {active === 'boosts' && <BoostsSection />}
+          {active === 'extensions' && <ExtensionsSection />}
           {active === 'import' && <ImportSection />}
           {active === 'about' && <AboutSection />}
         </div>

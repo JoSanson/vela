@@ -1,4 +1,5 @@
 .bar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -70,4 +71,26 @@
 .lock {
   color: var(--fg-muted);
   flex: 0 0 auto;
+}
+
+.lockOk {
+  color: #1f9d55;
+}
+
+.site {
+  position: absolute;
+  z-index: 2;
+  right: 14px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.site:hover,
+.site[aria-expanded='true'] {
+  background: var(--surface-active);
 }

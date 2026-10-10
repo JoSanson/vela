@@ -9,14 +9,17 @@ export interface MainWindowOptions {
   bounds: Rectangle | null;
   layout: Layout;
   backgroundColor: string;
+  glass: boolean;
 }
 
 export class MainWindow {
   readonly win: BrowserWindow;
   layout: Layout;
+  private readonly opaqueBackground: string;
 
   constructor(opts: MainWindowOptions) {
     this.layout = opts.layout;
+    this.opaqueBackground = opts.backgroundColor;
     this.win = new BrowserWindow({
       width: opts.bounds?.width ?? 1280,
       height: opts.bounds?.height ?? 820,
@@ -44,9 +47,15 @@ export class MainWindow {
       },
     });
     trustShell(this.win.webContents);
+    if (opts.glass) this.setGlass(true);
     this.win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.win.webContents.on('will-navigate', (e) => e.preventDefault());
     this.win.webContents.on('will-attach-webview', (e) => e.preventDefault());
+  }
+
+  setGlass(enabled: boolean): void {
+    if (process.platform === 'darwin') this.win.setVibrancy(enabled ? 'sidebar' : null);
+    this.win.setBackgroundColor(enabled ? '#00000000' : this.opaqueBackground);
   }
 
   async load(): Promise<void> {

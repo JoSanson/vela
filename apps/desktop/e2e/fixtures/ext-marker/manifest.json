@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Vela Marker",
+  "version": "1.0.0",
+  "description": "Tiny MV3 extension used by the e2e suite: content script + service worker + storage + popup.",
+  "background": { "service_worker": "sw.js" },
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_end" }
+  ],
+  "permissions": ["storage"],
+  "action": { "default_popup": "popup.html" }
+}

@@ -22,6 +22,7 @@ import { DownloadManager } from './downloads';
 import { PermissionManager } from './permissions';
 import { BoostsManager } from './boosts';
 import { ContentBlocker } from './blocker';
+import { ExtensionManager } from './extensions';
 import { UpdateManager } from './updater';
 import { installMaintenance } from './maintenance';
 import { installAutoPip } from './pip';
@@ -131,6 +132,7 @@ async function boot(): Promise<void> {
   });
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
+  const extensions = new ExtensionManager(prefs, sessions);
   const rendererDir = join(__dirname, '../renderer');
   const devUrl = process.env.ELECTRON_RENDERER_URL;
 
@@ -149,6 +151,7 @@ async function boot(): Promise<void> {
     permissions,
     boosts,
     blocker,
+    extensions,
     favicons,
     updater: new UpdateManager({ windows, prefs, overlay }),
     perf,
@@ -166,6 +169,7 @@ async function boot(): Promise<void> {
     const { detectSources, runImport } = await import('./importer');
     const exporter = await import('./exporter');
     const reader = await import('./reader');
+    const theme = await import('./themeFromImage');
     const core = await import('@vela/core');
     (globalThis as Record<string, unknown>).__vela = {
       core,
@@ -175,6 +179,7 @@ async function boot(): Promise<void> {
       },
       exporter,
       reader,
+      theme,
       sweep: () => sweepers?.sleepNow(),
       ctx: c,
       runCommand: (id: string, payload?: unknown) => runCommand(c, id, payload),
@@ -189,6 +194,7 @@ async function boot(): Promise<void> {
     blocker.attach(ses);
   });
   void blocker.init();
+  void extensions.init();
   installInternalProtocol(sessions.get('persist:default'), rendererDir, devUrl, serveFavicon);
   installInternalProtocol(session.defaultSession, rendererDir, devUrl, serveFavicon);
   setPermissionDecider((origin, permission, wcId) => permissions.decide(origin, permission, wcId));

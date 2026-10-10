@@ -26,6 +26,7 @@ export interface ShellStore {
   editingItemId: Id | null;
   iconPickerFor: Id | null;
   topStrip: number;
+  siteControlOpen: boolean;
   hydrate: (snap: ShellSnapshot) => void;
   setCore: (core: CoreState) => void;
   setPrefs: (prefs: Prefs) => void;
@@ -39,6 +40,7 @@ export interface ShellStore {
   setEditingItem: (id: Id | null) => void;
   setIconPickerFor: (id: Id | null) => void;
   setTopStrip: (px: number) => void;
+  setSiteControlOpen: (v: boolean) => void;
 }
 
 export const useShell = create<ShellStore>((set) => ({
@@ -58,6 +60,7 @@ export const useShell = create<ShellStore>((set) => ({
   editingItemId: null,
   iconPickerFor: null,
   topStrip: 0,
+  siteControlOpen: false,
   hydrate: (snap) =>
     set({
       ready: true,
@@ -82,6 +85,7 @@ export const useShell = create<ShellStore>((set) => ({
   setEditingItem: (editingItemId) => set({ editingItemId }),
   setIconPickerFor: (iconPickerFor) => set({ iconPickerFor }),
   setTopStrip: (topStrip) => set({ topStrip }),
+  setSiteControlOpen: (siteControlOpen) => set({ siteControlOpen }),
 }));
 
 /** Loads the snapshot and keeps the store in sync with main. Returns an unsubscribe. */

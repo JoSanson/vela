@@ -3,10 +3,11 @@ import { animate } from 'motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
-import { connectStore, useShell } from '../lib/store';
+import { connectStore, selectActiveTab, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { DownloadsPanel } from './DownloadsPanel';
 import { FindBar } from './FindBar';
+import { SiteControl } from './SiteControl';
 import { SplitHandles } from './SplitHandles';
 import styles from './App.module.css';
 
@@ -24,6 +25,10 @@ export function App() {
   const setFindOpen = useShell((s) => s.setFindOpen);
   const setTopStrip = useShell((s) => s.setTopStrip);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
+  const siteControlOpen = useShell((s) => s.siteControlOpen);
+  const setSiteControlOpen = useShell((s) => s.setSiteControlOpen);
+  const activeTab = useShell(selectActiveTab);
+  const glass = useShell((s) => s.prefs.glass);
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const [toast, setToast] = useState<string | null>(null);
   const asideRef = useRef<HTMLDivElement>(null);
@@ -43,6 +48,10 @@ export function App() {
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.glass = glass ? 'true' : 'false';
+  }, [glass]);
 
   useEffect(() => {
     if (!ready || animating.current) return;
@@ -158,6 +167,9 @@ export function App() {
       >
         <Sidebar width={sidebarWidth} onToggle={toggleSidebar} />
         {downloadsOpen && <DownloadsPanel onClose={() => setDownloadsOpen(false)} />}
+        {siteControlOpen && activeTab && (
+          <SiteControl tab={activeTab} onClose={() => setSiteControlOpen(false)} />
+        )}
         <div
           className={styles.resizer}
           onPointerDown={onResizeStart}

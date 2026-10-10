@@ -34,7 +34,10 @@ export class WindowManager {
     const prefs = this.prefs.value;
     const bounds = WindowManager.sanitizeBounds(prefs.windowBounds);
     const layout: Layout = { sidebarWidth: prefs.sidebarWidth, sidebarVisible: !prefs.sidebarHidden };
-    const mw = new MainWindow({ bounds, layout, backgroundColor });
+    const mw = new MainWindow({ bounds, layout, backgroundColor, glass: prefs.glass });
+    this.prefs.subscribe((p) => {
+      if (!mw.win.isDestroyed()) mw.setGlass(p.glass);
+    });
     this.main = mw;
     const { win } = mw;
     const persistBounds = (): void => {

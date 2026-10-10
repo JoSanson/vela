@@ -6,6 +6,7 @@ import { showSidebarMenu } from '../contextMenu';
 import { findInTab, stopFind } from '../find';
 import { fetchSuggestions } from '../suggest';
 import { extractReadable } from '../reader';
+import { paletteFromFile, pickImageAndExtract } from '../themeFromImage';
 import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
 import { dialog } from 'electron';
@@ -247,6 +248,23 @@ export function registerCoreHandlers(ctx: AppContext): void {
     const wc = tabs.webContents(tabId);
     return wc ? extractReadable(wc) : null;
   });
+
+  handle('extensions/list', 'internal', () => ctx.extensions.list());
+  handle('extensions/load', 'internal', ({ path }) =>
+    path ? ctx.extensions.load(path) : ctx.extensions.pickAndLoad(windows.main?.win),
+  );
+  handle('extensions/remove', 'internal', ({ id }) => {
+    ctx.extensions.remove(id);
+    return undefined;
+  });
+  handle('extensions/popup', 'internal', ({ id }) => {
+    const url = ctx.extensions.popupUrl(id);
+    if (!url) return false;
+    ctx.peek.open(url, tabs.activeTabId() ?? undefined);
+    return true;
+  });
+  handle('theme/fromImage', 'shell', () => pickImageAndExtract(windows.main?.win));
+  handle('theme/fromImagePath', 'shell', ({ path }) => paletteFromFile(path));
 
   handle('certificate/trust', 'internal', ({ fingerprint }) => {
     tabs.trustedCertificates.add(fingerprint);

@@ -87,6 +87,15 @@ body[data-page='shell'] {
   background: var(--sidebar-bg);
 }
 
+/* Glass: let the window vibrancy show through a translucent version of the space gradient. */
+:root[data-glass='true'] body[data-page='shell'] {
+  background: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--space-from) 30%, transparent) 0%,
+    color-mix(in oklab, var(--space-to) 24%, transparent) 100%
+  );
+}
+
 button,
 input {
   font: inherit;

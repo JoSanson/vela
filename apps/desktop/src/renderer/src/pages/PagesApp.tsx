@@ -6,6 +6,7 @@ import { DownloadsPage } from './DownloadsPage';
 import { ErrorPage } from './ErrorPage';
 import { HistoryPage } from './HistoryPage';
 import { OnboardingPage } from './OnboardingPage';
+import { ReaderPage } from './ReaderPage';
 import styles from './Pages.module.css';
 import { SettingsPage } from './settings/SettingsPage';
 import { ShortcutsPage } from './ShortcutsPage';
@@ -14,7 +15,7 @@ import { ToastProvider } from './Toast';
 import { EmptyState } from './ui';
 
 export type InternalPage =
-  'error' | 'history' | 'archive' | 'downloads' | 'settings' | 'shortcuts' | 'onboarding' | 'home';
+  'error' | 'history' | 'archive' | 'downloads' | 'settings' | 'shortcuts' | 'onboarding' | 'reader' | 'home';
 
 function pageFromLocation(): InternalPage {
   const host = location.hostname || location.host;
@@ -26,6 +27,7 @@ function pageFromLocation(): InternalPage {
     'settings',
     'shortcuts',
     'onboarding',
+    'reader',
   ];
   return known.find((k) => k === host) ?? 'home';
 }
@@ -105,6 +107,7 @@ export function PagesApp() {
       <ToastProvider>
         <div className={styles.page} data-page={page}>
           {page === 'error' && <ErrorPage />}
+          {page === 'reader' && <ReaderPage />}
           {page === 'history' && <HistoryPage />}
           {page === 'archive' && <ArchivePage />}
           {page === 'downloads' && <DownloadsPage />}

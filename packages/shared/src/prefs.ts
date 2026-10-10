@@ -15,6 +15,10 @@ export interface Prefs {
   blockerEnabled: boolean;
   blockerDisabledHosts: string[];
   autoUpdate: boolean;
+  /** Translucent sidebar (vibrancy on macOS). */
+  glass: boolean;
+  /** Unpacked extension folders to load at startup. */
+  extensionPaths: string[];
   /** Host → zoom factor. */
   zoomByHost: Record<string, number>;
   windowBounds: { x: number; y: number; width: number; height: number } | null;
@@ -35,6 +39,8 @@ export const DEFAULT_PREFS: Prefs = {
   blockerEnabled: true,
   blockerDisabledHosts: [],
   autoUpdate: true,
+  glass: false,
+  extensionPaths: [],
   zoomByHost: {},
   windowBounds: null,
 };

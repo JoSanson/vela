@@ -140,6 +140,17 @@ export function GeneralSection() {
           />
         </Row>
         <Row
+          label="Glass sidebar"
+          hint="Translucent sidebar that lets your desktop show through (macOS vibrancy)."
+        >
+          <Toggle
+            label="Glass sidebar"
+            checked={prefs.glass}
+            onChange={(v) => update({ glass: v })}
+            testId="settings-glass"
+          />
+        </Row>
+        <Row
           label="Install updates automatically"
           hint="Downloads updates in the background and installs on relaunch."
         >
