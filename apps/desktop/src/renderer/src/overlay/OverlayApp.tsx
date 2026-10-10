@@ -4,6 +4,9 @@ import { invoke, vela } from '../lib/api';
 import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { CommandBar, type CommandBarPayload } from './CommandBar';
+import { PeekChrome } from './PeekChrome';
+import { SpaceEditor, type SpaceEditorPayload } from './SpaceEditor';
+import { Switcher, type SwitcherPayload } from './Switcher';
 import styles from './OverlayApp.module.css';
 
 export function OverlayApp() {
@@ -15,7 +18,12 @@ export function OverlayApp() {
 
   const theme = core.spaces[core.activeSpaceId]?.theme;
   useEffect(() => {
-    if (theme) applyTheme(theme, systemPrefersDark());
+    if (!theme) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = (): void => void applyTheme(theme, systemPrefersDark());
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
   }, [theme]);
 
   useEffect(() => {
@@ -43,6 +51,11 @@ export function OverlayApp() {
     <div className={styles.root} data-kind={overlay.kind} data-testid="overlay">
       <div className={styles.backdrop} onMouseDown={hide} data-testid="overlay-backdrop" />
       {overlay.kind === 'commandBar' && <CommandBar payload={overlay.payload as CommandBarPayload} />}
+      {overlay.kind === 'switcher' && <Switcher payload={overlay.payload as SwitcherPayload} />}
+      {overlay.kind === 'spaceEditor' && (
+        <SpaceEditor key={JSON.stringify(overlay.payload)} payload={overlay.payload as SpaceEditorPayload} />
+      )}
+      {overlay.kind === 'peek' && <PeekChrome />}
       {overlay.kind === 'sidebar' && (
         <div className={styles.floatingSidebar} onMouseLeave={hide}>
           <Sidebar width={sidebarWidth} onToggle={hide} floating />

@@ -10,6 +10,10 @@ import { registerCoreHandlers } from './ipc/handlers';
 import { emit } from './ipc/typed';
 import { installMenu } from './menu';
 import { OverlayManager } from './overlay';
+import { PeekManager } from './peek';
+import { installPageContextMenu } from './contextMenu';
+import { installFind } from './find';
+import { LittleWindow } from './windows/littleWindow';
 import { PrefsStore } from './prefs';
 import { installInternalProtocol, registerInternalScheme } from './protocol';
 import { hardenSession, installAppSecurity } from './security';
@@ -51,7 +55,7 @@ function handleExternalUrl(url: string): void {
     pendingUrls.push(url);
     return;
   }
-  runCommand(ctx, 'littleWindow', { url });
+  ctx.openLittle(url);
 }
 
 function persistLoop(ctx: AppContext): void {
@@ -107,11 +111,23 @@ async function boot(): Promise<void> {
     tabs,
     windows,
     overlay,
+    peek: new PeekManager({ tabs, overlay, windows, store, history }),
+    openLittle: (url: string) => {
+      const theme = activeSpace(store.state)?.theme;
+      const w = new LittleWindow({ tabs, history, store, windows }, url, theme?.from ?? '#1b1b22');
+      windows.registerLittle(w);
+    },
     version: app.getVersion(),
     isDev: !!devUrl,
     userData,
   };
   ctx = c;
+  if (process.env.VELA_E2E) {
+    (globalThis as Record<string, unknown>).__vela = {
+      ctx: c,
+      runCommand: (id: string, payload?: unknown) => runCommand(c, id, payload),
+    };
+  }
 
   sessions.addConfigurator((ses) => {
     installInternalProtocol(ses, rendererDir, devUrl);
@@ -119,8 +135,11 @@ async function boot(): Promise<void> {
   });
   installInternalProtocol(sessions.get('persist:default'), rendererDir, devUrl);
   installAppSecurity(c);
+  installPageContextMenu(c);
+  installFind(c);
   persistLoop(c);
   installMenu(c);
+  windows.setGestureHandler((cmd) => runCommand(c, cmd));
 
   const theme = activeSpace(store.state)?.theme;
   const mw = await windows.createMain(theme?.from ?? '#1b1b22');
@@ -146,12 +165,6 @@ async function boot(): Promise<void> {
 
   tabs.reconcile(store.state, null);
   await overlay.init();
-  if (process.env.VELA_E2E) {
-    (globalThis as Record<string, unknown>).__vela = {
-      ctx: c,
-      runCommand: (id: string, payload?: unknown) => runCommand(c, id, payload),
-    };
-  }
   for (const u of pendingUrls.splice(0)) handleExternalUrl(u);
 }
 

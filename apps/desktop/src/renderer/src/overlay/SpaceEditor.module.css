@@ -1,0 +1,210 @@
+.wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100% - 48px));
+  animation: pop var(--dur-fast) var(--ease-out);
+}
+
+.box {
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--border);
+  overflow: hidden;
+}
+
+.preview {
+  position: relative;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emojiBtn {
+  width: 64px;
+  height: 64px;
+  font-size: 36px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.emojiBtn:hover {
+  transform: scale(1.05);
+}
+
+.pickerAnchor {
+  position: absolute;
+  left: 50%;
+  top: 92px;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.input,
+.select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--panel-fg);
+  font-size: 13px;
+  font-weight: 400;
+  user-select: text;
+  cursor: text;
+  flex: 1;
+  min-width: 0;
+}
+
+.select {
+  cursor: default;
+  appearance: auto;
+  border: 0;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.presets {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatchOn {
+  box-shadow:
+    0 0 0 2px var(--panel-bg),
+    0 0 0 4px var(--accent);
+}
+
+.custom {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+.custom input {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.segment {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.segment button {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  text-transform: capitalize;
+  color: var(--fg-muted);
+}
+
+.segOn {
+  background: var(--panel-bg);
+  color: var(--panel-fg) !important;
+  box-shadow: var(--shadow);
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--fg-faint);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.primary,
+.secondary,
+.danger {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.secondary {
+  background: var(--surface);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.danger:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+}
+
+.danger:disabled {
+  opacity: 0.4;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

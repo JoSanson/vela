@@ -9,6 +9,7 @@ export interface ShellSnapshot {
   version: string;
   platform: Platform;
   windowId: number;
+  overlay: OverlayState;
   /** Which tab (if any) this window is a "Little" window for. */
   little: { tabId: Id } | null;
 }
@@ -16,6 +17,29 @@ export interface ShellSnapshot {
 export interface Layout {
   sidebarWidth: number;
   sidebarVisible: boolean;
+  /** Height reserved at the top of the content area (find bar, reader toolbar). */
+  topStrip?: number;
+}
+
+export type ContextMenuKind = 'tab' | 'folder' | 'space' | 'favorite' | 'today' | 'pinnedArea';
+
+export interface LittleState {
+  url: string;
+  title: string;
+  favicon: string | null;
+  loading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+export interface PeekState {
+  url: string;
+  title: string;
+  favicon: string | null;
+  loading: boolean;
+  canGoBack: boolean;
+  /** Content rect of the peek view in window coordinates. */
+  rect: { x: number; y: number; width: number; height: number };
 }
 
 export interface HistoryEntry {
@@ -206,7 +230,18 @@ export interface IpcInvokeMap {
     res: undefined;
   };
   'window/isFullscreen': { req: undefined; res: boolean };
-  'little/sendToMain': { req: { tabId: Id; spaceId: Id }; res: undefined };
+  'little/sendToMain': { req: { spaceId: Id | null }; res: undefined };
+  'little/action': {
+    req: { action: 'back' | 'forward' | 'reload' | 'stop' | 'navigate' | 'close'; input?: string };
+    res: undefined;
+  };
+  'little/state': { req: undefined; res: LittleState | null };
+
+  'command/run': { req: { id: string; payload?: unknown }; res: undefined };
+  'menu/show': { req: { kind: ContextMenuKind; id?: Id; x?: number; y?: number }; res: undefined };
+
+  'peek/open': { req: { url: string; fromTabId?: Id }; res: undefined };
+  'peek/action': { req: { action: 'close' | 'openAsTab' | 'back' | 'reload' }; res: undefined };
 
   'overlay/show': { req: { kind: OverlayKind; payload?: unknown }; res: undefined };
   'overlay/hide': { req: undefined; res: undefined };
@@ -275,6 +310,7 @@ export type OverlayKind =
   | 'commandBar'
   | 'sidebar'
   | 'switcher'
+  | 'spaceEditor'
   | 'peek'
   | 'zap'
   | 'permissionPrompt'
@@ -300,6 +336,8 @@ export interface IpcEventMap {
   'certificate/error': CertificateInfo & { tabId: Id };
   'window/fullscreen': boolean;
   'zap/pick': { tabId: Id; selector: string };
+  'little/changed': LittleState;
+  'peek/changed': PeekState | null;
 }
 
 export type IpcInvokeChannel = keyof IpcInvokeMap;

@@ -2,6 +2,9 @@ import type { ShellSnapshot } from '@vela/shared';
 import { app, shell } from 'electron';
 import { runCommand } from '../commands';
 import type { AppContext } from '../context';
+import { showSidebarMenu } from '../contextMenu';
+import { findInTab, stopFind } from '../find';
+import { fetchSuggestions } from '../suggest';
 import { emit, handle } from './typed';
 
 export function registerCoreHandlers(ctx: AppContext): void {
@@ -14,7 +17,8 @@ export function registerCoreHandlers(ctx: AppContext): void {
       version: ctx.version,
       platform: process.platform as ShellSnapshot['platform'],
       windowId: event.sender.id,
-      little: null,
+      overlay: overlay.current,
+      little: windows.littleFor(event.sender.id) ? { tabId: 'little' } : null,
     };
   });
 
@@ -109,6 +113,44 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
   handle('overlay/hide', 'shell', () => {
     overlay.hide();
+    return undefined;
+  });
+
+  handle('command/run', 'shell', ({ id, payload }) => {
+    runCommand(ctx, id, payload);
+    return undefined;
+  });
+  handle('menu/show', 'shell', ({ kind, id }, event) => {
+    showSidebarMenu(ctx, kind, id, event.sender);
+    return undefined;
+  });
+  handle('tab/find', 'shell', (req) => {
+    findInTab(ctx, req);
+    return undefined;
+  });
+  handle('tab/stopFind', 'shell', ({ tabId, action }) => {
+    stopFind(ctx, tabId, action);
+    return undefined;
+  });
+  handle('suggest/query', 'shell', ({ query }) => fetchSuggestions(prefs.value.searchEngineId, query));
+  handle('peek/open', 'shell', ({ url, fromTabId }) => {
+    ctx.peek.open(url, fromTabId);
+    return undefined;
+  });
+  handle('peek/action', 'shell', ({ action }) => {
+    ctx.peek.action(action);
+    return undefined;
+  });
+  handle('little/state', 'shell', (_req, event) => windows.littleFor(event.sender.id)?.state ?? null);
+  handle('little/action', 'shell', ({ action, input }, event) => {
+    const little = windows.littleFor(event.sender.id);
+    if (!little) return undefined;
+    if (action === 'navigate') little.navigate(input ?? '');
+    else little.action(action);
+    return undefined;
+  });
+  handle('little/sendToMain', 'shell', ({ spaceId }, event) => {
+    windows.littleFor(event.sender.id)?.sendToMain(spaceId);
     return undefined;
   });
 

@@ -30,6 +30,7 @@ const MIME: Record<string, string> = {
 /** Tiny static server for deterministic test pages (no network in e2e). */
 export function startFixtureServer(): Promise<{ server: Server; url: string }> {
   const dir = join(here, 'fixtures');
+  let port = 0;
   const server = createServer((req, res) => {
     const u = new URL(req.url ?? '/', 'http://x');
     const p = u.pathname === '/' ? '/index.html' : u.pathname;
@@ -44,7 +45,7 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       const name = decodeURIComponent(p.slice(6));
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(
-        `<!doctype html><html><head><title>${name}</title><link rel="icon" href="/favicon.svg"></head><body style="font-family:sans-serif;padding:40px"><h1 data-testid="heading">${name}</h1><p>${'lorem ipsum '.repeat(400)}</p><a id="link" href="/page/${name}-next">next</a><a id="blank" target="_blank" href="/page/${name}-popup">popup</a></body></html>`,
+        `<!doctype html><html><head><title>${name}</title><link rel="icon" href="/favicon.svg"></head><body style="font-family:sans-serif;padding:40px"><h1 data-testid="heading">${name}</h1><p>${'lorem ipsum '.repeat(400)}</p><a id="link" href="/page/${name}-next">next</a><a id="blank" target="_blank" href="/page/${name}-popup">popup</a><a id="ext" href="http://localhost:${port}/page/${name}-external">external</a></body></html>`,
       );
       return;
     }
@@ -58,8 +59,8 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
     }
   });
   return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address() as AddressInfo;
+    server.listen(0, () => {
+      port = (server.address() as AddressInfo).port;
       resolve({ server, url: `http://127.0.0.1:${port}` });
     });
   });
@@ -77,6 +78,10 @@ export interface VelaApp {
   /** Pages for tab WebContents (web content). */
   tabPage: (urlPart: string) => Promise<Page>;
   overlay: () => Promise<Page>;
+  /** Resolves once main reports the overlay view detached. */
+  overlayHidden: () => Promise<void>;
+  /** Opens a URL through the command bar and waits for the tab + overlay close. */
+  openTab: (url: string) => Promise<string>;
   shot: (name: string) => Promise<void>;
   close: () => Promise<void>;
 }
@@ -101,6 +106,8 @@ export interface CoreStateLike {
       id: string;
       url: string;
       title: string;
+      customTitle: string | null;
+      emoji: string | null;
       kind: string;
       sleeping: boolean;
       loaded: boolean;
@@ -109,6 +116,7 @@ export interface CoreStateLike {
       muted: boolean;
     }
   >;
+  folders: Record<string, { id: string; name: string; children: string[]; collapsed: boolean }>;
   favorites: string[];
   mru: string[];
   archive: { id: string; url: string; title: string; reason: string }[];
@@ -132,6 +140,9 @@ export async function launchVela(
   const shell = await app.firstWindow();
   await shell.waitForSelector('[data-testid="sidebar"]', { timeout: 15_000 });
   await shell.waitForSelector('[data-ready="true"]', { timeout: 15_000 });
+  await expect
+    .poll(() => app.windows().some((w) => w.url().includes('overlay.html')), { timeout: 15_000 })
+    .toBe(true);
 
   const command = async (id: string, payload?: unknown): Promise<void> => {
     await app.evaluate(
@@ -156,6 +167,36 @@ export async function launchVela(
     return p;
   };
   const overlay = (): Promise<Page> => tabPage('overlay.html');
+  const overlayHidden = async (): Promise<void> => {
+    await expect
+      .poll(() =>
+        app.evaluate(() => {
+          const g = globalThis as unknown as { __vela: { ctx: { overlay: { visible: boolean } } } };
+          return g.__vela.ctx.overlay.visible;
+        }),
+      )
+      .toBe(false);
+  };
+  const openTab = async (url: string): Promise<string> => {
+    await overlayHidden();
+    await command('newTab');
+    const ov = await overlay();
+    const input = ov.getByTestId('command-input');
+    await expect(input).toBeVisible();
+    await input.fill(url);
+    await input.press('Enter');
+    await expect.poll(async () => Object.values(await state()).length).toBeGreaterThan(0);
+    let id = '';
+    await expect
+      .poll(async () => {
+        const st = await state();
+        id = Object.values(st.tabs).find((t) => t.url === url)?.id ?? '';
+        return id;
+      })
+      .not.toBe('');
+    await overlayHidden();
+    return id;
+  };
   /** Captures shell + every attached tab view + overlay and composites them like the real window. */
   const shot = async (name: string): Promise<void> => {
     const layers = await app.evaluate(async ({ BrowserWindow }) => {
@@ -217,7 +258,20 @@ export async function launchVela(
     await app.close().catch(() => undefined);
     rmSync(userData, { recursive: true, force: true });
   };
-  return { app, shell, userData, fixtures: opts.fixtures, command, state, tabPage, overlay, shot, close };
+  return {
+    app,
+    shell,
+    userData,
+    fixtures: opts.fixtures,
+    command,
+    state,
+    tabPage,
+    overlay,
+    overlayHidden,
+    openTab,
+    shot,
+    close,
+  };
 }
 
 export const test = base.extend<{ vela: VelaApp; fixtures: string }>({

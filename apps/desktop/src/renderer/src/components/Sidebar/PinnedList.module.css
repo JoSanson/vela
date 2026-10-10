@@ -41,3 +41,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.empty {
+  min-height: 6px;
+  padding: 0;
+}

@@ -1,0 +1,59 @@
+.bar {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  left: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  animation: drop var(--dur-fast) var(--ease-out);
+}
+
+.icon {
+  color: var(--fg-muted);
+}
+
+.input {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  user-select: text;
+  cursor: text;
+}
+
+.count {
+  min-width: 44px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+
+.btn:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

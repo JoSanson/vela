@@ -156,3 +156,11 @@ input {
     animation-duration: 0.01ms !important;
   }
 }
+
+body[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+body[data-dragging='true'] * {
+  cursor: grabbing !important;
+}

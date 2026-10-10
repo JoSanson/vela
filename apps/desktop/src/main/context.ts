@@ -5,6 +5,7 @@ import type { Db } from './db/database';
 import type { HistoryRepo } from './db/historyRepo';
 import type { StateRepo } from './db/stateRepo';
 import type { OverlayManager } from './overlay';
+import type { PeekManager } from './peek';
 import type { PrefsStore } from './prefs';
 import type { SessionManager } from './sessions';
 import type { Store } from './store';
@@ -23,6 +24,8 @@ export interface AppContext {
   tabs: TabManager;
   windows: WindowManager;
   overlay: OverlayManager;
+  peek: PeekManager;
+  openLittle: (url: string) => void;
   version: string;
   isDev: boolean;
   userData: string;

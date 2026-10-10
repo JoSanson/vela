@@ -45,6 +45,7 @@ test.describe('skeleton', () => {
     await overlay.getByTestId('command-input').fill(`${fixtures}/page/Base`);
     await overlay.getByTestId('command-input').press('Enter');
     const page = await vela.tabPage('/page/Base');
+    await vela.overlayHidden();
     await page.click('#blank');
     await expect.poll(async () => Object.values((await vela.state()).tabs).length).toBe(2);
     const st = await vela.state();
@@ -59,6 +60,7 @@ test.describe('skeleton', () => {
     await overlay.getByTestId('command-input').fill(`${fixtures}/page/Gone`);
     await overlay.getByTestId('command-input').press('Enter');
     await vela.tabPage('/page/Gone');
+    await vela.overlayHidden();
     await vela.command('closeTab');
     await expect.poll(async () => Object.values((await vela.state()).tabs).length).toBe(0);
     const st = await vela.state();

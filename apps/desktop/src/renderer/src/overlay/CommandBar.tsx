@@ -123,7 +123,10 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         subtitle: isSearch ? `Search ${engine.name}` : hostOf(url) ? 'Open website' : 'Open',
         boost: 1,
       });
-      list.unshift(primary);
+      // A strong (prefix) match on an open tab or command beats the generic search row.
+      const strong = ranked[0] && ranked[0].score >= 0.9 && ranked[0].item.kind !== 'archived';
+      if (strong) list.splice(1, 0, primary);
+      else list.unshift(primary);
       for (const s of suggestions.query === q ? suggestions.list : []) {
         if (s.toLowerCase() === q.toLowerCase()) continue;
         list.push(
@@ -152,9 +155,10 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       if (mode === 'edit' && payload.tabId) {
         void invoke('tab/navigate', { tabId: payload.tabId, input });
       } else if (mode === 'split') {
-        void invoke('tab/openUrl', { input, activate: true, noAtc: true }).then((id) =>
-          dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: id }),
-        );
+        void invoke('tab/openUrl', { input, activate: false, noAtc: true }).then((id) => {
+          dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: id });
+          dispatch({ type: 'tab/activate', id, now: Date.now() });
+        });
       } else {
         void invoke('tab/openUrl', { input });
       }
@@ -172,7 +176,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         return;
       case 'cmd':
         void invoke('overlay/hide', undefined);
-        void invoke('window/action', { action: 'new' }).catch(() => undefined);
+        void invoke('command/run', { id: value });
         return;
       case 'search':
       case 'suggestion':

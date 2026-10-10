@@ -12,7 +12,7 @@ import {
   type TabKind,
   type TabPatch,
 } from '@vela/core';
-import type { OpenUrlRequest } from '@vela/shared';
+import { paneRects, type OpenUrlRequest } from '@vela/shared';
 import { WebContentsView, type Rectangle, type WebContents } from 'electron';
 import { preloadPath } from '../context';
 import type { HistoryRepo } from '../db/historyRepo';
@@ -21,7 +21,6 @@ import type { SessionManager } from '../sessions';
 import type { Store } from '../store';
 import type { WindowManager } from '../windows/windowManager';
 
-const SPLIT_GUTTER = 6;
 const ERROR_IGNORED_CODES = new Set([-3, 0]);
 
 export interface TabManagerDeps {
@@ -92,7 +91,7 @@ export class TabManager {
       if (!tab || (tab.sleeping && prev?.tabs[id] && !prev.tabs[id]?.sleeping)) this.destroyView(id);
     }
     const visible = visibleTabIds(state);
-    for (const id of [...this.attached]) if (!visible.includes(id)) this.detach(id);
+    const leaving = this.attached.filter((id) => !visible.includes(id));
     for (const id of visible) {
       const tab = state.tabs[id];
       if (!tab) continue;
@@ -100,9 +99,64 @@ export class TabManager {
       this.attach(id);
     }
     this.layout();
+    // Views that leave the screen are snapshotted for the switcher before being detached; they
+    // sit beneath the freshly attached views meanwhile, so the switch itself is not delayed.
+    for (const id of leaving) {
+      void this.snapshot(id).finally(() => {
+        if (!visibleTabIds(this.state).includes(id)) this.detach(id);
+      });
+    }
     const active = state.spaces[state.activeSpaceId]?.activeTabId;
     const prevActive = prev?.spaces[prev.activeSpaceId]?.activeTabId;
     if (active && active !== prevActive) this.focusTab(active);
+  }
+
+  /** Registers an already-loaded view (peek / little window) as the view of a core tab. */
+  adopt(tabId: Id, view: WebContentsView): void {
+    const tab = this.state.tabs[tabId];
+    if (!tab || view.webContents.isDestroyed()) return;
+    this.views.set(tabId, view);
+    this.wire(tabId, view.webContents);
+    for (const hook of this.viewHooks) hook(tabId, view.webContents);
+    const wc = view.webContents;
+    this.patch(tabId, {
+      loaded: true,
+      sleeping: false,
+      url: wc.getURL() || tab.url,
+      title: wc.getTitle(),
+      canGoBack: wc.navigationHistory.canGoBack(),
+      canGoForward: wc.navigationHistory.canGoForward(),
+    });
+    this.reconcile(this.state, null);
+  }
+
+  /** Builds a tab-like WebContentsView (same security posture) without registering it. */
+  createDetachedView(profileId: Id | null): WebContentsView {
+    const partitions: Record<Id, string | undefined> = {};
+    for (const p of Object.values(this.state.profiles)) partitions[p.id] = p.partition;
+    const ses = this.deps.sessions.forProfile(profileId, partitions);
+    const view = new WebContentsView({ webPreferences: TabManager.webPreferences(ses) });
+    view.setBackgroundColor('#ffffff');
+    return view;
+  }
+
+  static webPreferences(ses: Electron.Session): Electron.WebPreferences {
+    return {
+      session: ses,
+      preload: preloadPath('tab'),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      webviewTag: false,
+      backgroundThrottling: true,
+      safeDialogs: true,
+      spellcheck: true,
+      scrollBounce: true,
+      navigateOnDragDrop: false,
+      enableWebSQL: false,
+    };
   }
 
   private ensureView(tab: Tab): WebContentsView {
@@ -112,24 +166,7 @@ export class TabManager {
     const partitions: Record<Id, string | undefined> = {};
     for (const p of Object.values(this.state.profiles)) partitions[p.id] = p.partition;
     const ses = this.deps.sessions.forProfile(space?.profileId ?? null, partitions);
-    const view = new WebContentsView({
-      webPreferences: {
-        session: ses,
-        preload: preloadPath('tab'),
-        sandbox: true,
-        contextIsolation: true,
-        nodeIntegration: false,
-        webSecurity: true,
-        allowRunningInsecureContent: false,
-        webviewTag: false,
-        backgroundThrottling: true,
-        safeDialogs: true,
-        spellcheck: true,
-        scrollBounce: true,
-        navigateOnDragDrop: false,
-        enableWebSQL: false,
-      },
-    });
+    const view = new WebContentsView({ webPreferences: TabManager.webPreferences(ses) });
     view.setBackgroundColor('#ffffff');
     this.views.set(tab.id, view);
     this.wire(tab.id, view.webContents);
@@ -154,6 +191,7 @@ export class TabManager {
     if (!view) return;
     this.detach(id);
     this.views.delete(id);
+    this.previews.delete(id);
     if (!view.webContents.isDestroyed()) view.webContents.close();
     if (this.htmlFullscreenTab === id) this.htmlFullscreenTab = null;
   }
@@ -199,17 +237,16 @@ export class TabManager {
       bounds = mw.contentBounds();
       radius = mw.contentRadius();
     }
-    const gutter = panes.length > 1 ? SPLIT_GUTTER : 0;
-    const totalW = bounds.width - gutter * (panes.length - 1);
-    let x = bounds.x;
+    const rects = paneRects(
+      bounds,
+      panes.length === sizes.length ? sizes : panes.map(() => 1 / panes.length),
+    );
     panes.forEach((id, i) => {
       const view = this.views.get(id);
-      if (!view) return;
-      const last = i === panes.length - 1;
-      const w = last ? bounds.x + bounds.width - x : Math.round(totalW * (sizes[i] ?? 1 / panes.length));
-      view.setBounds({ x, y: bounds.y, width: Math.max(0, w), height: bounds.height });
+      const r = rects[i];
+      if (!view || !r) return;
+      view.setBounds(r);
       view.setBorderRadius(panes.length > 1 ? Math.min(radius, 8) : radius);
-      x += w + gutter;
     });
     for (const hook of this.afterLayoutHooks) hook();
   }
@@ -460,18 +497,47 @@ export class TabManager {
     this.deps.store.dispatch({ type: 'tab/activate', id: tabId, now: Date.now() });
   }
 
+  private readonly previews = new Map<Id, string>();
+
+  /** Stores a small thumbnail of a currently attached view (used by the switcher). */
+  private async snapshot(tabId: Id): Promise<void> {
+    const wc = this.webContents(tabId);
+    if (!wc || !this.attached.includes(tabId) || wc.isLoading()) return;
+    try {
+      const img = await Promise.race([
+        wc.capturePage(),
+        new Promise<null>((r) => setTimeout(() => r(null), 150)),
+      ]);
+      if (!img || img.isEmpty()) return;
+      const size = img.getSize();
+      if (size.width === 0) return;
+      this.previews.set(
+        tabId,
+        img.resize({ width: 320, height: Math.round((size.height * 320) / size.width) }).toDataURL(),
+      );
+    } catch {
+      /* not paintable */
+    }
+  }
+
   async capture(tabId: Id, width: number): Promise<string | null> {
     const wc = this.webContents(tabId);
-    if (!wc || !this.attached.includes(tabId)) return null;
-    try {
-      const img = await wc.capturePage();
-      if (img.isEmpty()) return null;
-      const size = img.getSize();
-      const resized = img.resize({ width, height: Math.round((size.height * width) / size.width) });
-      return resized.toDataURL();
-    } catch {
-      return null;
+    if (wc && this.attached.includes(tabId)) {
+      try {
+        const img = await wc.capturePage();
+        if (!img.isEmpty()) {
+          const size = img.getSize();
+          const dataUrl = img
+            .resize({ width, height: Math.round((size.height * width) / size.width) })
+            .toDataURL();
+          this.previews.set(tabId, dataUrl);
+          return dataUrl;
+        }
+      } catch {
+        /* fall through to cache */
+      }
     }
+    return this.previews.get(tabId) ?? null;
   }
 
   destroyAll(): void {

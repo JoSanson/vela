@@ -29,3 +29,40 @@
   background: var(--surface-active);
   box-shadow: 0 1px 2px rgba(18, 16, 30, 0.08);
 }
+
+/* Absolutely positioned so showing it during a drag never shifts the rows below. */
+.emptyZone {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 92px;
+  z-index: 4;
+  height: 34px;
+  padding: 0;
+  border: 1px dashed var(--fg-faint);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: none;
+  background: color-mix(in oklab, var(--surface) 60%, transparent);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+.cell {
+  position: relative;
+}
+
+.dot {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}

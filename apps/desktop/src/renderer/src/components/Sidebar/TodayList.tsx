@@ -1,11 +1,17 @@
 import { todayTabs } from '@vela/core';
+import type { PointerEvent } from 'react';
 import { invoke, modKey } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
+import type { DragItem } from './dnd';
 import { TabRow } from './TabRow';
 import styles from './TodayList.module.css';
 
-export function TodayList() {
+interface Props {
+  onDragStart: (e: PointerEvent<HTMLElement>, item: DragItem) => void;
+}
+
+export function TodayList({ onDragStart }: Props) {
   const core = useShell((s) => s.core);
   const space = core.spaces[core.activeSpaceId];
   if (!space) return null;
@@ -15,12 +21,26 @@ export function TodayList() {
     for (const t of tabs) void invoke('tab/close', { tabId: t.id });
   };
   return (
-    <div role="group" aria-label="Today" className={styles.wrap} data-testid="today">
+    <div
+      role="group"
+      aria-label="Today"
+      className={styles.wrap}
+      data-testid="today"
+      data-dnd-zone="today"
+      data-dnd-container={JSON.stringify({ kind: 'today', spaceId: space.id })}
+      data-dnd-count={space.today.length}
+      onContextMenu={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          void invoke('menu/show', { kind: 'today' });
+        }
+      }}
+    >
       {hasPinned && (
         <div className={styles.divider}>
           <span className={styles.line} />
           {tabs.length > 0 && (
-            <button className={styles.clear} onClick={clearAll}>
+            <button className={styles.clear} onClick={clearAll} data-testid="clear-today">
               Clear
             </button>
           )}
@@ -36,15 +56,24 @@ export function TodayList() {
         <kbd className={styles.kbd}>{modKey}T</kbd>
       </button>
       <div className={styles.list}>
-        {tabs.map((t) => (
+        {tabs.map((t, i) => (
           <TabRow
             key={t.id}
             tab={t}
             active={space.activeTabId === t.id}
             inSplit={!!space.split?.panes.includes(t.id)}
+            container={{ kind: 'today', spaceId: space.id }}
+            index={i}
+            onDragStart={onDragStart}
           />
         ))}
       </div>
+      {tabs.length === 0 && !hasPinned && core.favorites.length === 0 && (
+        <p className={styles.emptyHint}>
+          Tabs you open land here. They are archived after {core.spaceOrder.length ? '' : ''}
+          <span className={styles.nowrap}>{useShell.getState().prefs.autoArchiveHours}h</span> of inactivity.
+        </p>
+      )}
     </div>
   );
 }

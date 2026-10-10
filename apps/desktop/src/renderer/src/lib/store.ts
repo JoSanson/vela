@@ -23,6 +23,9 @@ export interface ShellStore {
   findOpen: boolean;
   downloadsOpen: boolean;
   editingSpaceId: Id | null;
+  editingItemId: Id | null;
+  iconPickerFor: Id | null;
+  topStrip: number;
   hydrate: (snap: ShellSnapshot) => void;
   setCore: (core: CoreState) => void;
   setPrefs: (prefs: Prefs) => void;
@@ -33,6 +36,9 @@ export interface ShellStore {
   setFindOpen: (v: boolean) => void;
   setDownloadsOpen: (v: boolean) => void;
   setEditingSpace: (id: Id | null) => void;
+  setEditingItem: (id: Id | null) => void;
+  setIconPickerFor: (id: Id | null) => void;
+  setTopStrip: (px: number) => void;
 }
 
 export const useShell = create<ShellStore>((set) => ({
@@ -49,6 +55,9 @@ export const useShell = create<ShellStore>((set) => ({
   findOpen: false,
   downloadsOpen: false,
   editingSpaceId: null,
+  editingItemId: null,
+  iconPickerFor: null,
+  topStrip: 0,
   hydrate: (snap) =>
     set({
       ready: true,
@@ -57,6 +66,7 @@ export const useShell = create<ShellStore>((set) => ({
       platform: snap.platform,
       version: snap.version,
       little: snap.little,
+      overlay: snap.overlay,
       sidebarVisible: !snap.prefs.sidebarHidden,
       sidebarWidth: snap.prefs.sidebarWidth,
     }),
@@ -69,6 +79,9 @@ export const useShell = create<ShellStore>((set) => ({
   setFindOpen: (findOpen) => set({ findOpen }),
   setDownloadsOpen: (downloadsOpen) => set({ downloadsOpen }),
   setEditingSpace: (editingSpaceId) => set({ editingSpaceId }),
+  setEditingItem: (editingItemId) => set({ editingItemId }),
+  setIconPickerFor: (iconPickerFor) => set({ iconPickerFor }),
+  setTopStrip: (topStrip) => set({ topStrip }),
 }));
 
 /** Loads the snapshot and keeps the store in sync with main. Returns an unsubscribe. */

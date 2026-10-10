@@ -98,3 +98,11 @@
   background: var(--surface-hover);
   color: var(--fg);
 }
+
+.dot {
+  background: color-mix(in oklab, var(--dot-color, var(--fg-faint)) 55%, var(--fg-faint));
+}
+
+.dotActive {
+  background: var(--surface-active);
+}

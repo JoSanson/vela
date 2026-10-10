@@ -1,8 +1,11 @@
-import { displayTitle, type Tab } from '@vela/core';
-import { memo, useCallback, type KeyboardEvent, type MouseEvent } from 'react';
+import { displayTitle, type Container, type Tab } from '@vela/core';
+import { memo, useCallback, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
+import { useShell } from '../../lib/store';
 import { Favicon } from '../Favicon';
 import { Icon } from '../Icon';
+import { InlineEdit } from '../InlineEdit';
+import type { DragItem } from './dnd';
 import styles from './TabRow.module.css';
 
 interface Props {
@@ -10,10 +13,23 @@ interface Props {
   active: boolean;
   depth?: number;
   inSplit?: boolean;
+  container: Container;
+  index: number;
+  onDragStart?: (e: PointerEvent<HTMLElement>, item: DragItem) => void;
 }
 
-export const TabRow = memo(function TabRow({ tab, active, depth = 0, inSplit = false }: Props) {
+export const TabRow = memo(function TabRow({
+  tab,
+  active,
+  depth = 0,
+  inSplit = false,
+  container,
+  index,
+  onDragStart,
+}: Props) {
   const title = displayTitle(tab);
+  const editing = useShell((s) => s.editingItemId === tab.id);
+  const setEditing = useShell((s) => s.setEditingItem);
   const activate = useCallback(
     () => dispatch({ type: 'tab/activate', id: tab.id, now: Date.now() }),
     [tab.id],
@@ -41,9 +57,12 @@ export const TabRow = memo(function TabRow({ tab, active, depth = 0, inSplit = f
         activate();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         close(e);
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        setEditing(tab.id);
       }
     },
-    [activate, close],
+    [activate, close, setEditing, tab.id],
   );
   const toggleMute = useCallback(
     (e: MouseEvent) => {
@@ -51,6 +70,34 @@ export const TabRow = memo(function TabRow({ tab, active, depth = 0, inSplit = f
       void invoke('tab/setMuted', { tabId: tab.id, muted: !tab.muted });
     },
     [tab.id, tab.muted],
+  );
+  const onContextMenu = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault();
+      void invoke('menu/show', { kind: tab.kind === 'favorite' ? 'favorite' : 'tab', id: tab.id });
+    },
+    [tab.id, tab.kind],
+  );
+  const onPointerDown = useCallback(
+    (e: PointerEvent<HTMLElement>) => {
+      onDragStart?.(e, {
+        id: tab.id,
+        type: 'tab',
+        label: title,
+        emoji: tab.emoji,
+        favicon: tab.favicon,
+        url: tab.url,
+      });
+    },
+    [onDragStart, tab.id, tab.emoji, tab.favicon, tab.url, title],
+  );
+  const commitRename = useCallback(
+    (value: string) => {
+      const v = value.trim();
+      dispatch({ type: 'tab/update', id: tab.id, patch: { customTitle: v && v !== tab.title ? v : null } });
+      setEditing(null);
+    },
+    [tab.id, tab.title, setEditing],
   );
 
   return (
@@ -61,15 +108,32 @@ export const TabRow = memo(function TabRow({ tab, active, depth = 0, inSplit = f
       tabIndex={active ? 0 : -1}
       data-tab-id={tab.id}
       data-kind={tab.kind}
+      data-dnd-row={tab.id}
+      data-dnd-type="tab"
+      data-dnd-container={JSON.stringify(container)}
+      data-dnd-index={index}
+      data-dnd-depth={depth}
       className={`${styles.row} ${active ? styles.active : ''} ${inSplit ? styles.inSplit : ''} ${tab.sleeping ? styles.sleeping : ''}`}
       style={{ paddingLeft: 8 + depth * 14 }}
       onClick={activate}
+      onDoubleClick={() => setEditing(tab.id)}
       onMouseDown={onMouseDown}
+      onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
+      onContextMenu={onContextMenu}
       title={tab.url}
     >
       <Favicon tab={tab} />
-      <span className={styles.title}>{title}</span>
+      {editing ? (
+        <InlineEdit
+          value={tab.customTitle ?? tab.title}
+          onCommit={commitRename}
+          onCancel={() => setEditing(null)}
+          placeholder={tab.title}
+        />
+      ) : (
+        <span className={styles.title}>{title}</span>
+      )}
       {tab.loading && <span className={styles.spinner} aria-label="Loading" />}
       {(tab.audible || tab.muted) && (
         <button
@@ -81,9 +145,11 @@ export const TabRow = memo(function TabRow({ tab, active, depth = 0, inSplit = f
         </button>
       )}
       {tab.sleeping && <Icon name="sleep" size={12} className={styles.sleepIcon} />}
-      <button className={styles.close} onClick={close} aria-label={`Close ${title}`} tabIndex={-1}>
-        <Icon name="close" size={13} />
-      </button>
+      {!editing && (
+        <button className={styles.close} onClick={close} aria-label={`Close ${title}`} tabIndex={-1}>
+          <Icon name="close" size={13} />
+        </button>
+      )}
     </div>
   );
 });

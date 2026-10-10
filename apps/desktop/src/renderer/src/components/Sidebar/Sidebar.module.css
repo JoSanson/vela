@@ -23,3 +23,40 @@
   scrollbar-width: thin;
   scrollbar-color: var(--fg-faint) transparent;
 }
+
+.slideRight {
+  animation: slideRight 240ms var(--ease-out);
+}
+
+.slideLeft {
+  animation: slideLeft 240ms var(--ease-out);
+}
+
+.pickerAnchor {
+  position: absolute;
+  left: 10px;
+  top: 120px;
+  z-index: 30;
+}
+
+@keyframes slideRight {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

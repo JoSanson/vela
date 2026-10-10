@@ -13,6 +13,7 @@ export class OverlayManager {
   view: WebContentsView | null = null;
   current: OverlayState = { kind: 'none', payload: null };
   visible = false;
+  private hideHooks: (() => void)[] = [];
 
   constructor(
     private readonly windows: WindowManager,
@@ -43,6 +44,8 @@ export class OverlayManager {
     view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     view.webContents.on('will-navigate', (e) => e.preventDefault());
     this.view = view;
+    // The renderer subscribes after load: replay the current state so an early show() is not lost.
+    view.webContents.on('did-finish-load', () => emit(view.webContents, 'overlay/changed', this.current));
     await view.webContents.loadURL(rendererUrl('overlay'));
   }
 
@@ -59,9 +62,14 @@ export class OverlayManager {
     this.view.webContents.focus();
   }
 
+  onHide(fn: () => void): void {
+    this.hideHooks.push(fn);
+  }
+
   hide(): void {
     const mw = this.windows.main;
     if (!this.view) return;
+    const wasVisible = this.visible;
     this.current = { kind: 'none', payload: null };
     emit(this.view.webContents, 'overlay/changed', this.current);
     if (this.visible && mw && !mw.win.isDestroyed()) {
@@ -72,6 +80,7 @@ export class OverlayManager {
       }
     }
     this.visible = false;
+    if (wasVisible) for (const fn of this.hideHooks) fn();
     const active = this.tabs.activeTabId();
     if (active) this.tabs.focusTab(active);
     else mw?.win.webContents.focus();

@@ -3,6 +3,8 @@ import type { AppContext } from './context';
 import { emit } from './ipc/typed';
 
 /** Commands triggered by menu accelerators, the command bar or the shell. Runs in main. */
+let switcherSeq = 0;
+
 export function runCommand(ctx: AppContext, id: string, payload?: unknown): void {
   const { store, tabs, overlay, windows } = ctx;
   const state = store.state;
@@ -36,10 +38,10 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       return;
     }
     case 'nextTabMru':
-      overlay.show('switcher', { direction: 1, step: overlay.current.kind === 'switcher' ? 1 : 0 });
+      overlay.show('switcher', { direction: 1, seq: ++switcherSeq });
       return;
     case 'prevTabMru':
-      overlay.show('switcher', { direction: -1, step: overlay.current.kind === 'switcher' ? 1 : 0 });
+      overlay.show('switcher', { direction: -1, seq: ++switcherSeq });
       return;
     case 'nextTab':
     case 'prevTab': {
@@ -132,9 +134,16 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       toShell('readerMode');
       return;
     case 'newWindow':
-    case 'littleWindow':
-      toShell('littleWindow', payload);
+    case 'littleWindow': {
+      const url = (payload as { url?: string } | undefined)?.url ?? 'about:blank';
+      ctx.openLittle(url);
       return;
+    }
+    case 'peek': {
+      const p = payload as { url?: string; fromTabId?: string } | undefined;
+      if (p?.url) ctx.peek.open(p.url, p.fromTabId);
+      return;
+    }
     default: {
       const m = /^space(\d)$/.exec(id);
       if (m) {

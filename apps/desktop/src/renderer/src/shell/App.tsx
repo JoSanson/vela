@@ -1,10 +1,12 @@
-import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@vela/shared';
+import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@vela/shared';
 import { animate } from 'motion';
 import { useCallback, useEffect, useRef } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
 import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
+import { FindBar } from './FindBar';
+import { SplitHandles } from './SplitHandles';
 import styles from './App.module.css';
 
 const HIDE_DURATION = 0.22;
@@ -14,8 +16,12 @@ export function App() {
   const core = useShell((s) => s.core);
   const sidebarVisible = useShell((s) => s.sidebarVisible);
   const sidebarWidth = useShell((s) => s.sidebarWidth);
+  const findOpen = useShell((s) => s.findOpen);
+  const topStrip = useShell((s) => s.topStrip);
   const setSidebarVisible = useShell((s) => s.setSidebarVisible);
   const setSidebarWidth = useShell((s) => s.setSidebarWidth);
+  const setFindOpen = useShell((s) => s.setFindOpen);
+  const setTopStrip = useShell((s) => s.setTopStrip);
   const asideRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
@@ -33,13 +39,14 @@ export function App() {
 
   useEffect(() => {
     if (!ready || animating.current) return;
-    vela.send('layout/set', { sidebarWidth, sidebarVisible });
-  }, [ready, sidebarWidth, sidebarVisible]);
+    vela.send('layout/set', { sidebarWidth, sidebarVisible, topStrip });
+  }, [ready, sidebarWidth, sidebarVisible, topStrip]);
 
   const toggleSidebar = useCallback(() => {
     const el = asideRef.current;
     const show = !useShell.getState().sidebarVisible;
     const width = useShell.getState().sidebarWidth;
+    const strip = useShell.getState().topStrip;
     void invoke('prefs/set', { sidebarHidden: !show });
     if (!el) {
       setSidebarVisible(show);
@@ -54,22 +61,44 @@ export function App() {
       ease: [0.22, 1, 0.36, 1],
       onUpdate: (x) => {
         el.style.transform = `translateX(${x}px)`;
-        vela.send('layout/set', { sidebarWidth: Math.max(0, width + x), sidebarVisible: true });
+        vela.send('layout/set', {
+          sidebarWidth: Math.max(0, width + x),
+          sidebarVisible: true,
+          topStrip: strip,
+        });
       },
       onComplete: () => {
         animating.current = false;
         el.style.transform = '';
         if (!show) setSidebarVisible(false);
-        vela.send('layout/set', { sidebarWidth: width, sidebarVisible: show });
+        vela.send('layout/set', { sidebarWidth: width, sidebarVisible: show, topStrip: strip });
       },
     });
   }, [setSidebarVisible]);
 
+  const openFind = useCallback(() => {
+    setFindOpen(true);
+    setTopStrip(FIND_BAR_HEIGHT);
+  }, [setFindOpen, setTopStrip]);
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    setTopStrip(0);
+  }, [setFindOpen, setTopStrip]);
+
   useEffect(() => {
     return vela.on('ui/command', ({ id }) => {
       if (id === 'toggleSidebar') toggleSidebar();
+      if (id === 'findInPage') openFind();
     });
-  }, [toggleSidebar]);
+  }, [toggleSidebar, openFind]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape' && useShell.getState().findOpen) closeFind();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [closeFind]);
 
   const onResizeStart = useCallback(
     (e: React.PointerEvent) => {
@@ -132,9 +161,10 @@ export function App() {
           data-testid="sidebar-edge"
         />
       )}
-      <main className={styles.content} data-testid="content">
+      <main className={styles.content} data-testid="content" data-dnd-zone="content">
+        {findOpen && <FindBar onClose={closeFind} />}
         {!hasActive && ready && (
-          <div className={styles.empty}>
+          <div className={`${styles.empty} ${sidebarVisible ? '' : styles.emptyFull}`}>
             <div className={styles.emptyCard}>
               <div className={styles.emptyTitle}>
                 {space?.emoji} {space?.name}
@@ -146,6 +176,7 @@ export function App() {
           </div>
         )}
       </main>
+      <SplitHandles />
     </div>
   );
 }

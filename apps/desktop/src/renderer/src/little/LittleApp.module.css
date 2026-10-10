@@ -1,0 +1,118 @@
+.bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--sidebar-bg);
+  color: var(--fg);
+}
+
+.bar[data-inset='mac'] {
+  padding-left: 80px;
+}
+
+.nav {
+  display: flex;
+  gap: 2px;
+}
+
+.btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+}
+
+.url,
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  font-size: 12.5px;
+}
+
+.input {
+  user-select: text;
+  cursor: text;
+}
+
+.urlText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.send {
+  position: relative;
+  display: flex;
+}
+
+.sendBtn,
+.sendMore {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--surface-active);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.sendMore {
+  padding: 0 6px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: 1px solid var(--border);
+}
+
+.sendBtn:hover,
+.sendMore:hover {
+  background: var(--surface-strong);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  min-width: 180px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: var(--surface);
+}

@@ -1,11 +1,28 @@
 import type { Layout } from '@vela/shared';
 import { screen, type BrowserWindow, type Rectangle } from 'electron';
 import type { PrefsStore } from '../prefs';
+import type { LittleWindow } from './littleWindow';
 import { MainWindow } from './mainWindow';
 
 export class WindowManager {
   main: MainWindow | null = null;
+  readonly littles = new Set<LittleWindow>();
   private onLayoutChange: (() => void) | null = null;
+  private gestureHandler: ((cmd: 'back' | 'forward') => void) | null = null;
+
+  setGestureHandler(fn: (cmd: 'back' | 'forward') => void): void {
+    this.gestureHandler = fn;
+  }
+
+  registerLittle(w: LittleWindow): void {
+    this.littles.add(w);
+    w.win.on('closed', () => this.littles.delete(w));
+  }
+
+  littleFor(webContentsId: number): LittleWindow | undefined {
+    for (const l of this.littles) if (l.win.webContents.id === webContentsId) return l;
+    return undefined;
+  }
 
   constructor(private readonly prefs: PrefsStore) {}
 
@@ -27,6 +44,14 @@ export class WindowManager {
     win.on('resize', () => this.onLayoutChange?.());
     win.on('resized', persistBounds);
     win.on('moved', persistBounds);
+    win.on('swipe', (_e, direction) => {
+      if (direction === 'left') this.gestureHandler?.('forward');
+      if (direction === 'right') this.gestureHandler?.('back');
+    });
+    win.on('app-command', (_e, cmd) => {
+      if (cmd === 'browser-backward') this.gestureHandler?.('back');
+      if (cmd === 'browser-forward') this.gestureHandler?.('forward');
+    });
     win.on('enter-full-screen', () => this.onLayoutChange?.());
     win.on('leave-full-screen', () => this.onLayoutChange?.());
     win.on('closed', () => {
@@ -39,12 +64,6 @@ export class WindowManager {
   setLayout(layout: Layout): void {
     if (!this.main) return;
     this.main.layout = layout;
-    this.onLayoutChange?.();
-  }
-
-  setTopStrip(px: number): void {
-    if (!this.main || this.main.topStrip === px) return;
-    this.main.topStrip = px;
     this.onLayoutChange?.();
   }
 

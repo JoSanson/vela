@@ -5,15 +5,20 @@ import styles from './SpaceBar.module.css';
 
 export function SpaceBar() {
   const core = useShell((s) => s.core);
-  const setEditing = useShell((s) => s.setEditingSpace);
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
   const active = core.spaces[core.activeSpaceId];
+  const editSpace = (id: string): void =>
+    void invoke('overlay/show', { kind: 'spaceEditor', payload: { spaceId: id } });
   return (
     <div className={styles.bar}>
       <button
         className={styles.name}
-        onClick={() => setEditing(core.activeSpaceId)}
+        onClick={() => editSpace(core.activeSpaceId)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          void invoke('menu/show', { kind: 'space', id: core.activeSpaceId });
+        }}
         aria-label={`Edit space ${active?.name ?? ''}`}
         data-testid="space-name"
       >
@@ -33,8 +38,14 @@ export function SpaceBar() {
               aria-label={`${sp.name} (Ctrl+${i + 1})`}
               title={sp.name}
               className={`${styles.dot} ${isActive ? styles.dotActive : ''}`}
+              style={{ '--dot-color': sp.theme.from } as React.CSSProperties}
               onClick={() => dispatch({ type: 'space/activate', id, now: Date.now() })}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                void invoke('menu/show', { kind: 'space', id });
+              }}
               data-space-id={id}
+              data-dnd-space={id}
             >
               {isActive ? <span aria-hidden="true">{sp.emoji}</span> : null}
             </button>
@@ -44,13 +55,7 @@ export function SpaceBar() {
           className={styles.add}
           aria-label="New space"
           title="New space (⌘⇧N)"
-          onClick={() =>
-            void invoke('state/dispatch', {
-              type: 'space/activate',
-              id: core.activeSpaceId,
-              now: Date.now(),
-            }).then(() => setEditing('new'))
-          }
+          onClick={() => editSpace('new')}
           data-testid="new-space"
         >
           <Icon name="plus" size={13} />
@@ -62,6 +67,7 @@ export function SpaceBar() {
           aria-label="Downloads"
           title="Downloads"
           onClick={() => setDownloadsOpen(!downloadsOpen)}
+          data-testid="downloads-toggle"
         >
           <Icon name="download" size={15} />
         </button>

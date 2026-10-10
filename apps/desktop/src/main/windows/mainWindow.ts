@@ -1,13 +1,9 @@
-import type { Layout } from '@vela/shared';
+import { contentBounds, CONTENT_RADIUS, topBarHeight, type Layout } from '@vela/shared';
 import { BrowserWindow, type Rectangle } from 'electron';
 import { preloadPath, rendererUrl } from '../context';
 import { trustShell } from '../ipc/typed';
 
-export const TOP_BAR_HEIGHT = process.platform === 'darwin' ? 0 : 36;
-export const CONTENT_INSET = 8;
-export const CONTENT_RADIUS = 10;
-/** Strip of shell left visible when the sidebar is hidden, so hovering the edge can reveal it. */
-export const HOVER_EDGE = 4;
+export const TOP_BAR_HEIGHT = topBarHeight(process.platform);
 
 export interface MainWindowOptions {
   bounds: Rectangle | null;
@@ -18,8 +14,6 @@ export interface MainWindowOptions {
 export class MainWindow {
   readonly win: BrowserWindow;
   layout: Layout;
-  /** Extra strip reserved at the top of the content area (find bar). */
-  topStrip = 0;
 
   constructor(opts: MainWindowOptions) {
     this.layout = opts.layout;
@@ -62,22 +56,15 @@ export class MainWindow {
   /** Region available to tab views, in window content coordinates. */
   contentBounds(): Rectangle {
     const [w, h] = this.win.getContentSize();
-    const width = w ?? 0;
-    const height = h ?? 0;
-    const fullscreen = this.win.isFullScreen();
-    const sidebar = this.layout.sidebarVisible
-      ? Math.round(this.layout.sidebarWidth)
-      : fullscreen
-        ? 0
-        : HOVER_EDGE;
-    const inset = this.layout.sidebarVisible && !fullscreen ? CONTENT_INSET : 0;
-    const top = TOP_BAR_HEIGHT + this.topStrip;
-    return {
-      x: sidebar,
-      y: top + inset,
-      width: Math.max(0, width - sidebar - inset),
-      height: Math.max(0, height - top - inset * 2),
-    };
+    return contentBounds({
+      width: w ?? 0,
+      height: h ?? 0,
+      sidebarWidth: this.layout.sidebarWidth,
+      sidebarVisible: this.layout.sidebarVisible,
+      fullscreen: this.win.isFullScreen(),
+      topStrip: this.layout.topStrip ?? 0,
+      platform: process.platform,
+    });
   }
 
   contentRadius(): number {
