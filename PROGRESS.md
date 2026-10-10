@@ -80,13 +80,13 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
-- [ ] e2e suite green 3× in a row
-- [ ] install/dev/build/test/e2e/lint/typecheck green
+- [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x
+- [x] install/dev/build/test/e2e/lint/typecheck green — `pnpm ci:local` exit 0 (2723534)
 - [x] kill -9 session restore — restore.spec.ts
 - [x] perf budgets (PERF.md) — 073e86b
-- [ ] zero any / zero warnings / core coverage > 85 %
+- [x] zero any / zero warnings / core coverage > 85 % — eslint --max-warnings 0, core 98 % lines
 - [x] SECURITY.md audit — 20-point checklist
 - [x] accessibility — roving tree focus, ARIA tree/combobox/dialog roles, focus-visible
-- [ ] CI green on main, engine watch + renovate tested, v0.1.0 released, auto-update proven
-- [ ] docs complete
+- [~] CI green on main, engine watch + renovate tested, v0.1.0 released, auto-update proven — workflows + Renovate ready, auto-update proven locally (UPDATE-PROOF.md); GitHub run requires the owner's push (D013)
+- [x] docs complete — README (GIF), ARCHITECTURE, DECISIONS, SECURITY, RELEASING, CHANGELOG, docs/EXTENSIONS, PERF, UPDATE-PROOF
 - [ ] two review passes
