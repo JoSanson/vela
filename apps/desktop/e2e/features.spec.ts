@@ -132,8 +132,14 @@ test.describe('memory saver', () => {
        const old = Date.now() - 60 * 60_000;
        for (const id of [${JSON.stringify(a)}, ${JSON.stringify(b)}, ${JSON.stringify(c)}]) __vela.ctx.store.dispatch({ type: 'tab/update', id, patch: { lastActiveAt: old } });`,
     );
-    await evalMain(vela, '__vela.ctx.prefs.set({ memorySaverMinutes: 1 }); __vela.sweep();');
-    await expect.poll(async () => (await vela.state()).tabs[a]?.sleeping).toBe(true);
+    await evalMain(vela, '__vela.ctx.prefs.set({ memorySaverMinutes: 1 })');
+    // The sweeper skips tabs that are still loading, so poll it like the 30 s timer would.
+    await expect
+      .poll(async () => {
+        await evalMain(vela, '__vela.sweep()');
+        return (await vela.state()).tabs[a]?.sleeping;
+      })
+      .toBe(true);
     const st = await vela.state();
     expect(st.tabs[b]?.sleeping).toBe(false);
     expect(st.tabs[c]?.sleeping).toBe(false);
