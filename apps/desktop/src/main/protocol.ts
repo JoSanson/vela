@@ -20,7 +20,7 @@ const MIME: Record<string, string> = {
 };
 
 const CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; font-src 'self' data:; connect-src 'self' vela: http://localhost:* ws://localhost:*; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' vela: data: blob: https: http:; font-src 'self' data:; connect-src 'self' vela: http://localhost:* ws://localhost:*; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 
 /** Must run before app.whenReady(). */
 export function registerInternalScheme(): void {
@@ -36,10 +36,26 @@ export function registerInternalScheme(): void {
  * vela://<page>/<path>  → pages.html (SPA, routes on location.host) or a bundled asset.
  * Registered per session so tabs in any profile can show internal pages.
  */
-export function installInternalProtocol(ses: Session, rendererDir: string, devUrl: string | undefined): void {
+export type FaviconProvider = (host: string) => { mime: string; data: Buffer } | null;
+
+export function installInternalProtocol(
+  ses: Session,
+  rendererDir: string,
+  devUrl: string | undefined,
+  favicons: FaviconProvider,
+): void {
   if (ses.protocol.isProtocolHandled(INTERNAL_SCHEME)) return;
   ses.protocol.handle(INTERNAL_SCHEME, async (request) => {
     const url = new URL(request.url);
+    if (url.hostname === 'favicon') {
+      const host = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+      const icon = favicons(host);
+      if (!icon) return new Response(null, { status: 404 });
+      return new Response(new Uint8Array(icon.data), {
+        status: 200,
+        headers: { 'Content-Type': icon.mime, 'Cache-Control': 'public, max-age=604800' },
+      });
+    }
     const pathname = decodeURIComponent(url.pathname);
     const isAsset = pathname.startsWith('/assets/') || extname(pathname) !== '';
     const headers = { 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff' };

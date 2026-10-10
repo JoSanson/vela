@@ -5,6 +5,9 @@ import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { CommandBar, type CommandBarPayload } from './CommandBar';
 import { PeekChrome } from './PeekChrome';
+import { PermissionPromptView } from './PermissionPrompt';
+import { UpdateNotes, type UpdateNotesPayload } from './UpdateNotes';
+import type { PermissionPrompt } from '@vela/shared';
 import { SpaceEditor, type SpaceEditorPayload } from './SpaceEditor';
 import { Switcher, type SwitcherPayload } from './Switcher';
 import styles from './OverlayApp.module.css';
@@ -56,6 +59,10 @@ export function OverlayApp() {
         <SpaceEditor key={JSON.stringify(overlay.payload)} payload={overlay.payload as SpaceEditorPayload} />
       )}
       {overlay.kind === 'peek' && <PeekChrome />}
+      {overlay.kind === 'permissionPrompt' && (
+        <PermissionPromptView initial={overlay.payload as PermissionPrompt} />
+      )}
+      {overlay.kind === 'updateNotes' && <UpdateNotes payload={overlay.payload as UpdateNotesPayload} />}
       {overlay.kind === 'sidebar' && (
         <div className={styles.floatingSidebar} onMouseLeave={hide}>
           <Sidebar width={sidebarWidth} onToggle={hide} floating />

@@ -77,6 +77,48 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
     }
   }, []);
 
+  // Roving focus between tree items: ↑/↓ move, Home/End jump, ←/→ collapse/expand folders.
+  const onTreeKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target instanceof HTMLInputElement) return;
+    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="treeitem"]'));
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+    const focus = (i: number): void => {
+      const el = items[Math.max(0, Math.min(items.length - 1, i))];
+      if (!el) return;
+      for (const it of items) it.tabIndex = it === el ? 0 : -1;
+      el.focus();
+      e.preventDefault();
+    };
+    switch (e.key) {
+      case 'ArrowDown':
+        focus(idx + 1);
+        break;
+      case 'ArrowUp':
+        focus(idx - 1);
+        break;
+      case 'Home':
+        focus(0);
+        break;
+      case 'End':
+        focus(items.length - 1);
+        break;
+      case 'ArrowRight':
+      case 'ArrowLeft': {
+        const el = items[idx];
+        const folderId = el?.getAttribute('data-folder-id');
+        if (!folderId) return;
+        const folder = useShell.getState().core.folders[folderId];
+        if (!folder) return;
+        const wantOpen = e.key === 'ArrowRight';
+        if (folder.collapsed === wantOpen)
+          dispatch({ type: 'folder/update', id: folderId, patch: { collapsed: !wantOpen } });
+        e.preventDefault();
+        break;
+      }
+    }
+  }, []);
+
   const pickerTarget = iconPickerFor ? (core.tabs[iconPickerFor] ?? core.folders[iconPickerFor]) : undefined;
   const pickerValue = pickerTarget ? ('emoji' in pickerTarget ? pickerTarget.emoji : null) : null;
 
@@ -96,6 +138,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
         role="tree"
         aria-label="Tabs"
         onWheel={onWheel}
+        onKeyDown={onTreeKeyDown}
         key={core.activeSpaceId}
       >
         <PinnedList onDragStart={onPointerDown} />

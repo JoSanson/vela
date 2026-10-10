@@ -64,3 +64,27 @@ Why: `setVisible(false)` on a child view keeps compositor resources; detaching f
 Context: spec asks for `xvfb-run` when no display. Dev machine is macOS with a display.
 Choice: `pnpm e2e` runs headed on macOS; CI linux job wraps with `xvfb-run -a`. Script detects
 `process.platform === 'linux' && !process.env.DISPLAY`.
+
+## D010 — Overlay view for everything that must float above web content
+Context: tab views are native `WebContentsView`s stacked above the shell page, so the shell cannot
+draw on top of pages. Options: shrink the active view; a transparent window; a dedicated view.
+Choice: one always-loaded transparent `WebContentsView` ("overlay") attached only while an overlay
+(command bar, switcher, space editor, peek chrome, permission prompt, floating sidebar) is open.
+Peek content is a second view added above the overlay so clicks reach the page.
+Why: instant (< 16 ms, the page is pre-rendered), no window juggling, one React app.
+
+## D011 — Single main window in v1
+Context: a `WebContentsView` can only live in one window; `activeSpaceId` is global state.
+Choice: one main window; Cmd+N opens a Little window instead. Multi-window is deferred.
+
+## D012 — Peek trigger heuristic
+Choice: only cross-registrable-domain navigations that start < 600 ms after a mouse click in a
+pinned/favorite tab open Peek, and never for URLs that look like auth flows (oauth/login/sso…).
+Why: avoids breaking SSO redirects while matching Arc's behaviour for ordinary links.
+
+## D013 — GitHub push needs the `workflow` scope
+Context: `gh repo create --push` was rejected ("refusing to allow an OAuth App to create or update
+workflow … without `workflow` scope"). Re-authentication is interactive.
+Choice: repo created (private, empty); everything is ready locally; the owner runs once:
+`gh auth refresh -h github.com -s workflow && git -C ~/dev/vela push -u origin main --tags`.
+Auto-update is proven locally with a generic feed server instead of GitHub Releases.

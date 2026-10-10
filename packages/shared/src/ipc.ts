@@ -238,6 +238,9 @@ export interface IpcInvokeMap {
   'little/state': { req: undefined; res: LittleState | null };
 
   'command/run': { req: { id: string; payload?: unknown }; res: undefined };
+  /** Renderer performance marks (ms since the renderer's timeOrigin is meaningless across processes, so we send Date.now()). */
+  'perf/mark': { req: { name: string; at: number }; res: undefined };
+  'perf/marks': { req: undefined; res: Record<string, number> };
   'menu/show': { req: { kind: ContextMenuKind; id?: Id; x?: number; y?: number }; res: undefined };
 
   'peek/open': { req: { url: string; fromTabId?: Id }; res: undefined };

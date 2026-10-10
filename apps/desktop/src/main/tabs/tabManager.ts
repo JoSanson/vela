@@ -39,6 +39,10 @@ export class TabManager {
   private htmlFullscreenTab: Id | null = null;
   private viewHooks: ViewHook[] = [];
   private afterLayoutHooks: (() => void)[] = [];
+  private visibilityHooks: ((tabId: Id, visible: boolean) => void)[] = [];
+  /** Optional favicon resolver (set by FaviconCache); returns an internal URL or null. */
+  faviconResolver:
+    ((ses: Electron.Session, pageUrl: string, iconUrl: string) => Promise<string | null>) | null = null;
   readonly trustedCertificates = new Set<string>();
 
   constructor(private readonly deps: TabManagerDeps) {
@@ -49,6 +53,11 @@ export class TabManager {
   /** Called for every freshly created tab WebContents (security, blocker, boosts…). */
   onViewCreated(hook: ViewHook): void {
     this.viewHooks.push(hook);
+  }
+
+  /** Fires when a tab's view enters or leaves the window (auto PiP, previews…). */
+  onVisibilityChange(hook: (tabId: Id, visible: boolean) => void): void {
+    this.visibilityHooks.push(hook);
   }
 
   onAfterLayout(hook: () => void): void {
@@ -92,12 +101,15 @@ export class TabManager {
     }
     const visible = visibleTabIds(state);
     const leaving = this.attached.filter((id) => !visible.includes(id));
+    const entering = visible.filter((id) => !this.attached.includes(id) && this.views.has(id));
+    for (const id of leaving) for (const hook of this.visibilityHooks) hook(id, false);
     for (const id of visible) {
       const tab = state.tabs[id];
       if (!tab) continue;
       this.ensureView(tab);
       this.attach(id);
     }
+    for (const id of entering) for (const hook of this.visibilityHooks) hook(id, true);
     this.layout();
     // Views that leave the screen are snapshotted for the switcher before being detached; they
     // sit beneath the freshly attached views meanwhile, so the switch itself is not delayed.
@@ -180,7 +192,9 @@ export class TabManager {
     if (wasSleeping && tab.scrollY > 0) {
       const y = tab.scrollY;
       view.webContents.once('did-finish-load', () => {
-        void view.webContents.executeJavaScript(`window.scrollTo(0, ${y});`, false).catch(() => undefined);
+        // Retry across frames: late layout (fonts, images) can clamp an early scrollTo.
+        const js = `(function(y){let n=0;(function t(){window.scrollTo(0,y);if(Math.abs(window.scrollY-y)<2||n++>40)return;requestAnimationFrame(t);})();})(${y})`;
+        void view.webContents.executeJavaScript(js, false).catch(() => undefined);
       });
     }
     return view;
@@ -285,8 +299,19 @@ export class TabManager {
     });
     wc.on('page-favicon-updated', (_e, favicons) => {
       const favicon = favicons[0] ?? null;
-      this.patch(id, { favicon });
-      if (favicon) this.deps.history.setFavicon(wc.getURL(), favicon);
+      if (!favicon) return;
+      const pageUrl = wc.getURL();
+      const resolver = this.faviconResolver;
+      if (!resolver) {
+        this.patch(id, { favicon });
+        this.deps.history.setFavicon(pageUrl, favicon);
+        return;
+      }
+      void resolver(wc.session, pageUrl, favicon).then((internal) => {
+        const value = internal ?? favicon;
+        if (!wc.isDestroyed() && this.state.tabs[id]) this.patch(id, { favicon: value });
+        this.deps.history.setFavicon(pageUrl, value);
+      });
     });
     wc.on('audio-state-changed', (e) => this.patch(id, { audible: e.audible }));
     wc.on('focus', () => {

@@ -1,10 +1,11 @@
 import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@vela/shared';
 import { animate } from 'motion';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
 import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
+import { DownloadsPanel } from './DownloadsPanel';
 import { FindBar } from './FindBar';
 import { SplitHandles } from './SplitHandles';
 import styles from './App.module.css';
@@ -22,10 +23,16 @@ export function App() {
   const setSidebarWidth = useShell((s) => s.setSidebarWidth);
   const setFindOpen = useShell((s) => s.setFindOpen);
   const setTopStrip = useShell((s) => s.setTopStrip);
+  const downloadsOpen = useShell((s) => s.downloadsOpen);
+  const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
+  const [toast, setToast] = useState<string | null>(null);
   const asideRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
   useEffect(() => connectStore(), []);
+  useEffect(() => {
+    if (ready) vela.send('perf/mark', { name: 'sidebarInteractive', at: Date.now() });
+  }, [ready]);
 
   const theme = core.spaces[core.activeSpaceId]?.theme;
   useEffect(() => {
@@ -89,8 +96,20 @@ export function App() {
     return vela.on('ui/command', ({ id }) => {
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
+      if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
     });
-  }, [toggleSidebar, openFind]);
+  }, [toggleSidebar, openFind, setDownloadsOpen]);
+
+  useEffect(() => {
+    return vela.on('zap/pick', ({ selector }) => {
+      setToast(`Zapped ${selector.length > 40 ? `${selector.slice(0, 40)}…` : selector}`);
+    });
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -138,6 +157,7 @@ export function App() {
         aria-hidden={!sidebarVisible}
       >
         <Sidebar width={sidebarWidth} onToggle={toggleSidebar} />
+        {downloadsOpen && <DownloadsPanel onClose={() => setDownloadsOpen(false)} />}
         <div
           className={styles.resizer}
           onPointerDown={onResizeStart}
@@ -177,6 +197,11 @@ export function App() {
         )}
       </main>
       <SplitHandles />
+      {toast && (
+        <div className={styles.toast} role="status" data-testid="toast">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

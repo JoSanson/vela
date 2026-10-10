@@ -133,6 +133,13 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     case 'readerMode':
       toShell('readerMode');
       return;
+    case 'zap': {
+      const tid = (payload as { tabId?: string } | undefined)?.tabId ?? activeId;
+      if (!tid) return;
+      const wc = tabs.webContents(tid);
+      if (wc) void ctx.boosts.zap(wc);
+      return;
+    }
     case 'newWindow':
     case 'littleWindow': {
       const url = (payload as { url?: string } | undefined)?.url ?? 'about:blank';

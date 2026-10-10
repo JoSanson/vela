@@ -34,6 +34,15 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
     const u = new URL(req.url ?? '/', 'http://x');
     const p = u.pathname === '/' ? '/index.html' : u.pathname;
+    if (p === '/download/blob.bin') {
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment; filename="blob.bin"',
+        'Content-Length': String(2 * 1024 * 1024),
+      });
+      res.end(Buffer.alloc(2 * 1024 * 1024, 7));
+      return;
+    }
     if (p === '/slow') {
       setTimeout(() => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -108,6 +117,7 @@ export interface CoreStateLike {
       title: string;
       customTitle: string | null;
       emoji: string | null;
+      favicon: string | null;
       kind: string;
       sleeping: boolean;
       loaded: boolean;
@@ -131,6 +141,7 @@ export async function launchVela(
     env: {
       ...process.env,
       VELA_USER_DATA: userData,
+      VELA_DOWNLOAD_DIR: userData,
       VELA_E2E: '1',
       ELECTRON_ENABLE_LOGGING: '0',
       ...(opts.env ?? {}),

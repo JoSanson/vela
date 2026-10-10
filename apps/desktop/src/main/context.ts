@@ -6,6 +6,11 @@ import type { HistoryRepo } from './db/historyRepo';
 import type { StateRepo } from './db/stateRepo';
 import type { OverlayManager } from './overlay';
 import type { PeekManager } from './peek';
+import type { BoostsManager } from './boosts';
+import type { DownloadManager } from './downloads';
+import type { FaviconCache } from './favicons';
+import type { PermissionManager } from './permissions';
+import type { UpdateManager } from './updater';
 import type { PrefsStore } from './prefs';
 import type { SessionManager } from './sessions';
 import type { Store } from './store';
@@ -25,7 +30,14 @@ export interface AppContext {
   windows: WindowManager;
   overlay: OverlayManager;
   peek: PeekManager;
+  downloads: DownloadManager;
+  permissions: PermissionManager;
+  boosts: BoostsManager;
+  favicons: FaviconCache;
+  updater: UpdateManager;
   openLittle: (url: string) => void;
+  /** Wall-clock timestamps (Date.now()) of startup milestones. */
+  perf: Record<string, number>;
   version: string;
   isDev: boolean;
   userData: string;

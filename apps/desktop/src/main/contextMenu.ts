@@ -261,7 +261,7 @@ export function installPageContextMenu(ctx: AppContext): void {
           },
         },
         { type: 'separator' },
-        { label: 'Zap element…', click: () => toShell(ctx, 'zap', { tabId }) },
+        { label: 'Zap element…', click: () => void ctx.boosts.zap(wc) },
         { label: 'Reader mode', click: () => toShell(ctx, 'readerMode', { tabId }) },
         { type: 'separator' },
         { label: 'Inspect element', click: () => wc.inspectElement(params.x, params.y) },

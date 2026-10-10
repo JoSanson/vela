@@ -5,10 +5,19 @@ import type { AppContext } from '../context';
 import { showSidebarMenu } from '../contextMenu';
 import { findInTab, stopFind } from '../find';
 import { fetchSuggestions } from '../suggest';
+import { detectSources, runImport } from '../importer';
+import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
+import { dialog } from 'electron';
+import { readFileSync } from 'node:fs';
 import { emit, handle } from './typed';
 
 export function registerCoreHandlers(ctx: AppContext): void {
   const { store, prefs, tabs, windows, overlay } = ctx;
+  const liveContents = (): Electron.WebContents[] =>
+    tabs
+      .liveTabIds()
+      .map((id) => tabs.webContents(id))
+      .filter((wc): wc is Electron.WebContents => !!wc);
 
   handle('snapshot/get', 'internal', (_req, event): ShellSnapshot => {
     return {
@@ -116,6 +125,11 @@ export function registerCoreHandlers(ctx: AppContext): void {
     return undefined;
   });
 
+  handle('perf/mark', 'shell', ({ name, at }) => {
+    ctx.perf[name] = at;
+    return undefined;
+  });
+  handle('perf/marks', 'internal', () => ({ ...ctx.perf }));
   handle('command/run', 'shell', ({ id, payload }) => {
     runCommand(ctx, id, payload);
     return undefined;
@@ -170,6 +184,86 @@ export function registerCoreHandlers(ctx: AppContext): void {
       : store.state.archive;
     return list.slice(0, limit ?? 200);
   });
+
+  handle('downloads/list', 'internal', () => ctx.downloads.list());
+  handle('downloads/action', 'internal', ({ id, action }) => {
+    ctx.downloads.action(id, action);
+    return undefined;
+  });
+  handle('downloads/clear', 'internal', () => {
+    ctx.downloads.clearFinished();
+    return undefined;
+  });
+
+  handle('permissions/list', 'internal', () => ctx.permissions.list());
+  handle('permissions/set', 'internal', (p) => {
+    ctx.permissions.set(p);
+    return undefined;
+  });
+  handle('permissions/remove', 'internal', ({ origin, permission }) => {
+    ctx.permissions.remove(origin, permission);
+    return undefined;
+  });
+  handle('permissions/respond', 'shell', ({ id, decision, remember }) => {
+    ctx.permissions.respond(id, decision, remember);
+    return undefined;
+  });
+
+  handle('boosts/list', 'internal', () => ctx.boosts.list());
+  handle('boosts/save', 'internal', async (b) => {
+    ctx.boosts.save(b);
+    await ctx.boosts.refresh(liveContents(), b.host);
+    return undefined;
+  });
+  handle('boosts/delete', 'internal', async ({ id }) => {
+    const host = ctx.boosts.list().find((b) => b.id === id)?.host;
+    ctx.boosts.delete(id);
+    if (host) await ctx.boosts.refresh(liveContents(), host);
+    return undefined;
+  });
+  handle('boosts/zap', 'shell', async ({ tabId, enable }) => {
+    const wc = tabs.webContents(tabId);
+    if (wc && enable) {
+      const selector = await ctx.boosts.zap(wc);
+      const shellWc = windows.main?.win.webContents;
+      if (selector && shellWc) emit(shellWc, 'zap/pick', { tabId, selector });
+    }
+    return undefined;
+  });
+  handle('boosts/export', 'internal', () => ctx.boosts.exportJson());
+  handle('boosts/import', 'internal', ({ json }) => ctx.boosts.importJson(json));
+
+  handle('certificate/trust', 'internal', ({ fingerprint }) => {
+    tabs.trustedCertificates.add(fingerprint);
+    return undefined;
+  });
+
+  handle('import/sources', 'internal', () => detectSources());
+  handle('import/run', 'internal', ({ source, bookmarks, history }) =>
+    runImport(ctx, source, bookmarks, history),
+  );
+  handle('export/state', 'internal', () => exportState(ctx));
+  handle('export/saveToFile', 'internal', () => saveExportToFile(ctx));
+  handle('import/state', 'internal', ({ json }) => {
+    importState(ctx, json);
+    return undefined;
+  });
+  handle('import/fromFile', 'internal', () => importFromFile(ctx));
+
+  handle('update/status', 'internal', () => ctx.updater.status);
+  handle('update/check', 'internal', () => ctx.updater.check());
+  handle('update/install', 'internal', () => {
+    ctx.updater.install();
+    return undefined;
+  });
+
+  handle('app/pickFile', 'internal', async ({ title, filters }) => {
+    const win = windows.main?.win;
+    const opts = { title, properties: ['openFile' as const], ...(filters ? { filters } : {}) };
+    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+    return res.canceled ? null : (res.filePaths[0] ?? null);
+  });
+  handle('app/readFile', 'internal', ({ path }) => readFileSync(path, 'utf8'));
 
   handle('app/openExternal', 'shell', async ({ url }) => {
     if (/^(https?|mailto):/i.test(url)) await shell.openExternal(url);

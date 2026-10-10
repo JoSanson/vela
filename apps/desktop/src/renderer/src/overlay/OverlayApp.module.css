@@ -15,7 +15,9 @@
   animation: fade var(--dur-fast) var(--ease-out);
 }
 
-.root[data-kind='sidebar'] .backdrop {
+.root[data-kind='sidebar'] .backdrop,
+.root[data-kind='permissionPrompt'] .backdrop,
+.root[data-kind='updateNotes'] .backdrop {
   background: transparent;
 }
 

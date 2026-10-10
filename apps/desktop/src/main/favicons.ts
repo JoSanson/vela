@@ -1,0 +1,56 @@
+import { hostOf } from '@vela/core';
+import type { Session } from 'electron';
+import type { FaviconsRepo } from './db/repos';
+
+const MAX_BYTES = 256 * 1024;
+const TTL_MS = 7 * 24 * 3600 * 1000;
+
+/**
+ * Fetches favicons with the tab's own session (cookies/profile respected), stores them in SQLite
+ * and serves them as `vela://favicon/<host>` so the shell never talks to websites directly.
+ */
+export class FaviconCache {
+  private inflight = new Map<string, Promise<string | null>>();
+
+  constructor(private readonly repo: FaviconsRepo) {}
+
+  internalUrl(pageUrl: string, version: number): string {
+    return `vela://favicon/${encodeURIComponent(hostOf(pageUrl) || 'unknown')}?v=${version}`;
+  }
+
+  /** Returns the internal URL once cached (or the remote URL as a fallback). */
+  async cache(ses: Session, pageUrl: string, iconUrl: string): Promise<string | null> {
+    const host = hostOf(pageUrl);
+    if (!host || !/^https?:/i.test(iconUrl)) return null;
+    const existing = this.repo.get(host);
+    if (existing && Date.now() - existing.updatedAt < TTL_MS && existing.data.length > 0) {
+      return this.internalUrl(pageUrl, existing.updatedAt);
+    }
+    const running = this.inflight.get(host);
+    if (running) return running;
+    const task = (async (): Promise<string | null> => {
+      try {
+        const res = await ses.fetch(iconUrl, { headers: { Accept: 'image/*' } });
+        if (!res.ok) return null;
+        const mime = res.headers.get('content-type') ?? 'image/x-icon';
+        if (!mime.startsWith('image/')) return null;
+        const buf = Buffer.from(await res.arrayBuffer());
+        if (buf.length === 0 || buf.length > MAX_BYTES) return null;
+        const now = Date.now();
+        this.repo.set(host, mime.split(';')[0] ?? mime, buf, now);
+        return this.internalUrl(pageUrl, now);
+      } catch {
+        return null;
+      } finally {
+        this.inflight.delete(host);
+      }
+    })();
+    this.inflight.set(host, task);
+    return task;
+  }
+
+  serve(host: string): { mime: string; data: Buffer } | null {
+    const row = this.repo.get(host);
+    return row ? { mime: row.mime, data: row.data } : null;
+  }
+}
