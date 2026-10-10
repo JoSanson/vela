@@ -3,16 +3,16 @@
 A box is checked only with: test green + app launched & screenshot inspected + commit hash.
 
 ## Phase 0
-- [x] Pilotage docs + git init — (first commit)
+- [x] Pilotage docs + git init — 5c4380d
 
 ## Phase 1 — Skeleton
-- [ ] 1.1 Monorepo tooling
-- [ ] 1.2 packages/shared IPC contract
-- [ ] 1.3 electron-vite app + shell window + CSP
-- [ ] 1.4 TabManager v0
-- [ ] 1.5 Renderer v0 (sidebar, url bar, nav)
-- [ ] 1.6 Security baseline
-- [ ] 1.7 e2e smoke + screenshot + vitest
+- [x] 1.1 Monorepo tooling — 7dda31e
+- [x] 1.2 packages/shared IPC contract — 7dda31e
+- [x] 1.3 electron-vite app + shell window + CSP — 7dda31e
+- [x] 1.4 TabManager v0 — 7dda31e
+- [x] 1.5 Renderer v0 (sidebar, url bar, nav) — 7dda31e
+- [x] 1.6 Security baseline — 7dda31e
+- [x] 1.7 e2e smoke + screenshot + vitest — 7dda31e
 
 ## Phase 2 — Core model
 - [ ] 2.1 Types

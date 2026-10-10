@@ -7,13 +7,13 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] CLAUDE.md, PLAN.md, DECISIONS.md, PROGRESS.md, git init
 
 ## Phase 1 — Skeleton that runs
-- [ ] 1.1 Monorepo: pnpm workspace, TS strict base config, ESLint flat config, Prettier, .npmrc hoisted
-- [ ] 1.2 `packages/shared`: IPC contract types + channel names
-- [ ] 1.3 `apps/desktop`: electron-vite (main/preload/renderer), BrowserWindow shell with strict CSP
-- [ ] 1.4 TabManager v0: create/activate/close `WebContentsView`, bounds follow sidebar width
-- [ ] 1.5 Renderer: sidebar (Today list), URL bar, back/forward/reload; `window.vela` preload API
-- [ ] 1.6 Security baseline: sandbox, contextIsolation, setWindowOpenHandler, permission handler, will-navigate guard, certificate interstitial
-- [ ] 1.7 Playwright _electron smoke test + screenshot; vitest wired
+- [x] 1.1 Monorepo: pnpm workspace, TS strict base config, ESLint flat config, Prettier, .npmrc hoisted
+- [x] 1.2 `packages/shared`: IPC contract types + channel names
+- [x] 1.3 `apps/desktop`: electron-vite (main/preload/renderer), BrowserWindow shell with strict CSP
+- [x] 1.4 TabManager v0: create/activate/close `WebContentsView`, bounds follow sidebar width
+- [x] 1.5 Renderer: sidebar (Today list), URL bar, back/forward/reload; `window.vela` preload API
+- [x] 1.6 Security baseline: sandbox, contextIsolation, setWindowOpenHandler, permission handler, will-navigate guard, certificate interstitial
+- [x] 1.7 Playwright _electron smoke test + screenshot; vitest wired
 
 ## Phase 2 — Core model (packages/core, no Electron)
 - [ ] 2.1 Types: Space, Tab (today/pinned), Folder (nested), Favorite, Profile, SplitLayout, Archive entry
