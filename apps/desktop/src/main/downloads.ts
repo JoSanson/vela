@@ -5,6 +5,30 @@ import { basename, extname, join } from 'node:path';
 import type { DownloadsRepo } from './db/repos';
 import type { PrefsStore } from './prefs';
 
+const DANGEROUS_EXT = new Set([
+  '.exe',
+  '.msi',
+  '.msix',
+  '.dmg',
+  '.pkg',
+  '.app',
+  '.sh',
+  '.command',
+  '.bat',
+  '.cmd',
+  '.ps1',
+  '.scr',
+  '.jar',
+  '.apk',
+  '.deb',
+  '.rpm',
+  '.appimage',
+  '.vbs',
+  '.js',
+  '.hta',
+  '.reg',
+]);
+
 export class DownloadManager {
   private items = new Map<string, DownloadItem>();
   private states = new Map<string, DownloadItemState>();
@@ -37,6 +61,11 @@ export class DownloadManager {
   }
 
   /** Chrome-like: save straight into ~/Downloads with a unique name instead of prompting. */
+  /** Set by main: how to start a fresh download of a URL (retry) and how to warn about a held file. */
+  retry: ((url: string) => void) | null = null;
+  onDangerous: ((id: string, filename: string) => void) | null = null;
+  private readonly keepers = new Map<string, () => void>();
+
   private static uniquePath(filename: string, preferredDir: string | null): string {
     let fallback: string;
     try {
@@ -66,6 +95,9 @@ export class DownloadManager {
       );
     }
     this.items.set(id, item);
+    // Executables and installers do not run until the user says "Keep": paused at the first byte.
+    const dangerous = DANGEROUS_EXT.has(extname(item.getFilename() || '').toLowerCase());
+    let held = dangerous;
     let lastSaved = 0;
     const update = (state: DownloadItemState['state'], ended = false): void => {
       const s: DownloadItemState = {
@@ -79,6 +111,7 @@ export class DownloadManager {
         totalBytes: item.getTotalBytes(),
         startedAt: this.states.get(id)?.startedAt ?? Date.now(),
         endedAt: ended ? Date.now() : null,
+        ...(held ? { dangerous: true } : {}),
       };
       this.states.set(id, s);
       if (ended || state !== 'progressing' || Date.now() - lastSaved > 1000) {
@@ -88,6 +121,15 @@ export class DownloadManager {
       this.notify();
     };
     update('progressing');
+    if (held) {
+      item.pause();
+      this.onDangerous?.(id, item.getFilename());
+      this.keepers.set(id, () => {
+        held = false;
+        if (item.canResume()) item.resume();
+        update('progressing');
+      });
+    }
     item.on('updated', (_e, state) => update(state === 'interrupted' ? 'interrupted' : 'progressing'));
     item.once('done', (_e, state) => {
       update(state === 'completed' ? 'completed' : state === 'cancelled' ? 'cancelled' : 'interrupted', true);
@@ -99,10 +141,25 @@ export class DownloadManager {
     });
   }
 
-  action(id: string, action: 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove'): void {
+  action(
+    id: string,
+    action: 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove' | 'retry' | 'keep',
+  ): void {
     const item = this.items.get(id);
     const state = this.states.get(id);
     switch (action) {
+      case 'keep':
+        this.keepers.get(id)?.();
+        this.keepers.delete(id);
+        break;
+      case 'retry':
+        if (state && state.state !== 'progressing') {
+          this.retry?.(state.url);
+          this.states.delete(id);
+          this.repo.remove(id);
+          this.notify();
+        }
+        break;
       case 'pause':
         item?.pause();
         break;

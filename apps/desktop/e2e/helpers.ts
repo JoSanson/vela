@@ -34,6 +34,15 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
     const u = new URL(req.url ?? '/', 'http://x');
     const p = u.pathname === '/' ? '/index.html' : u.pathname;
+    if (p === '/download/tool.sh') {
+      res.writeHead(200, {
+        'Content-Type': 'application/x-sh',
+        'Content-Disposition': 'attachment; filename="tool.sh"',
+        'Content-Length': '24',
+      });
+      res.end('#!/bin/sh\necho harmless\n');
+      return;
+    }
     if (p === '/download/blob.bin') {
       res.writeHead(200, {
         'Content-Type': 'application/octet-stream',

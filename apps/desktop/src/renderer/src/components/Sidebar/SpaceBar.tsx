@@ -45,7 +45,7 @@ export function SpaceBar() {
         <span className={styles.label}>{active?.name}</span>
         {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
       </button>
-      <div className={styles.dots} role="tablist" aria-label="Spaces">
+      <div className={styles.dots} role="group" aria-label="Spaces">
         {core.spaceOrder.map((id, i) => {
           const sp = core.spaces[id];
           if (!sp) return null;
@@ -53,8 +53,7 @@ export function SpaceBar() {
           return (
             <button
               key={id}
-              role="tab"
-              aria-selected={isActive}
+              aria-pressed={isActive}
               aria-label={`${sp.name} (Ctrl+${i + 1})`}
               title={sp.name}
               className={`${styles.dot} ${isActive ? styles.dotActive : ''}`}

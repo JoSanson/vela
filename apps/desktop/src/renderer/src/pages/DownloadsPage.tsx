@@ -8,7 +8,7 @@ import styles from './DownloadsPage.module.css';
 import { useToast } from './Toast';
 import { Badge, Button, ConfirmButton, EmptyState } from './ui';
 
-type Action = 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove';
+type Action = 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove' | 'retry' | 'keep';
 
 interface Sample {
   bytes: number;
@@ -23,6 +23,7 @@ function stateBadge(d: DownloadItemState): {
   if (d.state === 'completed') return { label: 'Done', tone: 'success' };
   if (d.state === 'cancelled') return { label: 'Cancelled', tone: 'danger' };
   if (d.state === 'interrupted') return { label: 'Failed', tone: 'danger' };
+  if (d.dangerous) return { label: 'Held', tone: 'warning' };
   if (d.paused) return { label: 'Paused', tone: 'warning' };
   return { label: 'Downloading', tone: 'accent' };
 }
@@ -241,6 +242,27 @@ export function DownloadsPage() {
                       testId="download-cancel"
                       onClick={() => void act(d, 'cancel')}
                     />
+                  )}
+                  {d.dangerous && d.state === 'progressing' && (
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      testId="download-keep"
+                      onClick={() => void act(d, 'keep')}
+                    >
+                      Keep
+                    </Button>
+                  )}
+                  {(d.state === 'interrupted' || d.state === 'cancelled') && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="reload"
+                      testId="download-retry"
+                      onClick={() => void act(d, 'retry')}
+                    >
+                      Retry
+                    </Button>
                   )}
                   {d.state === 'completed' && (
                     <>

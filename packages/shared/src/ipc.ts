@@ -66,6 +66,8 @@ export interface DownloadItemState {
   totalBytes: number;
   startedAt: number;
   endedAt: number | null;
+  /** Executable or installer held until the user explicitly keeps it. */
+  dangerous?: boolean;
 }
 
 export type PermissionKind =
@@ -276,7 +278,10 @@ export interface IpcInvokeMap {
 
   'downloads/list': { req: undefined; res: DownloadItemState[] };
   'downloads/action': {
-    req: { id: string; action: 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove' };
+    req: {
+      id: string;
+      action: 'pause' | 'resume' | 'cancel' | 'open' | 'showInFolder' | 'remove' | 'retry' | 'keep';
+    };
     res: undefined;
   };
   'downloads/clear': { req: undefined; res: undefined };

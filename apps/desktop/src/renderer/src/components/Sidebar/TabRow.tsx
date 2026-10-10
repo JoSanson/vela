@@ -103,6 +103,7 @@ export const TabRow = memo(function TabRow({
   return (
     <div
       role="treeitem"
+      aria-label={`${title}${tab.loading ? ', loading' : ''}${tab.sleeping ? ', sleeping' : ''}${tab.muted ? ', muted' : tab.audible ? ', playing audio' : ''}`}
       aria-selected={active}
       aria-level={depth + 1}
       tabIndex={active ? 0 : -1}

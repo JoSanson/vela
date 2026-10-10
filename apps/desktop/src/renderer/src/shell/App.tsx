@@ -130,7 +130,21 @@ export function App() {
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
       if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
-      if (id === 'toast') showToast({ text: String((payload as { text?: string } | undefined)?.text ?? '') });
+      if (id === 'toast') {
+        const p = payload as
+          | {
+              text?: string;
+              action?: { label: string; invoke: 'downloads/action'; req: { id: string; action: 'keep' } };
+            }
+          | undefined;
+        const action = p?.action;
+        showToast({
+          text: String(p?.text ?? ''),
+          ...(action
+            ? { action: { label: action.label, run: () => void invoke(action.invoke, action.req) } }
+            : {}),
+        });
+      }
     });
   }, [toggleSidebar, openFind, setDownloadsOpen, showToast]);
 

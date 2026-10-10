@@ -752,4 +752,32 @@ test.describe('daily-driver compatibility', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  test('executable downloads are held until the user keeps them', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Dl`);
+    const page = await vela.tabPage('/page/Dl');
+    await page.evaluate((u) => {
+      location.href = u;
+    }, `${fixtures}/download/tool.sh`);
+    const toast = vela.shell.getByTestId('toast');
+    await expect(toast).toContainText('tool.sh can run programs');
+    await expect
+      .poll(
+        async () =>
+          (
+            await evalMain<{ dangerous?: boolean; paused: boolean }[]>(
+              vela,
+              'return __vela.ctx.downloads.list()',
+            )
+          )[0],
+      )
+      .toMatchObject({ dangerous: true });
+    await vela.shell.getByTestId('toast-action').click();
+    await expect
+      .poll(
+        async () =>
+          (await evalMain<{ state: string }[]>(vela, 'return __vela.ctx.downloads.list()'))[0]?.state,
+      )
+      .toBe('completed');
+  });
 });

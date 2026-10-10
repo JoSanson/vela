@@ -172,6 +172,21 @@ async function boot(): Promise<void> {
   tabs.faviconResolver = (ses, pageUrl, iconUrl) => favicons.cache(ses, pageUrl, iconUrl);
   const downloads = new DownloadManager(new DownloadsRepo(db));
   downloads.prefs = prefs;
+  downloads.retry = (url) => {
+    const wc = tabs.webContents(tabs.activeTabId() ?? '') ?? windows.main?.win.webContents;
+    wc?.downloadURL(url);
+  };
+  downloads.onDangerous = (id, filename) => {
+    const target = windows.main?.win.webContents;
+    if (target)
+      emit(target, 'ui/command', {
+        id: 'toast',
+        payload: {
+          text: `${filename} can run programs on your computer.`,
+          action: { label: 'Keep', invoke: 'downloads/action', req: { id, action: 'keep' } },
+        },
+      });
+  };
   const tabIdOfWc = (wcId: number): string | undefined => {
     for (const id of tabs.liveTabIds()) if (tabs.webContents(id)?.id === wcId) return id;
     return undefined;
