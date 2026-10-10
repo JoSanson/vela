@@ -24,3 +24,35 @@
   opacity: 0.45;
   filter: grayscale(1);
 }
+
+.loadingWrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+
+.loadingWrap > :first-child {
+  opacity: 0.4;
+}
+
+.ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: var(--accent);
+  border-right-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  animation: ring 0.9s linear infinite;
+}
+
+@keyframes ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none !important;
+  }
+}

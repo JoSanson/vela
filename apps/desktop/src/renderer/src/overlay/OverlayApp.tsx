@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, vela } from '../lib/api';
 import { connectStore, useShell } from '../lib/store';
@@ -20,14 +20,15 @@ export function OverlayApp() {
   useEffect(() => connectStore(), []);
 
   const theme = core.spaces[core.activeSpaceId]?.theme;
+  const themePref = useShell((s) => s.prefs.theme);
   useEffect(() => {
     if (!theme) return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = (): void => void applyTheme(theme, systemPrefersDark());
+    const apply = (): void => void applyTheme(theme, systemPrefersDark(), themePref);
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
-  }, [theme]);
+  }, [theme, themePref]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -47,6 +48,7 @@ export function OverlayApp() {
   }, []);
 
   const hide = (): void => void invoke('overlay/hide', undefined);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Main keeps the native view attached for a beat after hiding so the exit can play here.
   const [shown, setShown] = useState(overlay);
@@ -79,7 +81,16 @@ export function OverlayApp() {
       )}
       {view.kind === 'updateNotes' && <UpdateNotes payload={view.payload as UpdateNotesPayload} />}
       {view.kind === 'sidebar' && (
-        <div className={styles.floatingSidebar} onMouseLeave={hide}>
+        <div
+          className={styles.floatingSidebar}
+          onMouseLeave={() => {
+            leaveTimer.current = setTimeout(hide, 180);
+          }}
+          onMouseEnter={() => {
+            if (leaveTimer.current) clearTimeout(leaveTimer.current);
+            leaveTimer.current = null;
+          }}
+        >
           <Sidebar width={sidebarWidth} onToggle={hide} floating />
         </div>
       )}

@@ -41,6 +41,10 @@
   cursor: text;
 }
 
+.input:focus-visible {
+  outline: none;
+}
+
 .input::placeholder {
   color: var(--fg-faint);
 }

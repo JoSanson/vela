@@ -154,9 +154,26 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  position: relative;
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  background: var(--p-muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
 .select:focus-visible {
@@ -249,16 +266,34 @@
   color: var(--p-fg);
 }
 
-/* Segmented control */
+/* Segmented control: one thumb slides under the active option. */
 .segmented {
-  display: inline-flex;
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   padding: 3px;
   border-radius: 10px;
   background: var(--p-input);
-  gap: 2px;
+}
+
+.thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--n, 1));
+  border-radius: 7px;
+  background: var(--p-card);
+  box-shadow: 0 1px 2px rgba(12, 10, 24, 0.12);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform var(--dur) var(--ease-out);
+  pointer-events: none;
 }
 
 .segment {
+  position: relative;
+  z-index: 1;
   height: 26px;
   padding: 0 12px;
   border-radius: 7px;
@@ -277,9 +312,7 @@
 }
 
 .segment[aria-pressed='true'] {
-  background: var(--p-card);
   color: var(--p-fg);
-  box-shadow: 0 1px 2px rgba(12, 10, 24, 0.12);
 }
 
 /* Badges */

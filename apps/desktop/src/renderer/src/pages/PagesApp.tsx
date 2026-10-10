@@ -2,6 +2,7 @@ import type { CoreAction } from '@vela/core';
 import type { Prefs, ShellSnapshot } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setFaviconToken } from '../components/Favicon';
+import { resolveMode } from '../lib/theme';
 import { ArchivePage } from './ArchivePage';
 import { DownloadsPage } from './DownloadsPage';
 import { ErrorPage } from './ErrorPage';
@@ -42,7 +43,7 @@ export function PagesApp() {
   }, []);
   useEffect(() => {
     if (page === 'home') document.title = 'Vela';
-    if (page === 'error') document.title = 'Error · Vela';
+    if (page === 'error') document.title = 'Error';
   }, [page]);
 
   const [snap, setSnap] = useState<ShellSnapshot | null>(null);
@@ -94,17 +95,20 @@ export function PagesApp() {
   );
 
   const systemDark = useSystemDark();
-  const theme = snap?.prefs.theme ?? 'system';
+  const themePref = snap?.prefs.theme ?? 'system';
   const space = snap ? snap.state.spaces[snap.state.activeSpaceId] : undefined;
-  const from = space?.theme.from;
-  const to = space?.theme.to;
+  const spaceTheme = space?.theme;
+  // Same resolution as the shell (lib/theme.ts): the page and the sidebar never disagree.
+  const mode = spaceTheme ? resolveMode(spaceTheme, systemDark, themePref) : systemDark ? 'dark' : 'light';
+  const from = spaceTheme?.from;
+  const to = spaceTheme?.to;
   useEffect(() => {
     const root = document.documentElement;
-    root.style.colorScheme = theme === 'system' ? 'light dark' : theme;
-    root.dataset.mode = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+    root.style.colorScheme = mode;
+    root.dataset.mode = mode;
     if (from) root.style.setProperty('--space-from', from);
     if (to) root.style.setProperty('--space-to', to);
-  }, [theme, systemDark, from, to]);
+  }, [mode, from, to]);
 
   return (
     <SnapshotContext.Provider value={ctx}>
@@ -120,7 +124,7 @@ export function PagesApp() {
           {page === 'onboarding' && <OnboardingPage />}
           {page === 'home' && (
             <div className={styles.center}>
-              <EmptyState icon="command" title="Vela" hint="Press ⌘T to open a page." />
+              <EmptyState icon="command" title="Vela" hint="Press ⌘T to open a tab." />
             </div>
           )}
         </div>

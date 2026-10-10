@@ -41,7 +41,7 @@
 
 @keyframes slideRight {
   from {
-    transform: translateX(28px);
+    transform: translateX(16px);
     opacity: 0;
   }
   to {
@@ -52,7 +52,7 @@
 
 @keyframes slideLeft {
   from {
-    transform: translateX(-28px);
+    transform: translateX(-16px);
     opacity: 0;
   }
   to {

@@ -88,7 +88,7 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
       <div className={styles.row}>
         <div className={styles.label}>
           <Icon name="shield" size={14} />
-          <span>Block ads & trackers</span>
+          <span>Block ads and trackers</span>
           {stats && stats.blockedOnTab > 0 && (
             <span className={styles.count} data-testid="site-blocked-count">
               {stats.blockedOnTab} blocked
@@ -130,21 +130,19 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
         </div>
       </div>
 
-      <div className={styles.section}>
-        <div className={styles.sectionHead}>
-          <span>Permissions</span>
-          <button className={styles.link} onClick={() => openSettings('permissions')}>
-            Manage
-          </button>
-        </div>
-        {perms.length === 0 ? (
-          <p className={styles.muted}>Nothing decided for this site yet.</p>
-        ) : (
-          perms.map((p) => (
+      {perms.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.sectionHead}>
+            <span>Permissions</span>
+            <button className={styles.link} onClick={() => openSettings('permissions')}>
+              Manage
+            </button>
+          </div>
+          {perms.map((p) => (
             <div key={p.permission} className={styles.perm} data-testid="site-permission">
               <span>{p.permission}</span>
               <span className={`${styles.pill} ${p.decision === 'allow' ? styles.allow : styles.deny}`}>
-                {p.decision}
+                {p.decision === 'allow' ? 'Allowed' : 'Blocked'}
               </span>
               <button
                 className={styles.link}
@@ -152,18 +150,18 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
                   void invoke('permissions/remove', { origin: p.origin, permission: p.permission }).then(load)
                 }
               >
-                Reset
+                Forget
               </button>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className={styles.section}>
         <div className={styles.sectionHead}>
-          <span>Boosts</span>
+          <span>This page</span>
           <button className={styles.link} onClick={() => openSettings('boosts')}>
-            {boosts.length ? 'Edit' : 'Create'}
+            Boosts
           </button>
         </div>
         <div className={styles.actions}>
@@ -196,6 +194,11 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
         <span className={styles.muted}>
           {space?.emoji} {space?.name} · {profile ? `Profile: ${profile.name}` : 'Default profile'}
         </span>
+        {perms.length === 0 && (
+          <button className={styles.link} onClick={() => openSettings('permissions')}>
+            Permissions
+          </button>
+        )}
       </div>
     </div>
   );

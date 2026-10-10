@@ -40,7 +40,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #1f9d55;
+  color: var(--ok);
 }
 
 .insecure {
@@ -174,14 +174,13 @@
 .pill {
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
 }
 
 .allow {
-  background: rgba(31, 157, 85, 0.15);
-  color: #1f9d55;
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  color: var(--ok);
 }
 
 .deny {
@@ -211,6 +210,10 @@
 }
 
 .foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding-top: 8px;
 }
 

@@ -102,8 +102,8 @@
 }
 
 .add {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -142,6 +142,28 @@
     background-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast),
     transform var(--dur-press) var(--ease-out);
+}
+
+.action {
+  position: relative;
+}
+
+/* Download in flight: a thin ring around the button fills with the average progress. */
+.busy::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  padding: 1.5px;
+  background: conic-gradient(
+    var(--accent) var(--p, 0deg),
+    color-mix(in oklab, var(--accent) 22%, transparent) 0
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .action:hover,

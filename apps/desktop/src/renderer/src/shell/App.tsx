@@ -1,5 +1,5 @@
 import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH, shortcutForEvent } from '@vela/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
 import { connectStore, selectActiveTab, useShell } from '../lib/store';
@@ -22,6 +22,11 @@ function tween(
   ms: number,
   cb: { onUpdate: (v: number) => void; onComplete: () => void },
 ): void {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    cb.onUpdate(to);
+    cb.onComplete();
+    return;
+  }
   const start = performance.now();
   const frame = (now: number): void => {
     const t = Math.min(1, (now - start) / ms);
@@ -49,7 +54,8 @@ export function App() {
   const activeTab = useShell(selectActiveTab);
   const glass = useShell((s) => s.prefs.glass);
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
-  const [toast, setToast] = useState<string | null>(null);
+  const toast = useShell((s) => s.toast);
+  const showToast = useShell((s) => s.showToast);
   const asideRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
@@ -59,14 +65,15 @@ export function App() {
   }, [ready]);
 
   const theme = core.spaces[core.activeSpaceId]?.theme;
+  const themePref = useShell((s) => s.prefs.theme);
   useEffect(() => {
     if (!theme) return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = (): void => void applyTheme(theme, systemPrefersDark());
+    const apply = (): void => void applyTheme(theme, systemPrefersDark(), themePref);
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
-  }, [theme]);
+  }, [theme, themePref]);
 
   useEffect(() => {
     document.documentElement.dataset.glass = glass ? 'true' : 'false';
@@ -128,14 +135,14 @@ export function App() {
 
   useEffect(() => {
     return vela.on('zap/pick', ({ selector }) => {
-      setToast(`Zapped ${selector.length > 40 ? `${selector.slice(0, 40)}…` : selector}`);
+      showToast({ text: `Zapped ${selector.length > 40 ? `${selector.slice(0, 40)}…` : selector}` });
     });
-  }, []);
+  }, [showToast]);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2600);
+    const t = setTimeout(() => showToast(null), toast.action ? 5000 : 2600);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toast, showToast]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -237,7 +244,19 @@ export function App() {
       <SplitHandles />
       {toast && (
         <div className={styles.toast} role="status" data-testid="toast">
-          {toast}
+          <span>{toast.text}</span>
+          {toast.action && (
+            <button
+              className={styles.toastAction}
+              onClick={() => {
+                toast.action?.run();
+                showToast(null);
+              }}
+              data-testid="toast-action"
+            >
+              {toast.action.label}
+            </button>
+          )}
         </div>
       )}
     </div>

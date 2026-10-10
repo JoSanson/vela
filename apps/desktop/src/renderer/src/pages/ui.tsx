@@ -1,4 +1,10 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from 'react';
 import { useState } from 'react';
 import { Icon, type IconName } from '../components/Icon';
 import { isMac } from '../lib/api';
@@ -69,18 +75,20 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onC
 
 export function Select({ options, onChange, testId, className, ...rest }: SelectProps) {
   return (
-    <select
-      className={`${styles.select} ${className ?? ''}`}
-      data-testid={testId}
-      onChange={(e) => onChange(e.target.value)}
-      {...rest}
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <span className={styles.selectWrap}>
+      <select
+        className={`${styles.select} ${className ?? ''}`}
+        data-testid={testId}
+        onChange={(e) => onChange(e.target.value)}
+        {...rest}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </span>
   );
 }
 
@@ -169,8 +177,19 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ value, options, onChange, testId, label }: SegmentedProps<T>) {
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
   return (
-    <div className={styles.segmented} role="group" aria-label={label} data-testid={testId}>
+    <div
+      className={styles.segmented}
+      role="group"
+      aria-label={label}
+      data-testid={testId}
+      style={{ '--n': options.length, '--i': index } as CSSProperties}
+    >
+      <span className={styles.thumb} aria-hidden="true" />
       {options.map((o) => (
         <button
           key={o.value}

@@ -117,6 +117,7 @@ test.describe('split view', () => {
     await expect
       .poll(async () => (await vela.state()).spaces[(await vela.state()).activeSpaceId]?.split?.panes.length)
       .toBe(2);
+    await vela.overlayHidden();
     const bounds = await vela.app.evaluate(({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0];
       return win?.contentView.children.map((c) => c.getBounds()) ?? [];

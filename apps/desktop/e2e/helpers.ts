@@ -193,12 +193,22 @@ export async function launchVela(
     return p;
   };
   const overlay = (): Promise<Page> => tabPage('overlay.html');
+  // Hidden = state flipped and the native view detached (main keeps it ~110 ms for the exit animation).
   const overlayHidden = async (): Promise<void> => {
     await expect
       .poll(() =>
         app.evaluate(() => {
-          const g = globalThis as unknown as { __vela: { ctx: { overlay: { visible: boolean } } } };
-          return g.__vela.ctx.overlay.visible;
+          const g = globalThis as unknown as {
+            __vela: {
+              ctx: {
+                overlay: { visible: boolean; view: unknown };
+                windows: { main: { win: { contentView: { children: unknown[] } } } | null };
+              };
+            };
+          };
+          const { overlay, windows } = g.__vela.ctx;
+          const attached = windows.main?.win.contentView.children.includes(overlay.view) ?? false;
+          return overlay.visible || attached;
         }),
       )
       .toBe(false);

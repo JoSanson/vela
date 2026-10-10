@@ -333,20 +333,30 @@
 }
 
 .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--p-border);
-  transition:
-    transform var(--dur) var(--ease-out),
-    background-color var(--dur) var(--ease-out);
+  position: relative;
+  width: 22px;
+  height: 16px;
   cursor: pointer;
 }
 
-.dot[aria-current='step'] {
+.dot::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--p-border);
+  transform: translate(-50%, -50%) scaleX(0.375);
+  transition:
+    transform var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
+}
+
+.dot[aria-current='step']::before {
   background: var(--p-accent);
-  transform: scaleX(2.6);
-  margin: 0 5px;
+  transform: translate(-50%, -50%) scaleX(1);
 }
 
 .nav {
@@ -400,7 +410,7 @@
 @keyframes pop {
   from {
     opacity: 0;
-    transform: scale(0.6);
+    transform: scale(0.9);
   }
   to {
     opacity: 1;

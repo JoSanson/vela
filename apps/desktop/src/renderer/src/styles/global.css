@@ -37,8 +37,8 @@
     color-mix(in oklab, var(--space-to) 36%, white) 100%
   );
   --fg: rgba(18, 16, 30, 0.92);
-  --fg-muted: rgba(18, 16, 30, 0.58);
-  --fg-faint: rgba(18, 16, 30, 0.36);
+  --fg-muted: rgba(18, 16, 30, 0.68);
+  --fg-faint: rgba(18, 16, 30, 0.48);
   --surface: rgba(255, 255, 255, 0.62);
   --surface-hover: rgba(255, 255, 255, 0.38);
   --surface-active: rgba(255, 255, 255, 0.78);
@@ -49,6 +49,7 @@
   --focus: color-mix(in oklab, var(--space-from) 70%, black);
   --accent: color-mix(in oklab, var(--space-from) 80%, black);
   --danger: #e5484d;
+  --ok: #17874a;
   --panel-bg: rgba(252, 252, 255, 0.94);
   --panel-fg: rgba(18, 16, 30, 0.92);
 }
@@ -71,6 +72,7 @@
   --shadow-lg: 0 2px 6px rgba(12, 10, 24, 0.35), 0 24px 64px rgba(12, 10, 24, 0.5);
   --focus: color-mix(in oklab, var(--space-from) 70%, white);
   --accent: color-mix(in oklab, var(--space-from) 75%, white);
+  --ok: #3ccf7a;
   --panel-bg: rgba(28, 27, 36, 0.96);
   --panel-fg: rgba(255, 255, 255, 0.92);
 }

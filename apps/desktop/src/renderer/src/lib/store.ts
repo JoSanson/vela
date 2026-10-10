@@ -28,6 +28,8 @@ export interface ShellStore {
   iconPickerFor: Id | null;
   topStrip: number;
   siteControlOpen: boolean;
+  toast: { text: string; action?: { label: string; run: () => void } } | null;
+  showToast: (toast: ShellStore['toast']) => void;
   hydrate: (snap: ShellSnapshot) => void;
   setCore: (core: CoreState) => void;
   setPrefs: (prefs: Prefs) => void;
@@ -62,6 +64,8 @@ export const useShell = create<ShellStore>((set) => ({
   iconPickerFor: null,
   topStrip: 0,
   siteControlOpen: false,
+  toast: null,
+  showToast: (toast) => set({ toast }),
   hydrate: (snap) => {
     setFaviconToken(snap.faviconToken);
     set({

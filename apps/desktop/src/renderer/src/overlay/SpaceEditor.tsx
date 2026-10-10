@@ -6,12 +6,15 @@ import {
   type SpaceTheme,
   type ThemeMode,
 } from '@vela/core';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { Icon } from '../components/Icon';
 import { dispatch, invoke } from '../lib/api';
 import { useShell } from '../lib/store';
 import styles from './SpaceEditor.module.css';
+
+const MODES: ThemeMode[] = ['system', 'light', 'dark'];
+const MODE_LABEL: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 
 export interface SpaceEditorPayload {
   /** A space id, or the literal 'new'. */
@@ -169,8 +172,14 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
             </label>
             <div className={styles.label}>
               Appearance
-              <div className={styles.segment} role="radiogroup" aria-label="Appearance">
-                {(['system', 'light', 'dark'] as ThemeMode[]).map((m) => (
+              <div
+                className={styles.segment}
+                role="radiogroup"
+                aria-label="Appearance"
+                style={{ '--i': MODES.indexOf(theme.mode) } as CSSProperties}
+              >
+                <span className={styles.segThumb} aria-hidden="true" />
+                {MODES.map((m) => (
                   <button
                     key={m}
                     role="radio"
@@ -178,7 +187,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                     className={theme.mode === m ? styles.segOn : ''}
                     onClick={() => setTheme({ ...theme, mode: m })}
                   >
-                    {m}
+                    {MODE_LABEL[m]}
                   </button>
                 ))}
               </div>

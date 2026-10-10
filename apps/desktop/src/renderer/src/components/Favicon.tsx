@@ -1,5 +1,5 @@
 import { hostOf, type Tab } from '@vela/core';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import styles from './Favicon.module.css';
 
@@ -26,22 +26,21 @@ export function faviconSrc(url: string): string {
 export function Favicon({ tab, size = 16 }: Props) {
   const [broken, setBroken] = useState(false);
   const style = { width: size, height: size, fontSize: size * 0.75 };
+  let inner: ReactNode;
   if (tab.emoji) {
-    return (
+    inner = (
       <span className={styles.emoji} style={style} aria-hidden="true">
         {tab.emoji}
       </span>
     );
-  }
-  if (tab.url.startsWith('vela://')) {
-    return (
+  } else if (tab.url.startsWith('vela://')) {
+    inner = (
       <span className={styles.badge} style={style} aria-hidden="true">
         <Icon name="command" size={size - 4} />
       </span>
     );
-  }
-  if (tab.favicon && !broken) {
-    return (
+  } else if (tab.favicon && !broken) {
+    inner = (
       <img
         className={`${styles.img} ${tab.sleeping ? styles.sleeping : ''}`}
         style={style}
@@ -51,15 +50,24 @@ export function Favicon({ tab, size = 16 }: Props) {
         onError={() => setBroken(true)}
       />
     );
+  } else {
+    const letter = (hostOf(tab.url) || '?').charAt(0).toUpperCase();
+    inner = (
+      <span
+        className={`${styles.badge} ${tab.sleeping ? styles.sleeping : ''}`}
+        style={style}
+        aria-hidden="true"
+      >
+        {letter}
+      </span>
+    );
   }
-  const letter = (hostOf(tab.url) || '?').charAt(0).toUpperCase();
+  if (!tab.loading) return inner;
+  // Loading lives on the icon itself (a ring around a dimmed favicon): the row never shifts.
   return (
-    <span
-      className={`${styles.badge} ${tab.sleeping ? styles.sleeping : ''}`}
-      style={style}
-      aria-hidden="true"
-    >
-      {letter}
+    <span className={styles.loadingWrap} style={{ width: size, height: size }} aria-label="Loading">
+      {inner}
+      <span className={styles.ring} />
     </span>
   );
 }

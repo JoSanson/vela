@@ -223,7 +223,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     }
   };
 
-  const placeholder = mode === 'split' ? 'Search or enter URL for the new pane…' : 'Search or enter URL…';
+  const placeholder = mode === 'split' ? 'Search or enter URL for the new pane' : 'Search or enter URL';
 
   return (
     <div className={styles.wrap} role="dialog" aria-label="Command bar" data-testid="command-bar">

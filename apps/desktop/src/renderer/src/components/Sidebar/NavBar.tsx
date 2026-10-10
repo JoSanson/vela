@@ -26,6 +26,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           disabled={!tab?.canGoBack}
           onClick={() => id && void invoke('tab/back', { tabId: id })}
           aria-label="Back"
+          title={`Back (${modKey}[)`}
         >
           <Icon name="back" />
         </button>
@@ -34,6 +35,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           disabled={!tab?.canGoForward}
           onClick={() => id && void invoke('tab/forward', { tabId: id })}
           aria-label="Forward"
+          title={`Forward (${modKey}])`}
         >
           <Icon name="forward" />
         </button>
@@ -42,6 +44,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           disabled={!tab}
           onClick={() => id && void invoke(tab?.loading ? 'tab/stop' : 'tab/reload', { tabId: id })}
           aria-label={tab?.loading ? 'Stop' : 'Reload'}
+          title={tab?.loading ? 'Stop' : `Reload (${modKey}R)`}
         >
           <Icon name={tab?.loading ? 'close' : 'reload'} />
         </button>
@@ -55,6 +58,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           })
         }
         aria-label="Address and search"
+        title={`Search or enter URL (${modKey}L)`}
         data-testid="url-pill"
       >
         <span className={styles.urlText}>{tab ? prettyUrl(tab.url) : 'Search or enter URL'}</span>

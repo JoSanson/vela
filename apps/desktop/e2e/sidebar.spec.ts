@@ -11,8 +11,18 @@ async function openTab(vela: VelaApp, url: string): Promise<string> {
   return id;
 }
 
+/** Rows glide into place after a reorder (FLIP); wait for that before measuring them. */
+async function settled(vela: VelaApp, selector: string): Promise<void> {
+  await vela.shell
+    .locator(selector)
+    .evaluate((el) =>
+      Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => undefined))),
+    );
+}
+
 async function dragRow(vela: VelaApp, fromId: string, to: { x: number; y: number }): Promise<void> {
   const row = vela.shell.locator(`[data-dnd-row="${fromId}"]`);
+  await settled(vela, '[data-testid="sidebar"]');
   const box = await row.boundingBox();
   if (!box) throw new Error('row not visible');
   await vela.shell.mouse.move(box.x + 40, box.y + box.height / 2);
@@ -104,6 +114,7 @@ test.describe('sidebar', () => {
       .toEqual([a, c, b]);
 
     // drag B to favorites: the zone appears while dragging
+    await settled(vela, '[data-testid="sidebar"]');
     const rowB = await vela.shell.locator(`[data-dnd-row="${b}"]`).boundingBox();
     if (!rowB) throw new Error('rowB');
     await vela.shell.mouse.move(rowB.x + 40, rowB.y + rowB.height / 2);
@@ -172,11 +183,14 @@ test.describe('spaces', () => {
     let st = await vela.state();
     const work = st.spaces[st.activeSpaceId];
     expect(work?.name).toBe('Work');
-    expect(
-      await vela.shell.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--space-from').trim(),
-      ),
-    ).toBe('#FF7A59');
+    // Registered colour property: computed as rgb(), and it cross-fades over 320 ms.
+    await expect
+      .poll(() =>
+        vela.shell.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--space-from').trim(),
+        ),
+      )
+      .toBe('rgb(255, 122, 89)');
     expect(
       Object.values((st as unknown as { profiles: Record<string, { name: string }> }).profiles)[0]?.name,
     ).toBe('Pro');

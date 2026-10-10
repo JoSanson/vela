@@ -125,15 +125,22 @@
 
 .fill[data-indeterminate='true'] {
   width: 30%;
-  animation: slide 1.2s var(--ease-in-out) infinite alternate;
+  animation: sweep 1.4s linear infinite;
 }
 
-@keyframes slide {
+@keyframes sweep {
   from {
-    transform: translateX(0);
+    transform: translateX(-100%);
   }
   to {
-    transform: translateX(233%);
+    transform: translateX(333%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill[data-indeterminate='true'] {
+    animation: none !important;
+    transform: translateX(117%);
   }
 }
 

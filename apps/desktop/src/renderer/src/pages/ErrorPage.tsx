@@ -77,7 +77,8 @@ export function ErrorPage() {
         {kind === 'net' && (
           <>
             <h1 className={styles.h1}>Can’t reach {host}</h1>
-            <p className={styles.muted}>{detail}</p>
+            <p className={styles.muted}>{friendlyNetError(detail)}</p>
+            <p className={styles.code}>{detail}</p>
             <div className={styles.actions}>
               <button className={styles.primary} onClick={retry} data-testid="retry">
                 Try again
@@ -101,4 +102,18 @@ export function ErrorPage() {
       </div>
     </div>
   );
+}
+
+const NET_MESSAGES: [RegExp, string][] = [
+  [/NAME_NOT_RESOLVED/, 'The server address could not be found. Check the spelling or your DNS.'],
+  [/INTERNET_DISCONNECTED/, 'You appear to be offline.'],
+  [/CONNECTION_REFUSED/, 'The server refused the connection.'],
+  [/CONNECTION_TIMED_OUT|TIMED_OUT/, 'The server took too long to respond.'],
+  [/CONNECTION_RESET/, 'The connection was reset while loading.'],
+  [/SSL|CERT/, 'A secure connection could not be established.'],
+];
+
+function friendlyNetError(detail: string): string {
+  for (const [re, text] of NET_MESSAGES) if (re.test(detail)) return text;
+  return 'The page could not be loaded.';
 }

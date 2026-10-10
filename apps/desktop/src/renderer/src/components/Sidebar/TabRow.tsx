@@ -122,7 +122,6 @@ export const TabRow = memo(function TabRow({
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
-      title={tab.url}
     >
       <Favicon tab={tab} />
       {editing ? (
@@ -135,7 +134,6 @@ export const TabRow = memo(function TabRow({
       ) : (
         <span className={styles.title}>{title}</span>
       )}
-      {tab.loading && <span className={styles.spinner} aria-label="Loading" />}
       {(tab.audible || tab.muted) && (
         <button
           className={styles.audio}

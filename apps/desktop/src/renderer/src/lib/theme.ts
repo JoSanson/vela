@@ -23,16 +23,24 @@ export function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function resolveMode(theme: SpaceTheme, systemDark: boolean): ResolvedMode {
+export type ThemePref = 'system' | 'light' | 'dark';
+
+/** The global preference wins; otherwise the space decides; otherwise the OS. One rule everywhere. */
+export function resolveMode(
+  theme: SpaceTheme,
+  systemDark: boolean,
+  pref: ThemePref = 'system',
+): ResolvedMode {
+  if (pref !== 'system') return pref;
   if (theme.mode === 'light') return 'light';
   if (theme.mode === 'dark') return 'dark';
   return systemDark ? 'dark' : 'light';
 }
 
 /** Applies the space theme as CSS variables on <html>. */
-export function applyTheme(theme: SpaceTheme, systemDark: boolean): ResolvedMode {
+export function applyTheme(theme: SpaceTheme, systemDark: boolean, pref: ThemePref = 'system'): ResolvedMode {
   const root = document.documentElement;
-  const mode = resolveMode(theme, systemDark);
+  const mode = resolveMode(theme, systemDark, pref);
   root.dataset.mode = mode;
   root.style.setProperty('--space-from', theme.from);
   root.style.setProperty('--space-to', theme.to);

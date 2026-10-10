@@ -1,4 +1,6 @@
-import { dispatch, invoke, modKey } from '../../lib/api';
+import type { DownloadItemState } from '@vela/shared';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { dispatch, invoke, modKey, vela } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import styles from './SpaceBar.module.css';
@@ -8,6 +10,20 @@ export function SpaceBar() {
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
   const active = core.spaces[core.activeSpaceId];
+  // Live download progress on the sidebar button: a ring fills while anything is in flight.
+  const [downloads, setDownloads] = useState<DownloadItemState[]>([]);
+  useEffect(() => {
+    void invoke('downloads/list', undefined)
+      .then(setDownloads)
+      .catch(() => undefined);
+    return vela.on('downloads/changed', setDownloads);
+  }, []);
+  const inFlight = downloads.filter((d) => d.state === 'progressing');
+  const progress =
+    inFlight.length === 0
+      ? null
+      : inFlight.reduce((s, d) => s + (d.totalBytes > 0 ? d.receivedBytes / d.totalBytes : 0), 0) /
+        inFlight.length;
   const editSpace = (id: string): void =>
     void invoke('overlay/show', { kind: 'spaceEditor', payload: { spaceId: id } });
   return (
@@ -63,10 +79,11 @@ export function SpaceBar() {
       </div>
       <div className={styles.actions}>
         <button
-          className={`${styles.action} ${downloadsOpen ? styles.actionOn : ''}`}
-          aria-label="Downloads"
-          title="Downloads"
+          className={`${styles.action} ${downloadsOpen ? styles.actionOn : ''} ${progress !== null ? styles.busy : ''}`}
+          aria-label={progress !== null ? `Downloads, ${Math.round(progress * 100)}% done` : 'Downloads'}
+          title={`Downloads (${modKey}⇧J)`}
           onClick={() => setDownloadsOpen(!downloadsOpen)}
+          style={{ '--p': `${Math.round((progress ?? 0) * 360)}deg` } as CSSProperties}
           data-testid="downloads-toggle"
         >
           <Icon name="download" size={15} />

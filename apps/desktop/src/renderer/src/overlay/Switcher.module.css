@@ -17,6 +17,7 @@
     var(--shadow-lg),
     0 0 0 1px var(--border);
   overflow-x: auto;
+  scrollbar-width: thin;
   backdrop-filter: blur(24px);
 }
 
@@ -37,7 +38,6 @@
 .selected {
   background: color-mix(in oklab, var(--space-from) 18%, transparent);
   box-shadow: inset 0 0 0 2px var(--accent);
-  transform: scale(1.02);
 }
 
 .preview {

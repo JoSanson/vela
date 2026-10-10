@@ -1,9 +1,9 @@
 .page {
-  --p-bg: light-dark(#f7f7fa, #141319);
+  --p-bg: color-mix(in oklab, var(--space-from) 4%, light-dark(#f8f8fb, #141319));
   --p-fg: light-dark(rgba(18, 16, 30, 0.92), rgba(255, 255, 255, 0.92));
   --p-muted: light-dark(rgba(18, 16, 30, 0.6), rgba(255, 255, 255, 0.6));
-  --p-faint: light-dark(rgba(18, 16, 30, 0.4), rgba(255, 255, 255, 0.4));
-  --p-card: light-dark(#fdfdff, #1e1d26);
+  --p-faint: light-dark(rgba(18, 16, 30, 0.5), rgba(255, 255, 255, 0.45));
+  --p-card: color-mix(in oklab, var(--space-from) 2%, light-dark(#ffffff, #1e1d26));
   --p-border: light-dark(rgba(18, 16, 30, 0.08), rgba(255, 255, 255, 0.1));
   --p-hover: light-dark(rgba(18, 16, 30, 0.05), rgba(255, 255, 255, 0.06));
   --p-active: light-dark(rgba(18, 16, 30, 0.09), rgba(255, 255, 255, 0.11));
@@ -82,6 +82,13 @@
   color: var(--p-muted);
   line-height: 1.5;
   font-size: 14px;
+}
+
+.code {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--p-faint);
 }
 
 .dl {

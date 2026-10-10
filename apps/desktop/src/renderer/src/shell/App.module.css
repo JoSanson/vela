@@ -120,6 +120,25 @@
   font-size: 12px;
   z-index: 50;
   animation: rise var(--dur-fast) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.toastAction {
+  padding: 2px 8px;
+  margin: -2px -6px -2px 0;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--accent);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.toastAction:hover {
+  background: color-mix(in oklab, var(--space-from) 14%, transparent);
 }
 
 @keyframes rise {

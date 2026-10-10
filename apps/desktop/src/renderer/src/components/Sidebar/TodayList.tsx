@@ -20,7 +20,17 @@ export function TodayList({ onDragStart }: Props) {
   const tabs = todayTabs(core, space.id);
   const hasPinned = space.pinned.length > 0;
   const clearAll = (): void => {
+    const n = tabs.length;
     for (const t of tabs) void invoke('tab/close', { tabId: t.id });
+    useShell.getState().showToast({
+      text: `Closed ${n} tab${n > 1 ? 's' : ''}`,
+      action: {
+        label: 'Undo',
+        run: () => {
+          for (let i = 0; i < n; i++) void invoke('tab/reopenClosed', undefined);
+        },
+      },
+    });
   };
   return (
     <div

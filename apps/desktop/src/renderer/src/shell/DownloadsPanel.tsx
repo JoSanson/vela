@@ -96,7 +96,7 @@ export function DownloadsPanel({ onClose }: { onClose: () => void }) {
                     onClick={() => act(d.id, d.paused ? 'resume' : 'pause')}
                     aria-label={d.paused ? 'Resume' : 'Pause'}
                   >
-                    <Icon name={d.paused ? 'forward' : 'more'} size={13} />
+                    <Icon name={d.paused ? 'play' : 'pause'} size={13} />
                   </button>
                 )}
                 {d.state === 'progressing' && (

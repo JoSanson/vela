@@ -23,7 +23,7 @@ export function LittleApp() {
   }, []);
   const theme = core.spaces[core.activeSpaceId]?.theme;
   useEffect(() => {
-    if (theme) applyTheme(theme, systemPrefersDark());
+    if (theme) applyTheme(theme, systemPrefersDark(), useShell.getState().prefs.theme);
   }, [theme]);
   useEffect(() => {
     if (editing) {

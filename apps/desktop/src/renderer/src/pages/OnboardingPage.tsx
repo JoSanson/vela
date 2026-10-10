@@ -50,7 +50,7 @@ export function OnboardingPage() {
   const [zone, setZone] = useState<(typeof ZONES)[number]['id']>('spaces');
 
   useEffect(() => {
-    document.title = 'Welcome · Vela';
+    document.title = 'Welcome';
   }, []);
 
   const go = (n: number): void => {

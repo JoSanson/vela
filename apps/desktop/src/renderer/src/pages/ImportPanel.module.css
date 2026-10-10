@@ -64,6 +64,7 @@
 }
 
 .check input {
+  accent-color: var(--p-accent);
   width: 15px;
   height: 15px;
   accent-color: var(--p-accent);

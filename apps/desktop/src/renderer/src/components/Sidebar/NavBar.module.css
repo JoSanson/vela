@@ -68,6 +68,7 @@
 .urlText {
   flex: 1;
   min-width: 0;
+  padding-right: 26px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -81,7 +82,7 @@
 }
 
 .lockOk {
-  color: #1f9d55;
+  color: var(--ok);
 }
 
 .site {
