@@ -78,6 +78,12 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 9.2 Review pass 2 — f11bbab (3 HIGH, 6 MEDIUM, 11 LOW + docs fixed; e2e 53/53 ×3, perf all ✅, coverage 98.5 %)
 - [x] 9.3 Docs complete — f11bbab (README install status, SECURITY/ARCHITECTURE/EXTENSIONS accuracy, D017/D018, CHANGELOG)
 
+## Phase 10 — UX polish (owner request: "better than Apple", micro-interactions)
+- [x] 10.1 PRODUCT.md + DESIGN.md context, critique (independent LLM review 24/40 + detector) — 99248d9
+- [x] 10.2 Wave 1: motion foundations, FLIP lists, overlay exit, onboarding tour — 99248d9
+- [x] 10.3 Wave 2: one theme source, tinted pages, loading ring, undo, native controls, a11y — fbce139
+- [x] 10.4 Verification: e2e 53/53 ×3, perf all ✅ (PERF.md), lint/typecheck clean — see CHANGELOG
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x

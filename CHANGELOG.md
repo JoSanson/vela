@@ -6,6 +6,23 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed (UX polish pass, two independent design reviews)
+
+- Motion vocabulary: every button answers a press in the same frame; sidebar lists glide (FLIP) on
+  reorder/insert; overlays play a 90 ms exit; Space switches cross-fade every tinted surface
+  (registered colour properties); hover-reveal sidebar keeps a 180 ms leave grace.
+- Sidebar: loading ring on the favicon (no row shift), audio equaliser, Space dots without layout
+  animation, download progress ring on the downloads button, "Clear" with Undo, nav tooltips
+  with shortcuts.
+- One theme source for the shell, overlays and internal pages (global preference overrides the
+  Space mode); internal pages are tinted by the Space colour.
+- Internal pages: sliding segmented control, toggle thumb that stretches while pressed, friendlier
+  network errors, styled range/select/checkbox controls, reader blockquote without side stripe.
+- Onboarding: annotated miniature sidebar replaces the identical card grid.
+- Copy: no em dashes, tab titles without the "Vela" suffix, plain-case permission pills.
+- Accessibility: muted/faint ink contrast raised on light Space gradients; spinners static and the
+  sidebar tween skipped under reduced motion; larger hit targets (Space dots, onboarding steps).
+
 ## [0.1.0] - 2026-10-10
 
 ### Security (review pass 2)

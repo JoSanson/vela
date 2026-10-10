@@ -32,7 +32,7 @@ export function PeekChrome() {
           size={14}
         />
         <span className={styles.text}>{peek.title || prettyUrl(peek.url)}</span>
-        <span className={styles.url}>{prettyUrl(peek.url)}</span>
+        {!peek.url.startsWith('vela://') && <span className={styles.url}>{prettyUrl(peek.url)}</span>}
       </div>
       <button className={styles.open} onClick={() => act('openAsTab')} data-testid="peek-open">
         <Icon name="external" size={14} />
