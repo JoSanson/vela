@@ -1,4 +1,4 @@
-import type { ArchivedTab, CoreAction, CoreState, Id, TabKind } from '@vela/core';
+import type { ArchivedTab, CoreAction, CoreState, Id, TabKind, StateDelta } from '@vela/core';
 import type { Prefs } from './prefs';
 
 export type Platform = 'darwin' | 'win32' | 'linux';
@@ -10,6 +10,8 @@ export interface ShellSnapshot {
   platform: Platform;
   windowId: number;
   overlay: OverlayState;
+  /** Revision of `state`; deltas carry `fromRev`/`rev` so a missed message triggers a resync. */
+  rev: number;
   /** Per-launch secret inserted into `vela://favicon/` URLs by the renderer. */
   faviconToken: string;
   /** Which tab (if any) this window is a "Little" window for. */
@@ -354,7 +356,7 @@ export interface OverlayState {
 
 /** Main → renderer events. */
 export interface IpcEventMap {
-  'state/changed': CoreState;
+  'state/changed': StateDelta;
   'prefs/changed': Prefs;
   'overlay/changed': OverlayState;
   'ui/command': { id: string; payload?: unknown };

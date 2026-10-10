@@ -3,6 +3,7 @@ import type { AppContext } from './context';
 
 const SLEEP_TICK_MS = 30_000;
 const ARCHIVE_TICK_MS = 5 * 60_000;
+const VISIT_RETENTION_MS = 90 * 24 * 3600 * 1000;
 
 /**
  * Memory saver + auto-archive. Both are driven by `lastActiveAt`, so lazily restored tabs that
@@ -36,6 +37,11 @@ export function installMaintenance(ctx: AppContext): Maintenance {
     if (!hours) return;
     ctx.store.dispatch({ type: 'maintenance/autoArchive', now: Date.now(), maxAgeMs: hours * 3_600_000 });
     ctx.store.dispatch({ type: 'maintenance/pruneArchive', max: 5000 });
+    try {
+      ctx.history.pruneVisits(Date.now() - VISIT_RETENTION_MS);
+    } catch (err) {
+      console.warn('[history] prune failed', err);
+    }
   };
 
   const a = setInterval(sweepSleep, SLEEP_TICK_MS);

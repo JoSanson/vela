@@ -41,8 +41,26 @@ export class HistoryRepo {
     this.updateFavicon.run(favicon, url);
   }
 
+  /** Full-text search (FTS5 prefix tokens) with a LIKE fallback for queries made of punctuation only. */
   search(query: string, limit = 50, offset = 0): HistoryEntry[] {
     const q = query.trim();
+    const tokens = q
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)
+      .map((t) => `"${t.replace(/"/g, '""')}"*`);
+    if (q && tokens.length) {
+      try {
+        return this.db
+          .prepare(
+            `SELECT h.id, h.url, h.title, h.favicon, h.last_visit AS visitedAt, h.visit_count AS visitCount
+             FROM history_fts f JOIN history h ON h.id = f.rowid
+             WHERE history_fts MATCH ? ORDER BY h.last_visit DESC LIMIT ? OFFSET ?`,
+          )
+          .all(tokens.join(' '), limit, offset) as HistoryEntry[];
+      } catch {
+        /* malformed MATCH: fall back to LIKE */
+      }
+    }
     const rows = (
       q
         ? this.db
@@ -81,6 +99,11 @@ export class HistoryRepo {
       const del = this.db.prepare('DELETE FROM history WHERE id = ?');
       this.db.transaction(() => opts.ids?.forEach((id) => del.run(id)))();
     }
+  }
+
+  /** Visits older than `before` are dropped; the history rows (and their visit counts) stay. */
+  pruneVisits(before: number): number {
+    return this.db.prepare('DELETE FROM visits WHERE visited_at < ?').run(before).changes;
   }
 
   count(): number {

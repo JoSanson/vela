@@ -62,9 +62,15 @@ jobs:
           retention-days: 14
 
   e2e:
-    name: e2e
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: e2e (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # The shell code paths differ per platform (title bar overlay, vibrancy, paths): run the
+        # whole suite on all three instead of trusting Linux for everyone.
+        os: [ubuntu-latest, macos-14, windows-latest]
     steps:
       - uses: actions/checkout@v5
 
@@ -76,6 +82,7 @@ jobs:
           cache: pnpm
 
       - name: Install Electron runtime libs + xvfb
+        if: runner.os == 'Linux'
         # libasound2 was renamed libasound2t64 on Ubuntu 24.04; try both so the job survives
         # a runner image bump in either direction.
         run: |
@@ -100,7 +107,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: e2e-artifacts
+          name: e2e-artifacts-${{ matrix.os }}
           path: apps/desktop/e2e-artifacts
           if-no-files-found: ignore
           retention-days: 7

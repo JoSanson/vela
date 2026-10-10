@@ -1,4 +1,4 @@
-import { createDefaultState, type CoreState, type Id } from '@vela/core';
+import { applyDelta, createDefaultState, type CoreState, type Id, type StateDelta } from '@vela/core';
 import {
   DEFAULT_PREFS,
   type OverlayState,
@@ -13,6 +13,7 @@ import { vela } from './api';
 export interface ShellStore {
   ready: boolean;
   core: CoreState;
+  rev: number;
   prefs: Prefs;
   platform: Platform;
   version: string;
@@ -49,6 +50,7 @@ export interface ShellStore {
 export const useShell = create<ShellStore>((set) => ({
   ready: false,
   core: createDefaultState(0),
+  rev: 0,
   prefs: DEFAULT_PREFS,
   platform: vela.platform,
   version: '',
@@ -71,6 +73,7 @@ export const useShell = create<ShellStore>((set) => ({
     set({
       ready: true,
       core: snap.state,
+      rev: snap.rev,
       prefs: snap.prefs,
       platform: snap.platform,
       version: snap.version,
@@ -98,9 +101,26 @@ export const useShell = create<ShellStore>((set) => ({
 /** Loads the snapshot and keeps the store in sync with main. Returns an unsubscribe. */
 export function connectStore(): () => void {
   const s = useShell.getState();
-  void vela.invoke('snapshot/get', undefined).then((snap) => useShell.getState().hydrate(snap));
+  const resync = (): Promise<void> =>
+    vela.invoke('snapshot/get', undefined).then((snap) => useShell.getState().hydrate(snap));
+  void resync();
+  let resyncing = false;
+  const onDelta = (delta: StateDelta): void => {
+    const st = useShell.getState();
+    if (!st.ready) return;
+    const res = applyDelta(st.core, st.rev, delta);
+    if ('resync' in res) {
+      if (resyncing) return;
+      resyncing = true;
+      void resync().finally(() => {
+        resyncing = false;
+      });
+      return;
+    }
+    useShell.setState({ core: res.state, rev: res.rev });
+  };
   const offs = [
-    vela.on('state/changed', (core) => s.setCore(core)),
+    vela.on('state/changed', onDelta),
     vela.on('prefs/changed', (prefs) => s.setPrefs(prefs)),
     vela.on('overlay/changed', (o) => s.setOverlay(o)),
     vela.on('window/fullscreen', (v) => s.setFullscreen(v)),

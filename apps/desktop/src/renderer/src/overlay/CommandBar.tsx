@@ -10,7 +10,7 @@ import {
   type Id,
   type SearchItem,
 } from '@vela/core';
-import { SHORTCUTS } from '@vela/shared';
+import { SHORTCUTS, type HistoryEntry } from '@vela/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon, type IconName } from '../components/Icon';
@@ -57,32 +57,48 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     if (editTab) el.select();
   }, [editTab]);
 
-  // The archive is not part of the broadcast state: fetch it once per command-bar open.
-  const [archive, setArchive] = useState<ArchivedTab[]>([]);
+  // Archive and history live in main (D016): queried per keystroke, never bulk-loaded into the overlay.
+  const [remote, setRemote] = useState<{ query: string; items: SearchItem[] }>({ query: '', items: [] });
   useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
     let cancelled = false;
-    void invoke('archive/search', { query: '', limit: 2000 })
-      .then((list) => {
-        if (!cancelled) setArchive(list);
-      })
-      .catch(() => undefined);
+    const t = setTimeout(() => {
+      void Promise.all([
+        invoke('archive/search', { query: q, limit: 12 }).catch(() => [] as ArchivedTab[]),
+        invoke('history/search', { query: q, limit: 8 }).catch(() => [] as HistoryEntry[]),
+      ]).then(([archived, history]) => {
+        if (cancelled) return;
+        const items: SearchItem[] = [
+          ...archived.map((a) =>
+            makeSearchItem({
+              id: `archived:${a.id}`,
+              kind: 'archived',
+              title: a.title,
+              subtitle: prettyUrl(a.url),
+              boost: 0,
+            }),
+          ),
+          ...history.map((h) =>
+            makeSearchItem({
+              id: `history:${h.url}`,
+              kind: 'history',
+              title: h.title || prettyUrl(h.url),
+              subtitle: prettyUrl(h.url),
+              boost: Math.min(0.3, h.visitCount / 50),
+            }),
+          ),
+        ];
+        setRemote({ query: q, items });
+      });
+    }, 60);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
-  }, []);
-  const archiveItems = useMemo<SearchItem[]>(
-    () =>
-      archive.map((a) =>
-        makeSearchItem({
-          id: `archived:${a.id}`,
-          kind: 'archived',
-          title: a.title,
-          subtitle: prettyUrl(a.url),
-          boost: 0,
-        }),
-      ),
-    [archive],
-  );
+  }, [query]);
+  const trimmed = query.trim();
+  const remoteItems = useMemo(() => (remote.query === trimmed ? remote.items : []), [remote, trimmed]);
   const index = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = [];
     const tabs = Object.values(core.tabs);
@@ -99,14 +115,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         }),
       );
     }
-    items.push(...archiveItems);
+    items.push(...remoteItems);
     for (const c of COMMANDS) {
       items.push(
         makeSearchItem({ id: `cmd:${c.id}`, kind: 'command', title: c.label, subtitle: 'Command', boost: 0 }),
       );
     }
     return items;
-  }, [core.tabs, archiveItems]);
+  }, [core.tabs, remoteItems]);
 
   useEffect(() => {
     const q = query.trim();
@@ -197,6 +213,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         return;
       case 'search':
       case 'suggestion':
+      case 'history':
         open(value);
         return;
       case 'url':
@@ -298,6 +315,7 @@ function ResultIcon({
     const c = COMMANDS.find((x) => x.id === value);
     return <Icon name={c?.icon ?? 'command'} size={16} className={styles.kindIcon} />;
   }
-  const icon: IconName = kind === 'archived' ? 'archive' : kind === 'url' ? 'globe' : 'search';
+  const icon: IconName =
+    kind === 'archived' ? 'archive' : kind === 'history' ? 'history' : kind === 'url' ? 'globe' : 'search';
   return <Icon name={icon} size={16} className={styles.kindIcon} />;
 }

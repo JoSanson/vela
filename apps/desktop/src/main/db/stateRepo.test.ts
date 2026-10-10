@@ -10,7 +10,7 @@ import {
   type Tab,
 } from '@vela/core';
 import { openDatabase, type Db } from './database';
-import { migrate } from './migrations';
+import { LATEST_SCHEMA, migrate } from './migrations';
 import { StateRepo } from './stateRepo';
 
 const NOW = 1_700_000_000_000;
@@ -108,7 +108,7 @@ describe.skipIf(!sqliteAvailable)('StateRepo', () => {
 
   beforeEach(() => {
     db = openDatabase(':memory:').db;
-    expect(migrate(db)).toBe(1);
+    expect(migrate(db)).toBe(LATEST_SCHEMA);
   });
 
   afterEach(() => {

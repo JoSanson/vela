@@ -60,6 +60,26 @@ export const migrations: Migration[] = [
   },
 ];
 
+migrations.push({
+  version: 2,
+  up: (db) => {
+    db.exec(`
+      CREATE VIRTUAL TABLE history_fts USING fts5(title, url, content='history', content_rowid='id', tokenize='unicode61');
+      INSERT INTO history_fts(rowid, title, url) SELECT id, title, url FROM history;
+      CREATE TRIGGER history_ai AFTER INSERT ON history BEGIN
+        INSERT INTO history_fts(rowid, title, url) VALUES (new.id, new.title, new.url);
+      END;
+      CREATE TRIGGER history_ad AFTER DELETE ON history BEGIN
+        INSERT INTO history_fts(history_fts, rowid, title, url) VALUES ('delete', old.id, old.title, old.url);
+      END;
+      CREATE TRIGGER history_au AFTER UPDATE OF title, url ON history BEGIN
+        INSERT INTO history_fts(history_fts, rowid, title, url) VALUES ('delete', old.id, old.title, old.url);
+        INSERT INTO history_fts(rowid, title, url) VALUES (new.id, new.title, new.url);
+      END;
+    `);
+  },
+});
+
 export const LATEST_SCHEMA = migrations[migrations.length - 1]?.version ?? 0;
 
 export function migrate(db: Database): number {

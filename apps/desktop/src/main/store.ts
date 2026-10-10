@@ -5,6 +5,8 @@ export type StoreListener = (next: CoreState, prev: CoreState, action: CoreActio
 /** Single source of truth for spaces/tabs. Main process only. */
 export class Store {
   private listeners = new Set<StoreListener>();
+  /** Monotonic count of applied actions; renderers use it to detect a missed delta. */
+  rev = 0;
 
   constructor(public state: CoreState) {}
 
@@ -13,6 +15,7 @@ export class Store {
     const next = reduce(prev, action);
     if (next === prev) return prev;
     this.state = next;
+    this.rev++;
     for (const l of this.listeners) {
       try {
         l(next, prev, action);

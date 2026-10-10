@@ -2,6 +2,7 @@ import type { CoreAction } from '@vela/core';
 import type { Prefs, ShellSnapshot } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setFaviconToken } from '../components/Favicon';
+import { applyDelta } from '@vela/core';
 import { resolveMode } from '../lib/theme';
 import { ArchivePage } from './ArchivePage';
 import { DownloadsPage } from './DownloadsPage';
@@ -71,7 +72,17 @@ export function PagesApp() {
       cancelled = true;
     };
   }, []);
-  useEvent('state/changed', (state) => setSnap((s) => (s ? { ...s, state } : s)));
+  useEvent('state/changed', (delta) =>
+    setSnap((s) => {
+      if (!s) return s;
+      const res = applyDelta(s.state, s.rev, delta);
+      if ('resync' in res) {
+        void refresh();
+        return s;
+      }
+      return { ...s, state: res.state, rev: res.rev };
+    }),
+  );
   useEvent('prefs/changed', (prefs) => setSnap((s) => (s ? { ...s, prefs } : s)));
 
   const dispatch = useCallback(

@@ -1,4 +1,11 @@
-import { activeSpace, type CoreState, dropEphemeralTabs } from '@vela/core';
+import {
+  activeSpace,
+  type CoreState,
+  dropEphemeralTabs,
+  needsSnapshot,
+  type CoreAction,
+  type StateDelta,
+} from '@vela/core';
 import { app, crashReporter, dialog, session } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -272,14 +279,40 @@ async function boot(): Promise<void> {
   // The archive is served on demand (`archive/search`); keeping it out of the broadcast keeps every
   // navigation tick cheap even with thousands of archived tabs.
   const shellWcNow = (): Electron.WebContents | undefined => windows.main?.win.webContents;
+  // Deltas, not snapshots: the actions of one tick are coalesced into a single message per renderer,
+  // which replays them through the same reducer (packages/core/src/delta.ts).
+  const broadcast = (delta: StateDelta): void => {
+    const target = shellWcNow();
+    if (target) emit(target, 'state/changed', delta);
+    if (overlay.view) emit(overlay.view.webContents, 'state/changed', delta);
+    for (const wc of internalPages()) emit(wc, 'state/changed', delta);
+  };
+  let pending: CoreAction[] = [];
+  let pendingFrom = store.rev;
+  let flushScheduled = false;
+  const flushDeltas = (): void => {
+    flushScheduled = false;
+    if (pending.length === 0) return;
+    const actions = pending;
+    pending = [];
+    broadcast({ kind: 'actions', fromRev: pendingFrom, rev: pendingFrom + actions.length, actions });
+    pendingFrom += actions.length;
+  };
   store.subscribe((next, prev, action) => {
     const theme = next.spaces[next.activeSpaceId]?.theme;
     if (theme && theme !== prev.spaces[prev.activeSpaceId]?.theme) windows.main?.setThemeColor(theme.from);
-    const wire = { ...next, archive: [] };
-    const target = shellWcNow();
-    if (target) emit(target, 'state/changed', wire);
-    if (overlay.view) emit(overlay.view.webContents, 'state/changed', wire);
-    for (const wc of internalPages()) emit(wc, 'state/changed', wire);
+    if (needsSnapshot(action)) {
+      pending = [];
+      flushScheduled = false;
+      pendingFrom = store.rev;
+      broadcast({ kind: 'snapshot', rev: store.rev, state: { ...next, archive: [] } });
+    } else {
+      pending.push(action);
+      if (!flushScheduled) {
+        flushScheduled = true;
+        setImmediate(flushDeltas);
+      }
+    }
     if (action.type === 'profile/delete') {
       const partition = `persist:profile-${action.id}`;
       const ses = session.fromPartition(partition);

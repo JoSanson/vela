@@ -5,7 +5,7 @@
 //
 //   node scripts/engine-check.mjs [--force <version>]
 //
-// Outputs: current, latest, chromium, node, update (true|false)
+// Outputs: current, latest, chromium, node, update (true|false), major (true|false)
 import { execFileSync } from 'node:child_process';
 import { readFileSync, appendFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -28,7 +28,8 @@ const update = forced ? forced !== current : compare(latest, current) > 0;
 
 const { chromium, node } = await releaseInfo(latest);
 
-const out = { current, latest, chromium, node, update: String(update) };
+const major = update && latest.split('.')[0] !== current.split('.')[0];
+const out = { current, latest, chromium, node, update: String(update), major: String(major) };
 const lines = Object.entries(out).map(([k, v]) => `${k}=${v}`);
 if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
 console.info(lines.join('\n'));

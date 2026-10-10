@@ -28,6 +28,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
   handle('snapshot/get', 'internal', (_req, event): ShellSnapshot => {
     return {
       state: store.state,
+      rev: store.rev,
       prefs: prefs.value,
       version: ctx.version,
       platform: process.platform as ShellSnapshot['platform'],

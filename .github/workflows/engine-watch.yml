@@ -110,6 +110,7 @@ jobs:
           PREV: ${{ steps.check.outputs.current }}
           CHROMIUM: ${{ steps.check.outputs.chromium }}
           NODE: ${{ steps.check.outputs.node }}
+          MAJOR: ${{ steps.check.outputs.major }}
           FORCED: ${{ inputs.force_version != '' }}
         run: |
           BRANCH="engine/electron-$VER"
@@ -136,7 +137,7 @@ jobs:
           | Node | $NODE |
 
           - Release notes: https://releases.electronjs.org/release/v$VER
-          - Auto-merge (squash) is enabled: merges as soon as \`quality\`, \`e2e\` and \`build\` are green.
+          $( [ "$MAJOR" = "true" ] && echo "- **Major Electron bump: auto-merge is off, review the Electron breaking changes before merging.**" || echo "- Auto-merge (squash) is enabled: merges as soon as \`quality\`, \`e2e\` and \`build\` are green." )
           - On merge, \`engine-release.yml\` bumps the app patch version, tags it and \`release.yml\` ships it.
           $( [ "$FORCED" = "true" ] && echo "- **Forced via workflow_dispatch (force_version) — test run.**" )
           EOF
@@ -147,7 +148,8 @@ jobs:
           echo "::notice::opened $URL"
 
       - name: Enable auto-merge (squash)
-        if: steps.pr.outputs.url != ''
+        # Majors (new Chromium) wait for a human: the PR is opened, CI runs, nobody merges it automatically.
+        if: steps.pr.outputs.url != '' && steps.check.outputs.major != 'true'
         # Fails when "Allow auto-merge" is off in repo settings or branch protection has no
         # required checks — the PR still exists, so only warn.
         run: gh pr merge --auto --squash "${{ steps.pr.outputs.url }}" || echo "::warning::could not enable auto-merge — enable it in Settings ▸ General and add required checks (see RELEASING.md)"
