@@ -3,7 +3,7 @@
   --p-fg: light-dark(rgba(18, 16, 30, 0.92), rgba(255, 255, 255, 0.92));
   --p-muted: light-dark(rgba(18, 16, 30, 0.6), rgba(255, 255, 255, 0.6));
   --p-faint: light-dark(rgba(18, 16, 30, 0.4), rgba(255, 255, 255, 0.4));
-  --p-card: light-dark(#ffffff, #1e1d26);
+  --p-card: light-dark(#fdfdff, #1e1d26);
   --p-border: light-dark(rgba(18, 16, 30, 0.08), rgba(255, 255, 255, 0.1));
   --p-hover: light-dark(rgba(18, 16, 30, 0.05), rgba(255, 255, 255, 0.06));
   --p-active: light-dark(rgba(18, 16, 30, 0.09), rgba(255, 255, 255, 0.11));
@@ -17,10 +17,11 @@
   --p-warning: light-dark(#c47a10, #ffb347);
   --p-warning-soft: rgba(230, 160, 40, 0.16);
   --p-primary-bg: light-dark(#1b1a24, #f2f2f7);
-  --p-primary-fg: light-dark(#ffffff, #15141c);
+  --p-primary-fg: light-dark(#f7f7fc, #15141c);
+  --p-on-accent: #f7f7fc;
   --p-shadow: light-dark(
-    0 1px 2px rgba(0, 0, 0, 0.05) 0 12px 32px rgba(0, 0, 0, 0.07),
-    0 1px 2px rgba(0, 0, 0, 0.35) 0 12px 32px rgba(0, 0, 0, 0.35)
+    0 1px 2px rgba(12, 10, 24, 0.05) 0 12px 32px rgba(12, 10, 24, 0.07),
+    0 1px 2px rgba(12, 10, 24, 0.35) 0 12px 32px rgba(12, 10, 24, 0.35)
   );
   --p-ring: light-dark(rgba(75, 88, 214, 0.35), rgba(151, 160, 255, 0.45));
 
@@ -50,8 +51,8 @@
   border-radius: 18px;
   background: var(--p-card);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 16px 48px rgba(0, 0, 0, 0.08);
+    0 1px 2px rgba(12, 10, 24, 0.05),
+    0 16px 48px rgba(12, 10, 24, 0.08);
 }
 
 .danger .iconWrap {

@@ -19,6 +19,13 @@
   font-weight: 500;
 }
 
+.name {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast),
+    transform var(--dur-press) var(--ease-out);
+}
+
 .name:hover {
   background: var(--surface-hover);
   color: var(--fg);
@@ -39,29 +46,59 @@
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  position: relative;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: var(--fg-faint);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   transition:
-    transform var(--dur) var(--ease-out),
-    background-color var(--dur-fast),
-    width var(--dur) var(--ease-out);
+    background-color var(--dur) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
 }
 
-.dot:hover {
-  background: var(--fg-muted);
+/* The indicator is a pseudo-element so switching never changes the button's box. */
+.dot::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--dot-color, var(--fg-faint)) 55%, var(--fg-faint));
+  transition:
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.dot:hover::before {
+  transform: scale(1.35);
 }
 
 .dotActive {
-  width: 22px;
-  height: 22px;
   background: var(--surface-active);
-  transform: none;
+  box-shadow: 0 1px 2px rgba(18, 16, 30, 0.08);
+}
+
+.dotActive::before {
+  transform: scale(0);
+  opacity: 0;
+}
+
+.dotActive > span {
+  animation: dotIn var(--dur) var(--ease-out);
+}
+
+@keyframes dotIn {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .add {
@@ -72,6 +109,13 @@
   justify-content: center;
   color: var(--fg-faint);
   border-radius: 50%;
+}
+
+.add {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast),
+    transform var(--dur-press) var(--ease-out);
 }
 
 .add:hover {
@@ -93,16 +137,15 @@
   color: var(--fg-muted);
 }
 
+.action {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast),
+    transform var(--dur-press) var(--ease-out);
+}
+
 .action:hover,
 .actionOn {
   background: var(--surface-hover);
   color: var(--fg);
-}
-
-.dot {
-  background: color-mix(in oklab, var(--dot-color, var(--fg-faint)) 55%, var(--fg-faint));
-}
-
-.dotActive {
-  background: var(--surface-active);
 }

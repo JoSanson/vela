@@ -122,7 +122,7 @@ export function ReaderPage() {
         html: sanitizeArticle(r.content),
         minutes: Math.max(1, Math.round(r.length / 1100)),
       });
-      document.title = `${r.title} — Reader`;
+      document.title = `${r.title} · Reader`;
       setState('ready');
     });
   }, [tabId]);

@@ -8,6 +8,17 @@
   pointer-events: none;
 }
 
+/* Exit: 90 ms, faster than the entrance. Opacity only: children own their transforms. */
+.exiting > * {
+  animation: fadeOut 90ms var(--ease-in) forwards !important;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
 .backdrop {
   position: absolute;
   inset: 0;

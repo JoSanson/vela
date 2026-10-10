@@ -253,7 +253,7 @@ export function AtcSection() {
             ) : (
               <>
                 <Icon name="globe" size={14} style={{ color: 'var(--p-faint)' }} />
-                No rule matches — opens in the current space.
+                No rule matches: opens in the current space.
               </>
             )}
           </div>

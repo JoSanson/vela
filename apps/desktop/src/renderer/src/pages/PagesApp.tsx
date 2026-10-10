@@ -42,7 +42,7 @@ export function PagesApp() {
   }, []);
   useEffect(() => {
     if (page === 'home') document.title = 'Vela';
-    if (page === 'error') document.title = 'Error — Vela';
+    if (page === 'error') document.title = 'Error · Vela';
   }, [page]);
 
   const [snap, setSnap] = useState<ShellSnapshot | null>(null);

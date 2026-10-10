@@ -1,3 +1,16 @@
+/* Registered as colours so a Space switch cross-fades every tinted surface (gradients included). */
+@property --space-from {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5b6cff;
+}
+
+@property --space-to {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #9a5bff;
+}
+
 :root {
   --font:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', Roboto, Ubuntu,
@@ -10,10 +23,14 @@
   --radius: 10px;
   --radius-lg: 14px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dur-press: 90ms;
   --dur-fast: 120ms;
   --dur: 200ms;
   --dur-slow: 320ms;
+  --on-accent: color-mix(in oklab, white 94%, var(--space-from));
   --sidebar-bg: linear-gradient(
     165deg,
     color-mix(in oklab, var(--space-from) 42%, white) 0%,
@@ -50,8 +67,8 @@
   --surface-active: rgba(255, 255, 255, 0.2);
   --surface-strong: rgba(255, 255, 255, 0.26);
   --border: rgba(255, 255, 255, 0.1);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.35), 0 24px 64px rgba(0, 0, 0, 0.5);
+  --shadow: 0 1px 2px rgba(12, 10, 24, 0.3), 0 8px 24px rgba(12, 10, 24, 0.35);
+  --shadow-lg: 0 2px 6px rgba(12, 10, 24, 0.35), 0 24px 64px rgba(12, 10, 24, 0.5);
   --focus: color-mix(in oklab, var(--space-from) 70%, white);
   --accent: color-mix(in oklab, var(--space-from) 75%, white);
   --panel-bg: rgba(28, 27, 36, 0.96);
@@ -62,6 +79,12 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+:root {
+  transition:
+    --space-from var(--dur-slow) var(--ease-out),
+    --space-to var(--dur-slow) var(--ease-out);
 }
 
 html,
@@ -108,6 +131,13 @@ button {
   padding: 0;
   cursor: default;
   border-radius: var(--radius-sm);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+/* Every press answers in the same frame: the scale is instant on press, eased on release. */
+button:not(:disabled):active {
+  transform: scale(0.96);
+  transition-duration: 0ms;
 }
 
 button:focus-visible,
@@ -163,6 +193,10 @@ input {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+
+  button:not(:disabled):active {
+    transform: none;
   }
 }
 

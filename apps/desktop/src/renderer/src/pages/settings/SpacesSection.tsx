@@ -46,7 +46,7 @@ export function SpacesSection() {
   const remove = async (p: Profile): Promise<void> => {
     const ok = await dispatch({ type: 'profile/delete', id: p.id });
     if (!ok) return fail('delete the profile');
-    toast(`Profile “${p.name}” deleted — its spaces now use the default profile`);
+    toast(`Profile “${p.name}” deleted; its spaces now use the default profile`);
   };
 
   const assign = async (spaceId: string, profileId: string): Promise<void> => {

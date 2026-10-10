@@ -27,7 +27,7 @@
   background: var(--p-card);
   box-shadow:
     0 0 0 1px var(--p-border),
-    0 24px 64px rgba(0, 0, 0, 0.12);
+    0 24px 64px rgba(12, 10, 24, 0.12);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -74,7 +74,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--p-on-accent);
   background: linear-gradient(145deg, var(--space-from), var(--space-to));
   box-shadow: 0 10px 28px color-mix(in oklab, var(--space-from) 40%, transparent);
 }
@@ -104,39 +104,175 @@
   max-width: 50ch;
 }
 
-.features {
+.tour {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: 168px 1fr;
+  gap: 22px;
+  align-items: stretch;
 }
 
-.feature {
+/* A miniature of the real sidebar; the hovered zone lights up, the others recede. */
+.mini {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 14px;
+  padding: 10px;
   border-radius: 14px;
-  background: var(--p-input);
-}
-
-.featureIcon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--p-card);
-  color: var(--p-accent);
+  background: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--space-from) 42%, white) 0%,
+    color-mix(in oklab, var(--space-to) 36%, white) 100%
+  );
   box-shadow: 0 0 0 1px var(--p-border);
 }
 
-.featureTitle {
+.miniNav {
+  display: flex;
+  gap: 5px;
+  padding: 2px 2px 0;
+}
+
+.miniNav span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(18, 16, 30, 0.14);
+}
+
+.miniUrl {
+  height: 16px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.miniZone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  margin: -5px;
+  border-radius: 8px;
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
+}
+
+.miniRow {
+  height: 12px;
+  width: 84%;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.miniRow::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--space-from) 70%, white);
+}
+
+.miniPinned .miniRow:first-child {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.miniDivider {
+  height: 1px;
+  background: rgba(18, 16, 30, 0.1);
+}
+
+.miniToday {
+  flex: 1;
+}
+
+.miniSpaces {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: auto;
+}
+
+.miniSpaces i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(18, 16, 30, 0.28);
+}
+
+.miniSpaces i:first-child {
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.tour .miniZone {
+  opacity: 0.42;
+}
+
+.tour[data-zone='pinned'] .miniPinned,
+.tour[data-zone='today'] .miniToday,
+.tour[data-zone='spaces'] .miniSpaces {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.32);
+  transform: scale(1.03);
+}
+
+.zones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zone {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: left;
+  color: var(--p-fg);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.zone[aria-pressed='true'] {
+  background: var(--p-input);
+}
+
+.zoneIcon {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-accent-soft);
+  color: var(--p-accent);
+}
+
+.zoneText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zoneTitle {
   font-size: 13px;
   font-weight: 600;
 }
 
-.featureText {
+.zoneHint {
   font-size: 12px;
   line-height: 1.45;
   color: var(--p-muted);
@@ -273,8 +409,12 @@
 }
 
 @media (max-width: 560px) {
-  .features {
+  .tour {
     grid-template-columns: 1fr;
+  }
+
+  .mini {
+    display: none;
   }
 
   .card {

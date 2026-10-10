@@ -69,7 +69,7 @@
 
 .allow {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 @keyframes drop {

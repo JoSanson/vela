@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, vela } from '../lib/api';
 import { connectStore, useShell } from '../lib/store';
@@ -48,22 +48,37 @@ export function OverlayApp() {
 
   const hide = (): void => void invoke('overlay/hide', undefined);
 
-  if (overlay.kind === 'none') return <div className={styles.root} data-kind="none" />;
+  // Main keeps the native view attached for a beat after hiding so the exit can play here.
+  const [shown, setShown] = useState(overlay);
+  if (overlay.kind !== 'none' && shown !== overlay) setShown(overlay);
+  const exiting = overlay.kind === 'none' && shown.kind !== 'none';
+  useEffect(() => {
+    if (overlay.kind !== 'none') return;
+    const t = setTimeout(() => setShown(overlay), 90);
+    return () => clearTimeout(t);
+  }, [overlay]);
+
+  if (shown.kind === 'none') return <div className={styles.root} data-kind="none" />;
+  const view = exiting ? shown : overlay;
 
   return (
-    <div className={styles.root} data-kind={overlay.kind} data-testid="overlay">
+    <div
+      className={`${styles.root} ${exiting ? styles.exiting : ''}`}
+      data-kind={exiting ? 'none' : view.kind}
+      data-testid={exiting ? undefined : 'overlay'}
+    >
       <div className={styles.backdrop} onMouseDown={hide} data-testid="overlay-backdrop" />
-      {overlay.kind === 'commandBar' && <CommandBar payload={overlay.payload as CommandBarPayload} />}
-      {overlay.kind === 'switcher' && <Switcher payload={overlay.payload as SwitcherPayload} />}
-      {overlay.kind === 'spaceEditor' && (
-        <SpaceEditor key={JSON.stringify(overlay.payload)} payload={overlay.payload as SpaceEditorPayload} />
+      {view.kind === 'commandBar' && <CommandBar payload={view.payload as CommandBarPayload} />}
+      {view.kind === 'switcher' && <Switcher payload={view.payload as SwitcherPayload} />}
+      {view.kind === 'spaceEditor' && (
+        <SpaceEditor key={JSON.stringify(view.payload)} payload={view.payload as SpaceEditorPayload} />
       )}
-      {overlay.kind === 'peek' && <PeekChrome />}
-      {overlay.kind === 'permissionPrompt' && (
-        <PermissionPromptView initial={overlay.payload as PermissionPrompt} />
+      {view.kind === 'peek' && <PeekChrome />}
+      {view.kind === 'permissionPrompt' && (
+        <PermissionPromptView initial={view.payload as PermissionPrompt} />
       )}
-      {overlay.kind === 'updateNotes' && <UpdateNotes payload={overlay.payload as UpdateNotesPayload} />}
-      {overlay.kind === 'sidebar' && (
+      {view.kind === 'updateNotes' && <UpdateNotes payload={view.payload as UpdateNotesPayload} />}
+      {view.kind === 'sidebar' && (
         <div className={styles.floatingSidebar} onMouseLeave={hide}>
           <Sidebar width={sidebarWidth} onToggle={hide} floating />
         </div>

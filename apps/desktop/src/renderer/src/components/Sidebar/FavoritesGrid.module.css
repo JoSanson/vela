@@ -19,6 +19,7 @@
 
 .cell:hover {
   background: var(--surface);
+  transform: translateY(-1px);
 }
 
 .cell:active {

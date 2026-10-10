@@ -108,6 +108,7 @@ export const TabRow = memo(function TabRow({
       tabIndex={active ? 0 : -1}
       data-tab-id={tab.id}
       data-kind={tab.kind}
+      data-flip-key={tab.id}
       data-dnd-row={tab.id}
       data-dnd-type="tab"
       data-dnd-container={JSON.stringify(container)}
@@ -141,7 +142,15 @@ export const TabRow = memo(function TabRow({
           onClick={toggleMute}
           aria-label={tab.muted ? 'Unmute tab' : 'Mute tab'}
         >
-          <Icon name={tab.muted ? 'mute' : 'audio'} size={13} />
+          {tab.muted ? (
+            <Icon name="mute" size={13} />
+          ) : (
+            <span className={styles.eq} aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          )}
         </button>
       )}
       {tab.sleeping && <Icon name="sleep" size={12} className={styles.sleepIcon} />}

@@ -14,6 +14,15 @@
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   font-weight: 500;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.folder:active {
+  transform: scale(0.985);
+  transition-duration: 0ms;
 }
 
 .folder:hover {

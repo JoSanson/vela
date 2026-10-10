@@ -113,9 +113,24 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  background: #fbfbfe;
+  box-shadow: 0 1px 3px rgba(12, 10, 24, 0.25);
   transition: transform var(--dur) var(--ease-out);
+}
+
+/* The thumb stretches toward the direction of travel while pressed, like a physical switch. */
+.toggle:not(:disabled):active {
+  transform: none;
+}
+
+.toggle:not(:disabled):active::after {
+  transform: scaleX(1.25);
+  transform-origin: left;
+}
+
+.toggle[aria-checked='true']:not(:disabled):active::after {
+  transform: translateX(16px) scaleX(1.25);
+  transform-origin: right;
 }
 
 .toggle[aria-checked='true']::after {
@@ -253,7 +268,8 @@
   cursor: pointer;
   transition:
     background-color var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
 }
 
 .segment:hover {
@@ -263,7 +279,7 @@
 .segment[aria-pressed='true'] {
   background: var(--p-card);
   color: var(--p-fg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 2px rgba(12, 10, 24, 0.12);
 }
 
 /* Badges */

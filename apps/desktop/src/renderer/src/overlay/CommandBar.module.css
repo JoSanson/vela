@@ -71,6 +71,7 @@
   padding: 0 10px;
   border-radius: var(--radius);
   color: var(--panel-fg);
+  transition: background-color 60ms var(--ease-out);
 }
 
 .selected {

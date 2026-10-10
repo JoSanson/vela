@@ -5,6 +5,8 @@ import { emit, trustShell } from './ipc/typed';
 import type { TabManager } from './tabs/tabManager';
 import type { WindowManager } from './windows/windowManager';
 
+const EXIT_MS = 110;
+
 /**
  * A single transparent WebContentsView layered above every tab view. It hosts the command bar,
  * switcher, peek and other overlays so they can render on top of web content.
@@ -15,6 +17,7 @@ export class OverlayManager {
   visible = false;
   private hideHooks: ((kind: OverlayKind) => void)[] = [];
   private onceHooks: (() => void)[] = [];
+  private detachTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly windows: WindowManager,
@@ -54,6 +57,10 @@ export class OverlayManager {
     const mw = this.windows.main;
     if (!mw || !this.view) return;
     this.current = { kind, payload };
+    if (this.detachTimer) {
+      clearTimeout(this.detachTimer);
+      this.detachTimer = null;
+    }
     if (!this.visible) {
       mw.win.contentView.addChildView(this.view);
       this.visible = true;
@@ -93,11 +100,17 @@ export class OverlayManager {
     this.current = { kind: 'none', payload: null };
     emit(this.view.webContents, 'overlay/changed', this.current);
     if (this.visible && mw && !mw.win.isDestroyed()) {
-      try {
-        mw.win.contentView.removeChildView(this.view);
-      } catch {
-        /* already removed */
-      }
+      // Detach a beat later so the renderer can play its 90 ms exit; a show() in between cancels it.
+      const view = this.view;
+      this.detachTimer = setTimeout(() => {
+        this.detachTimer = null;
+        if (this.visible || mw.win.isDestroyed()) return;
+        try {
+          mw.win.contentView.removeChildView(view);
+        } catch {
+          /* already removed */
+        }
+      }, EXIT_MS);
     }
     this.visible = false;
     if (wasVisible) {
@@ -128,6 +141,7 @@ export class OverlayManager {
   }
 
   destroy(): void {
+    if (this.detachTimer) clearTimeout(this.detachTimer);
     if (this.view && !this.view.webContents.isDestroyed()) this.view.webContents.close();
     this.view = null;
     this.visible = false;

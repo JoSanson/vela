@@ -8,21 +8,24 @@ import { useSnapshot } from './lib';
 import { useToast } from './Toast';
 import { Button, Keycaps } from './ui';
 
-const FEATURES: { icon: IconName; title: string; text: string }[] = [
+const ZONES: { id: 'spaces' | 'pinned' | 'today'; icon: IconName; title: string; text: string }[] = [
   {
+    id: 'spaces',
     icon: 'layers',
     title: 'Spaces',
-    text: 'Separate contexts — work, personal, a project — each with its own tabs, theme and profile.',
+    text: 'Work, personal, a project: each with its own tabs, theme and profile. Switch at the bottom.',
   },
   {
+    id: 'pinned',
     icon: 'pin',
     title: 'Pinned',
-    text: 'Tabs you keep. They stay at the top of a space and always return to their home URL.',
+    text: 'Tabs you keep. They stay at the top and always return to their home page.',
   },
   {
+    id: 'today',
     icon: 'sleep',
     title: 'Today',
-    text: 'Everything else. Tabs you don’t touch get archived automatically so the list stays short.',
+    text: 'Everything else. Untouched tabs are archived for you, so the list stays short.',
   },
 ];
 
@@ -44,9 +47,10 @@ export function OnboardingPage() {
   const [dir, setDir] = useState<'next' | 'back'>('next');
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [zone, setZone] = useState<(typeof ZONES)[number]['id']>('spaces');
 
   useEffect(() => {
-    document.title = 'Welcome — Vela';
+    document.title = 'Welcome · Vela';
   }, []);
 
   const go = (n: number): void => {
@@ -58,7 +62,7 @@ export function OnboardingPage() {
     setSaving(true);
     const ok = await setPrefs({ onboardingDone: true });
     setSaving(false);
-    if (!ok) toast("Couldn't save your preferences — you can finish setup later from Settings", 'error');
+    if (!ok) toast("Couldn't save your preferences. You can finish setup later from Settings.", 'error');
     setDir('next');
     setDone(true);
   };
@@ -101,16 +105,53 @@ export function OnboardingPage() {
             <p className={styles.lead}>
               Vela keeps your tabs organised for you. Three ideas are enough to get going.
             </p>
-            <div className={styles.features}>
-              {FEATURES.map((f) => (
-                <div key={f.title} className={styles.feature}>
-                  <span className={styles.featureIcon}>
-                    <Icon name={f.icon} size={15} />
-                  </span>
-                  <span className={styles.featureTitle}>{f.title}</span>
-                  <span className={styles.featureText}>{f.text}</span>
+            <div className={styles.tour} data-zone={zone}>
+              <div className={styles.mini} aria-hidden="true">
+                <div className={styles.miniNav}>
+                  <span />
+                  <span />
+                  <span />
                 </div>
-              ))}
+                <div className={styles.miniUrl} />
+                <div className={`${styles.miniZone} ${styles.miniPinned}`} data-zone="pinned">
+                  <div className={styles.miniRow} />
+                  <div className={styles.miniRow} />
+                  <div className={styles.miniRow} style={{ width: '60%' }} />
+                </div>
+                <div className={styles.miniDivider} />
+                <div className={`${styles.miniZone} ${styles.miniToday}`} data-zone="today">
+                  <div className={styles.miniRow} />
+                  <div className={styles.miniRow} style={{ width: '72%' }} />
+                  <div className={styles.miniRow} style={{ width: '48%' }} />
+                </div>
+                <div className={`${styles.miniZone} ${styles.miniSpaces}`} data-zone="spaces">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              </div>
+              <ol className={styles.zones}>
+                {ZONES.map((z) => (
+                  <li key={z.id}>
+                    <button
+                      type="button"
+                      className={styles.zone}
+                      aria-pressed={zone === z.id}
+                      onMouseEnter={() => setZone(z.id)}
+                      onFocus={() => setZone(z.id)}
+                      onClick={() => setZone(z.id)}
+                    >
+                      <span className={styles.zoneIcon}>
+                        <Icon name={z.icon} size={14} />
+                      </span>
+                      <span className={styles.zoneText}>
+                        <span className={styles.zoneTitle}>{z.title}</span>
+                        <span className={styles.zoneHint}>{z.text}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         ) : step === 1 ? (

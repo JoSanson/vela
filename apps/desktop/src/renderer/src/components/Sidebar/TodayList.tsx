@@ -3,6 +3,7 @@ import type { PointerEvent } from 'react';
 import { invoke, modKey } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
+import { useFlip } from '../useFlip';
 import type { DragItem } from './dnd';
 import { TabRow } from './TabRow';
 import styles from './TodayList.module.css';
@@ -14,6 +15,7 @@ interface Props {
 export function TodayList({ onDragStart }: Props) {
   const core = useShell((s) => s.core);
   const space = core.spaces[core.activeSpaceId];
+  const listRef = useFlip<HTMLDivElement>(space?.today.join(',') ?? '');
   if (!space) return null;
   const tabs = todayTabs(core, space.id);
   const hasPinned = space.pinned.length > 0;
@@ -55,7 +57,7 @@ export function TodayList({ onDragStart }: Props) {
         <span>New tab</span>
         <kbd className={styles.kbd}>{modKey}T</kbd>
       </button>
-      <div className={styles.list}>
+      <div className={styles.list} ref={listRef}>
         {tabs.map((t, i) => (
           <TabRow
             key={t.id}
@@ -70,7 +72,7 @@ export function TodayList({ onDragStart }: Props) {
       </div>
       {tabs.length === 0 && !hasPinned && core.favorites.length === 0 && (
         <p className={styles.emptyHint}>
-          Tabs you open land here. They are archived after {core.spaceOrder.length ? '' : ''}
+          Tabs you open land here. They are archived after{' '}
           <span className={styles.nowrap}>{useShell.getState().prefs.autoArchiveHours}h</span> of inactivity.
         </p>
       )}

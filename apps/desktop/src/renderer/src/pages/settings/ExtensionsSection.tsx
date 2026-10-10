@@ -20,7 +20,7 @@ export function ExtensionsSection() {
   const add = async (): Promise<void> => {
     const ext = await tryInvoke('extensions/load', {});
     if (ext) toast(`Loaded ${ext.name} ${ext.version}`);
-    else toast('No extension loaded — pick a folder containing manifest.json', 'error');
+    else toast('No extension loaded: pick a folder containing manifest.json', 'error');
     await refresh();
   };
   const remove = async (id: string): Promise<void> => {

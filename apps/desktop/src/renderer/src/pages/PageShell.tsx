@@ -28,7 +28,7 @@ export function PageShell({
   children,
 }: Props) {
   useEffect(() => {
-    document.title = `${title} — Vela`;
+    document.title = `${title} · Vela`;
   }, [title]);
   const style = maxWidth ? ({ '--page-max': `${maxWidth}px` } as CSSProperties) : undefined;
   return (
