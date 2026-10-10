@@ -55,7 +55,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 
 ## Phase 6
 - [x] 6.1 perf harness — 2e3065d
-- [ ] 6.2 budgets met, PERF.md
+- [x] 6.2 budgets met, PERF.md — 073e86b
 
 ## Phase 7
 - [ ] 7.1 GitHub + ci.yml
@@ -83,7 +83,7 @@ See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [ ] e2e suite green 3× in a row
 - [ ] install/dev/build/test/e2e/lint/typecheck green
 - [x] kill -9 session restore — restore.spec.ts
-- [ ] perf budgets (PERF.md)
+- [x] perf budgets (PERF.md) — 073e86b
 - [ ] zero any / zero warnings / core coverage > 85 %
 - [ ] SECURITY.md audit
 - [ ] accessibility

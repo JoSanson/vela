@@ -56,7 +56,7 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 
 ## Phase 6 — Perf
 - [x] 6.1 `pnpm perf`: cold start → sidebar interactive, shell RSS, tab switch, command bar open, bundle size, tracing for jank
-- [ ] 6.2 Meet budgets, commit PERF.md
+- [x] 6.2 Meet budgets, commit PERF.md
 
 ## Phase 7 — CI/CD & autonomy
 - [ ] 7.1 GitHub repo (private), Actions: ci (lint/typecheck/unit/e2e xvfb/build matrix)
