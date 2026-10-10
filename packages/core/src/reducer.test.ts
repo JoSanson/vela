@@ -403,14 +403,15 @@ describe('tab/pin, tab/unpin, tab/favorite', () => {
     expect(reduce(s, { type: 'tab/unpin', id: 'nope', now: NOW })).toBe(s);
   });
 
-  it('favorites a today tab: global, no space, home set, active replaced', () => {
+  it('favorites a today tab: global, no space, home set, stays visible in its space', () => {
     let s = withToday(2);
     s = reduce(s, { type: 'split/add', spaceId: 's1', tabId: 't1' });
     s = reduce(s, { type: 'tab/favorite', id: 't2' });
     expect(s.favorites).toEqual(['t2']);
     expect(sp(s).today).toEqual(['t1']);
-    expect(sp(s).split).toBeNull();
-    expect(sp(s).activeTabId).toBe('t1');
+    // Favorites are global, so the page the user is looking at does not change.
+    expect(sp(s).split?.panes).toEqual(['t2', 't1']);
+    expect(sp(s).activeTabId).toBe('t2');
     expect(tb(s, 't2')).toMatchObject({
       kind: 'favorite',
       spaceId: null,

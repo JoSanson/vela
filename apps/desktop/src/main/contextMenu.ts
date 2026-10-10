@@ -256,8 +256,10 @@ export function installPageContextMenu(ctx: AppContext): void {
         },
         {
           label: 'Open in external browser',
+          enabled: /^https?:/i.test(wc.getURL()),
           click: () => {
-            void shell.openExternal(wc.getURL());
+            const u = wc.getURL();
+            if (/^https?:/i.test(u)) void shell.openExternal(u);
           },
         },
         { type: 'separator' },

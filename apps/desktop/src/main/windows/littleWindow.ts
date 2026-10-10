@@ -78,7 +78,7 @@ export class LittleWindow {
       push();
     });
     wc.setWindowOpenHandler(({ url }) => {
-      void wc.loadURL(url);
+      if (/^https?:/i.test(url)) void wc.loadURL(url);
       return { action: 'deny' };
     });
     wc.on('will-navigate', (e, url) => {

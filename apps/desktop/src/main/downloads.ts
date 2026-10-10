@@ -47,6 +47,7 @@ export class DownloadManager {
     const id = crypto.randomUUID();
     item.setSavePath(DownloadManager.uniquePath(item.getFilename() || 'download'));
     this.items.set(id, item);
+    let lastSaved = 0;
     const update = (state: DownloadItemState['state'], ended = false): void => {
       const s: DownloadItemState = {
         id,
@@ -61,7 +62,10 @@ export class DownloadManager {
         endedAt: ended ? Date.now() : null,
       };
       this.states.set(id, s);
-      this.repo.save(s);
+      if (ended || state !== 'progressing' || Date.now() - lastSaved > 1000) {
+        lastSaved = Date.now();
+        this.repo.save(s);
+      }
       this.notify();
     };
     update('progressing');

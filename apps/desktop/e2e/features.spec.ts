@@ -382,3 +382,86 @@ test.describe('profiles', () => {
     expect(partitions.sort()).toEqual(['persist:default', 'persist:profile-p-work']);
   });
 });
+
+test.describe('review fixes', () => {
+  test('window.open popups keep their opener (OAuth-style flows) in a child window', async ({
+    vela,
+    fixtures,
+  }) => {
+    await vela.openTab(`${fixtures}/page/Opener`);
+    const page = await vela.tabPage('/page/Opener');
+    const result = await page.evaluate((base) => {
+      const w = window.open(`${base}/page/Popup`, 'popup', 'width=400,height=400');
+      return { hasWindow: !!w, opener: !!w && w.opener === window };
+    }, fixtures);
+    expect(result.hasWindow).toBe(true);
+    const popup = await vela.tabPage('/page/Popup');
+    await expect.poll(() => popup.evaluate(() => !!window.opener).catch(() => false)).toBe(true);
+    expect(result.opener).toBe(true);
+    // Popups are real child windows (Chrome-like); plain links still become tabs.
+    await expect
+      .poll(() => vela.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
+      .toBe(2);
+    expect(Object.values((await vela.state()).tabs).length).toBe(1);
+    await popup.close();
+  });
+
+  test('a subresource with a bad certificate does not replace the page', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Subres`);
+    const page = await vela.tabPage('/page/Subres');
+    await page.evaluate(() => {
+      const img = document.createElement('img');
+      img.src = 'https://self-signed.badssl.invalid/x.png';
+      document.body.appendChild(img);
+    });
+    await new Promise((r) => setTimeout(r, 800));
+    expect(page.url()).toContain('/page/Subres');
+  });
+
+  test('unreserved shortcuts reach Vela only when the page lets them through', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Keys`);
+    const page = await vela.tabPage('/page/Keys');
+    const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${mod}+S`);
+    await expect
+      .poll(() =>
+        vela.app.evaluate(() => {
+          const g = globalThis as unknown as {
+            __vela: { ctx: { windows: { main: { layout: { sidebarVisible: boolean } } } } };
+          };
+          return g.__vela.ctx.windows.main.layout.sidebarVisible;
+        }),
+      )
+      .toBe(false);
+    await page.evaluate(() => window.addEventListener('keydown', (e) => e.preventDefault()));
+    await page.keyboard.press(`${mod}+S`);
+    await new Promise((r) => setTimeout(r, 500));
+    const stillHidden = await vela.app.evaluate(() => {
+      const g = globalThis as unknown as {
+        __vela: { ctx: { windows: { main: { layout: { sidebarVisible: boolean } } } } };
+      };
+      return !g.__vela.ctx.windows.main.layout.sidebarVisible;
+    });
+    expect(stillHidden).toBe(true);
+  });
+
+  test('the second profile session gets the content blocker too', async ({ vela, fixtures }) => {
+    await evalMain(
+      vela,
+      `const { createProfile, createSpace } = __vela.core;
+       const p = createProfile('Blocked', '#ff0000', 'p-blocked');
+       __vela.ctx.store.dispatch({ type: 'profile/create', profile: p });
+       const s = createSpace({ id: 's-blocked', name: 'Blocked', profileId: p.id });
+       __vela.ctx.store.dispatch({ type: 'space/create', space: s });
+       __vela.ctx.store.dispatch({ type: 'space/activate', id: s.id, now: Date.now() });
+       __vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/ProfileTab`)}, spaceId: s.id, noAtc: true });`,
+    );
+    const page = await vela.tabPage('/page/ProfileTab');
+    await expect(page.getByTestId('heading')).toHaveText('ProfileTab');
+    const wired = await evalMain<boolean>(
+      vela,
+      'return __vela.ctx.blocker.engine !== null && __vela.ctx.sessions.allPartitions().length === 2',
+    );
+    expect(wired).toBe(true);
+  });
+});

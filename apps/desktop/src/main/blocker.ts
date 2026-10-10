@@ -1,12 +1,14 @@
 import { hostOf } from '@vela/core';
 import type { BlockerStats } from '@vela/shared';
 import { ElectronBlocker, NetworkFilter, type Request } from '@ghostery/adblocker-electron';
-import { app, utilityProcess, type Session } from 'electron';
+import { app, ipcMain, utilityProcess, type Session } from 'electron';
+import { createRequire } from 'node:module';
 import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { PrefsStore } from './prefs';
 
+const PRELOAD_PATH = createRequire(__filename).resolve('@ghostery/adblocker-electron-preload');
 const REFRESH_MS = 24 * 3600 * 1000;
 const RETRY_MS = 10 * 60_000;
 
@@ -21,6 +23,9 @@ export class ContentBlocker {
   status: 'loading' | 'ready' | 'unavailable' = 'loading';
   source: 'custom' | 'bundled' | 'cached' | 'none' = 'none';
   private sessions = new Set<Session>();
+  /** Sessions currently wired (preload script id per session). */
+  private wired = new Map<Session, string>();
+  private ipcRegistered = false;
   private blockedByTab = new Map<number, number>();
   private blockedTotal = 0;
   private exceptions = new Map<string, NetworkFilter[]>();
@@ -109,7 +114,6 @@ export class ContentBlocker {
     if (ok) {
       try {
         const next = ElectronBlocker.deserialize(new Uint8Array(await readFile(this.cacheFile)));
-        for (const ses of this.sessions) this.engine?.disableBlockingInSession(ses);
         this.engine = next;
         this.source = 'cached';
         this.status = 'ready';
@@ -132,10 +136,46 @@ export class ContentBlocker {
     if (this.engine) this.apply(ses);
   }
 
+  /**
+   * Ghostery's `enableBlockingInSession` registers its two ipcMain handlers per session and throws
+   * on the second session, so the per-session wiring is done here: one global handler pair that
+   * forwards to whichever engine is current, plus the preload + webRequest hooks per session.
+   */
   private apply(ses: Session): void {
     if (!this.engine) return;
-    if (this.prefs.value.blockerEnabled) this.engine.enableBlockingInSession(ses);
-    else this.engine.disableBlockingInSession(ses);
+    const wantOn = this.prefs.value.blockerEnabled;
+    const isOn = this.wired.has(ses);
+    if (wantOn && !isOn) {
+      if (!this.ipcRegistered) {
+        this.ipcRegistered = true;
+        ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (event, url: string, msg?: unknown) =>
+          this.engine?.onInjectCosmeticFilters(
+            event,
+            url,
+            msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2],
+          ),
+        );
+        ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (event) =>
+          this.engine ? this.engine.onIsMutationObserverEnabled(event) : Promise.resolve(false),
+        );
+      }
+      const id = ses.registerPreloadScript({ type: 'frame', filePath: PRELOAD_PATH });
+      ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, (details, callback) => {
+        if (this.engine) this.engine.onHeadersReceived(details, callback);
+        else callback({});
+      });
+      ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+        if (this.engine) this.engine.onBeforeRequest(details, callback);
+        else callback({});
+      });
+      this.wired.set(ses, id);
+    } else if (!wantOn && isOn) {
+      const id = this.wired.get(ses);
+      if (id) ses.unregisterPreloadScript(id);
+      ses.webRequest.onHeadersReceived(null);
+      ses.webRequest.onBeforeRequest(null);
+      this.wired.delete(ses);
+    }
   }
 
   setEnabled(enabled: boolean): void {

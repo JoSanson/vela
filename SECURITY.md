@@ -20,7 +20,7 @@ Electron security checklist point by point against the code, and describes the t
 | 2 | Disable Node integration in renderers | ✅ | `nodeIntegration: false` in `windows/mainWindow.ts`, `tabs/tabManager.ts` (`webPreferences()`), `overlay.ts`, `windows/littleWindow.ts`. |
 | 3 | Enable context isolation | ✅ | `contextIsolation: true` in all four places above. |
 | 4 | Process sandboxing | ✅ | `sandbox: true` in all four places. Preloads are single-file bundles with no `require` beyond `electron` (`isolatedEntries`-style, see `electron.vite.config.ts` + inlined `channel()`). |
-| 5 | Handle session permission requests | ✅ | `security.ts::hardenSession` → `setPermissionRequestHandler` / `setPermissionCheckHandler` / `setDevicePermissionHandler` (deny) / Bluetooth pairing (deny). Unknown permissions are denied; `notifications`, `geolocation`, `media`, … prompt the user through `permissions.ts` and are persisted per origin in SQLite. |
+| 5 | Handle session permission requests | ✅ | `security.ts::hardenSession` → `setPermissionRequestHandler` / `setPermissionCheckHandler` / `setDevicePermissionHandler` (deny) / Bluetooth pairing (deny) / `setDisplayMediaRequestHandler` (prompt, then primary screen). Unknown permissions are denied; `notifications`, `geolocation`, `camera`, `microphone` (decided separately), `display-capture`, … prompt the user through `permissions.ts` and are persisted per origin in SQLite. A pending prompt is denied automatically when the requesting document navigates or closes. The default session (shell) is hardened too. |
 | 6 | Do not disable `webSecurity` | ✅ | `webSecurity: true` explicitly; never set to false anywhere (`grep -r "webSecurity" apps`). |
 | 7 | Define a Content Security Policy | ✅ | Shell/overlay/little HTML carry a strict `<meta http-equiv="Content-Security-Policy">` (`script-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-src 'none'`). Internal `vela://` responses set the same policy as a header in `protocol.ts`. `style-src 'unsafe-inline'` is required by Vite's dev injection and CSS-in-JS-free runtime styles; scripts stay strict. |
 | 8 | Do not enable `allowRunningInsecureContent` | ✅ | Explicitly `false`. |
@@ -29,7 +29,7 @@ Electron security checklist point by point against the code, and describes the t
 | 11 | `<webview>`: do not use / `will-attach-webview` | ✅ | `webviewTag: false`; `will-attach-webview` is prevented for every `WebContents` in `security.ts::installAppSecurity`. Tabs are `WebContentsView`s managed by main. |
 | 12 | Verify WebView options before creation | ✅ | N/A (no webviews). |
 | 13 | Disable or limit navigation | ✅ | Shell/overlay/little: `will-navigate` → `preventDefault`. Tabs: `will-navigate`/`will-redirect` block `file:` and `vela:` targets (web pages cannot open internal pages). Peek/Little views same rule. |
-| 14 | Disable or limit creation of new windows | ✅ | `setWindowOpenHandler` on every `WebContents`: shell/overlay/little deny; tabs deny and route `http(s)` to a new tab (`mailto:`/`tel:` → `shell.openExternal`), everything else dropped. |
+| 14 | Disable or limit creation of new windows | ✅ | `setWindowOpenHandler` on every `WebContents`: shell/overlay/little deny; tabs route `http(s)` links to a new tab and let `window.open()` popups (OAuth/payment flows that need `window.opener`) open as child windows created with the same hardened `webPreferences` (`did-create-window` wires their guards); `mailto:`/`tel:` → `shell.openExternal`; everything else dropped. |
 | 15 | Do not use `shell.openExternal` with untrusted content | ✅ | Only `https?:`/`mailto:` URLs reach `openExternal` (`handlers.ts`, `tabManager.ts`, `contextMenu.ts`). |
 | 16 | Use a current version of Electron | ✅ | Pinned exact (`44.7.0`), bumped automatically by `engine-watch.yml` and Renovate within 24 h of a stable release. |
 | 17 | Validate the `sender` of all IPC messages | ✅ | `ipc/typed.ts::handle` checks `trustedShell` ids or (`internal` access) `senderFrame.url.startsWith('vela://') && senderFrame.parent === null`. Untrusted senders throw. |
@@ -45,7 +45,19 @@ Electron security checklist point by point against the code, and describes the t
 - **User agent**: the `Electron/…` and `Vela/…` tokens are stripped (`sessions.ts`) so sites apply
   their Chrome code paths; no extra identifying headers are added.
 - **Favicons** are fetched by main through the tab's own session and served from SQLite as
-  `vela://favicon/<host>`; the shell never contacts websites.
+  `vela://favicon/<host>`; the shell never contacts websites. Requests carrying a web `Referer`
+  are refused so a page cannot probe which hosts were visited.
+- **Certificate errors on subresources** (images, iframes, XHR) are simply blocked; only a failing
+  main-frame navigation shows the interstitial.
+- **Internal pages** can only read back files the user just picked through the native dialog
+  (`app/pickFile` → `app/readFile`), and `extensions/load` ignores paths coming from pages.
+- **Zap selectors** returned by the page are validated (no `{}`/`;`/comments, length-capped) before
+  being compiled into user CSS.
+- **Keyboard shortcuts**: reserved ones (⌘T/W/L, Ctrl+Tab, …) are menu accelerators; unreserved
+  ones (⌘S, ⌘D, ⌘F, zoom, Ctrl+1…9, …) reach the page first and only act when the page did not
+  `preventDefault()`, like Chrome.
+- **Import** of a JSON export backs up the database (`VACUUM INTO`) and sanitises every id/URL
+  (only `http(s)`/`vela://`, dangling references dropped, no extension paths from the file).
 - **Downloads** are written to `~/Downloads` with unique names; no automatic opening.
 - **Boosts** (user CSS/JS) are injected only on the host the user configured, with `cssOrigin: 'user'`.
 - **Zap picker** runs in the page's main world but only returns a selector string.

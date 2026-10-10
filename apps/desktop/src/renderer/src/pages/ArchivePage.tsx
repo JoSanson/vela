@@ -1,7 +1,7 @@
 import { createId, displayTitle, hostOf, type ArchivedTab } from '@vela/core';
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Favicon } from '../components/Favicon';
-import { modKey } from '../lib/api';
+import { isMac, modKey } from '../lib/api';
 import { now as nowMs, timeAgo, tryInvoke, useNow, useSnapshot } from './lib';
 import { PageShell } from './PageShell';
 import rows from './rows.module.css';
@@ -94,7 +94,11 @@ export function ArchivePage() {
         e.preventDefault();
         void restore(t);
       }
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && e.metaKey && selected >= 0) {
+    } else if (
+      (e.key === 'Delete' || e.key === 'Backspace') &&
+      (isMac ? e.metaKey : e.ctrlKey) &&
+      selected >= 0
+    ) {
       const t = list[selected];
       if (t) {
         e.preventDefault();

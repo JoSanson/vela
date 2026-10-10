@@ -13,7 +13,13 @@ export class Store {
     const next = reduce(prev, action);
     if (next === prev) return prev;
     this.state = next;
-    for (const l of this.listeners) l(next, prev, action);
+    for (const l of this.listeners) {
+      try {
+        l(next, prev, action);
+      } catch (err) {
+        console.error('[store] listener failed for', action.type, err);
+      }
+    }
     return next;
   }
 

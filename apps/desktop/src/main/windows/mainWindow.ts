@@ -12,6 +12,18 @@ export interface MainWindowOptions {
   glass: boolean;
 }
 
+/** Opaque overlay colours derived from the space gradient (WCO ignores alpha). */
+export function overlayColors(hex: string): { color: string; symbolColor: string } {
+  const n = parseInt(hex.replace('#', '').slice(0, 6), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c: number): number => Math.round(c * 0.42 + 255 * 0.58);
+  const color = `#${[mix(r), mix(g), mix(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+  const lum = (0.299 * mix(r) + 0.587 * mix(g) + 0.114 * mix(b)) / 255;
+  return { color, symbolColor: lum > 0.6 ? '#1b1a24' : '#ffffff' };
+}
+
 export class MainWindow {
   readonly win: BrowserWindow;
   layout: Layout;
@@ -31,7 +43,7 @@ export class MainWindow {
       titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
       ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 14, y: 16 } } : {}),
       ...(process.platform !== 'darwin'
-        ? { titleBarOverlay: { color: '#00000000', symbolColor: '#ffffff', height: TOP_BAR_HEIGHT } }
+        ? { titleBarOverlay: { ...overlayColors(opts.backgroundColor), height: TOP_BAR_HEIGHT } }
         : {}),
       backgroundColor: opts.backgroundColor,
       autoHideMenuBar: true,
@@ -51,6 +63,15 @@ export class MainWindow {
     this.win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.win.webContents.on('will-navigate', (e) => e.preventDefault());
     this.win.webContents.on('will-attach-webview', (e) => e.preventDefault());
+  }
+
+  setThemeColor(hex: string): void {
+    if (process.platform === 'darwin' || this.win.isDestroyed()) return;
+    try {
+      this.win.setTitleBarOverlay({ ...overlayColors(hex), height: TOP_BAR_HEIGHT });
+    } catch {
+      /* not supported on this platform */
+    }
   }
 
   setGlass(enabled: boolean): void {

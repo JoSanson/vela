@@ -6,6 +6,7 @@ import {
   rankItems,
   resolveInput,
   SEARCH_ENGINES,
+  type ArchivedTab,
   type Id,
   type SearchItem,
 } from '@vela/core';
@@ -56,6 +57,32 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     if (editTab) el.select();
   }, [editTab]);
 
+  // The archive is not part of the broadcast state: fetch it once per command-bar open.
+  const [archive, setArchive] = useState<ArchivedTab[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void invoke('archive/search', { query: '', limit: 2000 })
+      .then((list) => {
+        if (!cancelled) setArchive(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const archiveItems = useMemo<SearchItem[]>(
+    () =>
+      archive.map((a) =>
+        makeSearchItem({
+          id: `archived:${a.id}`,
+          kind: 'archived',
+          title: a.title,
+          subtitle: prettyUrl(a.url),
+          boost: 0,
+        }),
+      ),
+    [archive],
+  );
   const index = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = [];
     const tabs = Object.values(core.tabs);
@@ -72,24 +99,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         }),
       );
     }
-    for (const a of core.archive.slice(0, 2000)) {
-      items.push(
-        makeSearchItem({
-          id: `archived:${a.id}`,
-          kind: 'archived',
-          title: a.title,
-          subtitle: prettyUrl(a.url),
-          boost: 0,
-        }),
-      );
-    }
+    items.push(...archiveItems);
     for (const c of COMMANDS) {
       items.push(
         makeSearchItem({ id: `cmd:${c.id}`, kind: 'command', title: c.label, subtitle: 'Command', boost: 0 }),
       );
     }
     return items;
-  }, [core.tabs, core.archive]);
+  }, [core.tabs, archiveItems]);
 
   useEffect(() => {
     const q = query.trim();

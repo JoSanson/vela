@@ -34,7 +34,12 @@ export class UpdateManager {
         notes: notesOf(info.releaseNotes),
         progress: 100,
       });
-      this.ctx.overlay.show('updateNotes', { version: info.version, notes: this.status.notes });
+      const payload = { version: info.version, notes: this.status.notes };
+      if (this.ctx.overlay.visible)
+        this.ctx.overlay.onHide(
+          () => this.ctx.overlay.visible || this.ctx.overlay.show('updateNotes', payload),
+        );
+      else this.ctx.overlay.show('updateNotes', payload);
     });
     autoUpdater.on('error', (err) => this.set({ state: 'error', error: err.message }));
   }

@@ -92,3 +92,25 @@ workflow … without `workflow` scope"). Re-authentication is interactive.
 Choice: repo created (private, empty); everything is ready locally; the owner runs once:
 `gh auth refresh -h github.com -s workflow && git -C ~/dev/vela push -u origin main --tags`.
 Auto-update is proven locally with a generic feed server instead of GitHub Releases.
+
+## D014 — Reserved vs unreserved shortcuts
+Context: menu accelerators always win, so ⌘S/⌘D/Ctrl+1…9 never reached pages (Docs, Figma…).
+Choice: `ShortcutDef.reserved`. Reserved shortcuts stay menu accelerators. Unreserved ones have no
+accelerator; the tab preload listens for them on `window` and forwards the id to main *after*
+dispatch, only if the page did not `preventDefault()`. The shell handles them itself when focused.
+Why: matches Chrome's behaviour; keeps the sandboxed preload exposing nothing to pages (it only
+sends a fixed id that main validates against the unreserved set).
+
+## D015 — window.open popups are child windows
+Context: returning `{action:'deny'}` + opening a tab makes `window.open()` return `null`, which
+breaks OAuth/payment popups relying on `window.opener`/`postMessage`. A `createWindow` returning a
+`WebContentsView` left the renderer waiting forever in Electron 44.
+Choice: `disposition === 'new-window'` → `action: 'allow'` with hardened
+`overrideBrowserWindowOptions`; the child window gets the tab guards in `did-create-window`.
+Plain links (`target=_blank`, middle-click) still open as tabs.
+
+## D016 — Broadcast state without the archive
+Context: every navigation tick (title/favicon/loading) re-sent the whole state, including up to
+5000 archive entries, to three renderers.
+Choice: `state/changed` carries `archive: []`; the archive page and the command bar fetch
+`archive/search` on demand. Native layout/re-stacking happens only when the visible panes change.

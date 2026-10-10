@@ -1,4 +1,4 @@
-import { app, type Session } from 'electron';
+import { app, desktopCapturer, webContents, type Session } from 'electron';
 import type { AppContext } from './context';
 import { errorPageUrl } from './tabs/tabManager';
 
@@ -38,12 +38,40 @@ export function hardenSession(ses: Session): void {
     if (ALWAYS_DENY.has(permission)) return callback(false);
     const origin = safeOrigin(details.requestingUrl || wc?.getURL() || '');
     if (!origin || !wc) return callback(false);
+    if (permission === 'media') {
+      // Decide camera and microphone separately so a mic-only grant never implies the camera.
+      const types = (details as { mediaTypes?: string[] }).mediaTypes ?? ['audio', 'video'];
+      const wanted = types.map((t) => (t === 'video' ? 'camera' : 'microphone'));
+      void Promise.all(wanted.map((p) => decider(origin, p, wc.id))).then((ds) =>
+        callback(ds.every((d) => d === 'allow')),
+      );
+      return;
+    }
     void decider(origin, permission, wc.id).then((d) => callback(d === 'allow'));
   });
-  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) => {
+  // getDisplayMedia(): ask once per origin, then share the primary screen.
+  ses.setDisplayMediaRequestHandler((request, callback) => {
+    const origin = safeOrigin(request.frame?.url ?? '');
+    const wcId = request.frame ? webContents.fromFrame(request.frame)?.id : undefined;
+    if (!origin || wcId === undefined) return callback({});
+    void decider(origin, 'display-capture', wcId).then(async (d) => {
+      if (d !== 'allow') return callback({});
+      const sources = await desktopCapturer.getSources({ types: ['screen'] });
+      const primary = sources[0];
+      if (!primary) return callback({});
+      callback({ video: primary, audio: 'loopback' });
+    });
+  });
+  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) => {
     if (ALWAYS_ALLOW.has(permission)) return true;
     if (ALWAYS_DENY.has(permission)) return false;
-    return checkCache.get(`${safeOrigin(requestingOrigin)}|${permission}`) ?? false;
+    const origin = safeOrigin(requestingOrigin);
+    if (permission === 'media') {
+      const t = (details as { mediaType?: string }).mediaType;
+      const key = t === 'video' ? 'camera' : t === 'audio' ? 'microphone' : null;
+      return key ? (checkCache.get(`${origin}|${key}`) ?? false) : false;
+    }
+    return checkCache.get(`${origin}|${permission}`) ?? false;
   });
   ses.setDevicePermissionHandler(() => false);
   ses.setBluetoothPairingHandler?.((_details, callback) => callback({ confirmed: false }));
@@ -67,8 +95,14 @@ export function safeOrigin(url: string): string {
   }
 }
 
+const pendingMainFrame = new Map<number, string>();
+
 export function installAppSecurity(ctx: AppContext): void {
   app.on('web-contents-created', (_e, wc) => {
+    wc.on('did-start-navigation', (details) => {
+      if (details.isMainFrame && !details.isSameDocument) pendingMainFrame.set(wc.id, details.url);
+    });
+    wc.once('destroyed', () => pendingMainFrame.delete(wc.id));
     wc.on('will-attach-webview', (e) => e.preventDefault());
     wc.on('will-redirect', (e, url) => {
       if (url.startsWith('file:') || url.startsWith('vela://')) e.preventDefault();
@@ -84,6 +118,10 @@ export function installAppSecurity(ctx: AppContext): void {
     callback(false);
     const tabId = ctx.tabs.tabIdOf(wc);
     if (!tabId) return;
+    // Subresources (iframes, images, XHR) with bad certificates are simply blocked; only a failing
+    // main-frame navigation gets the interstitial.
+    const pending = pendingMainFrame.get(wc.id);
+    if (pending !== url && wc.getURL() !== '' && wc.getURL() !== url) return;
     const detail = JSON.stringify({
       error,
       issuer: certificate.issuerName,

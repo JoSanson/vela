@@ -9,6 +9,12 @@ export class WindowManager {
   readonly littles = new Set<LittleWindow>();
   private onLayoutChange: (() => void) | null = null;
   private gestureHandler: ((cmd: 'back' | 'forward') => void) | null = null;
+  private onCreated: ((mw: MainWindow) => void) | null = null;
+
+  /** Runs for every main window (initial and Dock re-activation) to wire events. */
+  setWindowCreatedListener(fn: (mw: MainWindow) => void): void {
+    this.onCreated = fn;
+  }
 
   setGestureHandler(fn: (cmd: 'back' | 'forward') => void): void {
     this.gestureHandler = fn;
@@ -60,6 +66,7 @@ export class WindowManager {
     win.on('closed', () => {
       if (this.main === mw) this.main = null;
     });
+    this.onCreated?.(mw);
     await mw.load();
     return mw;
   }

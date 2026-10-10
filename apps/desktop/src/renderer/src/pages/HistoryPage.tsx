@@ -2,7 +2,7 @@ import { displayTitle, hostOf } from '@vela/core';
 import type { HistoryEntry } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Favicon } from '../components/Favicon';
-import { modKey } from '../lib/api';
+import { isMac, modKey } from '../lib/api';
 import { dayKey, dayLabel, formatTime, openUrl, tryInvoke } from './lib';
 import { PageShell } from './PageShell';
 import rows from './rows.module.css';
@@ -119,7 +119,11 @@ export function HistoryPage() {
         e.preventDefault();
         open(row.entry);
       }
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected >= 0 && e.metaKey) {
+    } else if (
+      (e.key === 'Delete' || e.key === 'Backspace') &&
+      selected >= 0 &&
+      (isMac ? e.metaKey : e.ctrlKey)
+    ) {
       const row = list[selected];
       if (row?.kind === 'entry') {
         e.preventDefault();

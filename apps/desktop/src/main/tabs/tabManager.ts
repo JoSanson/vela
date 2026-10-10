@@ -40,6 +40,8 @@ export class TabManager {
   private viewHooks: ViewHook[] = [];
   private afterLayoutHooks: (() => void)[] = [];
   private visibilityHooks: ((tabId: Id, visible: boolean) => void)[] = [];
+  private lastLayoutKey = '';
+  private detachedCounter = 0;
   /** Optional favicon resolver (set by FaviconCache); returns an internal URL or null. */
   faviconResolver:
     ((ses: Electron.Session, pageUrl: string, iconUrl: string) => Promise<string | null>) | null = null;
@@ -103,6 +105,7 @@ export class TabManager {
     const leaving = this.attached.filter((id) => !visible.includes(id));
     const entering = visible.filter((id) => !this.attached.includes(id) && this.views.has(id));
     for (const id of leaving) for (const hook of this.visibilityHooks) hook(id, false);
+    const attachedBefore = this.attached.length;
     for (const id of visible) {
       const tab = state.tabs[id];
       if (!tab) continue;
@@ -110,7 +113,14 @@ export class TabManager {
       this.attach(id);
     }
     for (const id of entering) for (const hook of this.visibilityHooks) hook(id, true);
-    this.layout();
+    const space = state.spaces[state.activeSpaceId];
+    const layoutKey = `${visible.join(',')}|${(space?.split?.sizes ?? []).map((s) => s.toFixed(3)).join(',')}`;
+    // Title/favicon/loading patches arrive many times per navigation: only touch native bounds
+    // (and re-stack the overlay/peek views) when the visible set or pane sizes changed.
+    if (layoutKey !== this.lastLayoutKey || this.attached.length !== attachedBefore) {
+      this.lastLayoutKey = layoutKey;
+      this.layout();
+    }
     // Views that leave the screen are snapshotted for the switcher before being detached; they
     // sit beneath the freshly attached views meanwhile, so the switch itself is not delayed.
     for (const id of leaving) {
@@ -143,12 +153,18 @@ export class TabManager {
   }
 
   /** Builds a tab-like WebContentsView (same security posture) without registering it. */
-  createDetachedView(profileId: Id | null): WebContentsView {
+  webPreferencesFor(profileId: Id | null): Electron.WebPreferences {
     const partitions: Record<Id, string | undefined> = {};
     for (const p of Object.values(this.state.profiles)) partitions[p.id] = p.partition;
-    const ses = this.deps.sessions.forProfile(profileId, partitions);
-    const view = new WebContentsView({ webPreferences: TabManager.webPreferences(ses) });
+    return TabManager.webPreferences(this.deps.sessions.forProfile(profileId, partitions));
+  }
+
+  createDetachedView(profileId: Id | null): WebContentsView {
+    const view = new WebContentsView({ webPreferences: this.webPreferencesFor(profileId) });
     view.setBackgroundColor('#ffffff');
+    // Context menu, boosts, find… apply to peek/little/popup views too (under a synthetic id).
+    const pseudoId = `detached:${++this.detachedCounter}`;
+    for (const hook of this.viewHooks) hook(pseudoId, view.webContents);
     return view;
   }
 
@@ -233,6 +249,7 @@ export class TabManager {
     }
   }
 
+  /** Window resize / sidebar / find bar changes: bounds moved even though panes did not. */
   layout(): void {
     const mw = this.deps.windows.main;
     if (!mw || mw.win.isDestroyed()) return;
@@ -286,7 +303,10 @@ export class TabManager {
     wc.on('did-start-loading', () => this.patch(id, { loading: true }));
     wc.on('did-stop-loading', () => this.patch(id, { loading: false, ...nav() }));
     wc.on('did-navigate', (_e, url) => {
-      this.patch(id, { url, ...nav() });
+      // Chromium zoom is per host within a session: apply the remembered level and mirror the real one.
+      const stored = this.deps.prefs.value.zoomByHost[hostKey(url)];
+      if (stored !== undefined && Math.abs(wc.getZoomFactor() - stored) > 0.001) wc.setZoomFactor(stored);
+      this.patch(id, { url, zoom: Math.round(wc.getZoomFactor() * 100) / 100, ...nav() });
       this.deps.history.recordVisit(url, wc.getTitle());
     });
     wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
@@ -344,21 +364,46 @@ export class TabManager {
     wc.on('will-navigate', (e, url) => {
       if (url.startsWith('file:') || url.startsWith('vela://')) e.preventDefault();
     });
+    wc.on('did-create-window', (child) => {
+      const pseudoId = `popup:${++this.detachedCounter}`;
+      for (const hook of this.viewHooks) hook(pseudoId, child.webContents);
+      child.webContents.setWindowOpenHandler(({ url: u }) => {
+        if (/^https?:/i.test(u)) this.openUrl({ input: u, activate: true, noAtc: true });
+        return { action: 'deny' };
+      });
+      child.webContents.on('will-navigate', (e, u) => {
+        if (u.startsWith('file:') || u.startsWith('vela://')) e.preventDefault();
+      });
+    });
     wc.setWindowOpenHandler(({ url, disposition }) => {
-      if (/^(https?|mailto|tel):/i.test(url)) {
-        const activate = disposition !== 'background-tab';
-        const tab = this.state.tabs[id];
-        if (/^(mailto|tel):/i.test(url)) {
-          void import('electron').then(({ shell }) => shell.openExternal(url));
-        } else {
-          this.openUrl({
-            input: url,
-            activate,
-            ...(tab?.spaceId ? { spaceId: tab.spaceId } : {}),
-            noAtc: true,
-          });
-        }
+      if (!/^(https?|mailto|tel|about):/i.test(url)) return { action: 'deny' };
+      const tab = this.state.tabs[id];
+      if (/^(mailto|tel):/i.test(url)) {
+        void import('electron').then(({ shell }) => shell.openExternal(url));
+        return { action: 'deny' };
       }
+      if (disposition === 'new-window') {
+        // window.open() with features (OAuth popups, payment flows): let Chromium create a real
+        // child window so `window.opener`/postMessage keep working, with our hardened preferences.
+        const spaceId = tab?.spaceId ?? this.state.activeSpaceId;
+        const space = this.state.spaces[spaceId];
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 640,
+            autoHideMenuBar: true,
+            backgroundColor: '#ffffff',
+            webPreferences: this.webPreferencesFor(space?.profileId ?? null),
+          },
+        };
+      }
+      this.openUrl({
+        input: url,
+        activate: disposition !== 'background-tab',
+        spaceId: tab?.spaceId ?? this.state.activeSpaceId,
+        noAtc: true,
+      });
       return { action: 'deny' };
     });
   }
@@ -376,7 +421,7 @@ export class TabManager {
     const { url } = this.resolve(req.input);
     const state = this.state;
     const kind: TabKind = req.kind ?? 'today';
-    let spaceId = req.spaceId ?? state.activeSpaceId;
+    let spaceId = req.spaceId && state.spaces[req.spaceId] ? req.spaceId : state.activeSpaceId;
     if (!req.noAtc && kind === 'today') {
       const routed = matchAtc(state.atcRules, url);
       if (routed && state.spaces[routed]) spaceId = routed;
@@ -505,7 +550,9 @@ export class TabManager {
     const scrollY = await Promise.race([
       wc.executeJavaScript('window.scrollY', false) as Promise<number>,
       new Promise<number>((r) => setTimeout(() => r(0), 300)),
-    ]).catch(() => 0);
+    ])
+      .then((v) => Math.max(0, Math.min(1e7, Number(v) || 0)))
+      .catch(() => 0);
     this.patch(tabId, {
       sleeping: true,
       loaded: false,

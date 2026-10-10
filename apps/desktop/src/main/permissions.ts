@@ -1,5 +1,5 @@
 import type { PermissionKind, PermissionPrompt, SitePermission } from '@vela/shared';
-import type { WebContents } from 'electron';
+import { webContents, type WebContents } from 'electron';
 import type { PermissionsRepo } from './db/repos';
 import { emit } from './ipc/typed';
 import type { OverlayManager } from './overlay';
@@ -8,7 +8,6 @@ import { forgetPermission, rememberPermission } from './security';
 const KINDS: PermissionKind[] = [
   'notifications',
   'geolocation',
-  'media',
   'camera',
   'microphone',
   'clipboard-read',
@@ -63,7 +62,15 @@ export class PermissionManager {
     const tabId = this.tabIdOf(wcId);
     if (!tabId) return Promise.resolve('deny');
     return new Promise((resolve) => {
-      this.queue.push({ prompt: { id: crypto.randomUUID(), tabId, origin, permission: kind }, resolve });
+      const pending: Pending = {
+        prompt: { id: crypto.randomUUID(), tabId, origin, permission: kind },
+        resolve,
+      };
+      this.queue.push(pending);
+      const wc = webContents.fromId(wcId);
+      const abort = (): void => this.abandon(pending);
+      wc?.once('did-navigate', abort);
+      wc?.once('destroyed', abort);
       this.pump();
     });
   }
@@ -83,6 +90,22 @@ export class PermissionManager {
     this.current = null;
     if (this.queue.length === 0 && this.overlay.current.kind === 'permissionPrompt') this.overlay.hide();
     this.pump();
+  }
+
+  /** The requesting document navigated away or closed: deny without remembering. */
+  private abandon(p: Pending): void {
+    if (this.current === p) {
+      p.resolve('deny');
+      this.current = null;
+      if (this.queue.length === 0 && this.overlay.current.kind === 'permissionPrompt') this.overlay.hide();
+      this.pump();
+      return;
+    }
+    const i = this.queue.indexOf(p);
+    if (i >= 0) {
+      this.queue.splice(i, 1);
+      p.resolve('deny');
+    }
   }
 
   /** Called when the overlay is dismissed (Escape / click outside): deny without remembering. */

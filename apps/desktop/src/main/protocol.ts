@@ -1,6 +1,6 @@
 import { net, protocol, type Session } from 'electron';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const INTERNAL_SCHEME = 'vela';
@@ -48,6 +48,9 @@ export function installInternalProtocol(
   ses.protocol.handle(INTERNAL_SCHEME, async (request) => {
     const url = new URL(request.url);
     if (url.hostname === 'favicon') {
+      // Only Vela's own documents may read cached favicons (web pages could otherwise probe history).
+      const referer = request.headers.get('Referer') ?? '';
+      if (referer && !/^(vela|file):/.test(referer)) return new Response(null, { status: 403 });
       const host = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
       const icon = favicons(host);
       if (!icon) return new Response(null, { status: 404 });
@@ -57,7 +60,7 @@ export function installInternalProtocol(
       });
     }
     const pathname = decodeURIComponent(url.pathname);
-    const isAsset = pathname.startsWith('/assets/') || extname(pathname) !== '';
+    const isAsset = pathname.startsWith('/assets/') || /\.(ico|png|svg|woff2?|json|map)$/.test(pathname);
     const headers = { 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff' };
     if (devUrl) {
       const target = isAsset ? `${devUrl}${pathname}${url.search}` : `${devUrl}/pages.html`;
@@ -68,7 +71,7 @@ export function installInternalProtocol(
     }
     const rel = isAsset ? pathname.replace(/^\/+/, '') : 'pages.html';
     const file = normalize(join(rendererDir, rel));
-    if (!file.startsWith(rendererDir)) return new Response('forbidden', { status: 403 });
+    if (!file.startsWith(rendererDir + sep)) return new Response('forbidden', { status: 403 });
     try {
       const body = await readFile(file);
       const type = MIME[extname(file)] ?? 'application/octet-stream';

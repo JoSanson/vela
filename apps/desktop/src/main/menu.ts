@@ -12,7 +12,7 @@ export function installMenu(ctx: AppContext): void {
     const def = SHORTCUTS.find((s) => s.id === id);
     return {
       label: def?.label ?? id,
-      ...(def ? { accelerator: def.accelerator } : {}),
+      ...(def?.reserved ? { accelerator: def.accelerator } : {}),
       click: () => runCommand(ctx, id),
       ...overrides,
     };
@@ -103,7 +103,6 @@ export function installMenu(ctx: AppContext): void {
         { type: 'separator' },
         ...SPACE_SHORTCUTS.map((s) => ({
           label: s.label,
-          accelerator: s.accelerator,
           click: () => runCommand(ctx, s.id),
         })),
       ],

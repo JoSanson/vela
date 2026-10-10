@@ -1,4 +1,4 @@
-import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from '@vela/shared';
+import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH, shortcutForEvent } from '@vela/shared';
 import { animate } from 'motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
@@ -9,6 +9,7 @@ import { DownloadsPanel } from './DownloadsPanel';
 import { FindBar } from './FindBar';
 import { SiteControl } from './SiteControl';
 import { SplitHandles } from './SplitHandles';
+import { TopBar } from './TopBar';
 import styles from './App.module.css';
 
 const HIDE_DURATION = 0.22;
@@ -123,6 +124,12 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && useShell.getState().findOpen) closeFind();
+      if (e.defaultPrevented || e.target instanceof HTMLInputElement) return;
+      const id = shortcutForEvent(e, vela.platform);
+      if (id) {
+        e.preventDefault();
+        void invoke('command/run', { id });
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -156,58 +163,61 @@ export function App() {
 
   return (
     <div className={styles.app} data-ready={ready ? 'true' : 'false'}>
-      <div
-        ref={asideRef}
-        className={styles.asideWrap}
-        style={{
-          width: sidebarVisible ? sidebarWidth : 0,
-          visibility: sidebarVisible ? 'visible' : 'hidden',
-        }}
-        aria-hidden={!sidebarVisible}
-      >
-        <Sidebar width={sidebarWidth} onToggle={toggleSidebar} />
-        {downloadsOpen && <DownloadsPanel onClose={() => setDownloadsOpen(false)} />}
-        {siteControlOpen && activeTab && (
-          <SiteControl tab={activeTab} onClose={() => setSiteControlOpen(false)} />
-        )}
+      <TopBar />
+      <div className={styles.row}>
         <div
-          className={styles.resizer}
-          onPointerDown={onResizeStart}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          aria-valuenow={sidebarWidth}
-          aria-valuemin={SIDEBAR_MIN_WIDTH}
-          aria-valuemax={SIDEBAR_MAX_WIDTH}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft') setSidebarWidth(Math.max(SIDEBAR_MIN_WIDTH, sidebarWidth - 10));
-            if (e.key === 'ArrowRight') setSidebarWidth(Math.min(SIDEBAR_MAX_WIDTH, sidebarWidth + 10));
+          ref={asideRef}
+          className={styles.asideWrap}
+          style={{
+            width: sidebarVisible ? sidebarWidth : 0,
+            visibility: sidebarVisible ? 'visible' : 'hidden',
           }}
-        />
-      </div>
-      {!sidebarVisible && (
-        <div
-          className={styles.edge}
-          onMouseEnter={() => void invoke('overlay/show', { kind: 'sidebar' })}
-          data-testid="sidebar-edge"
-        />
-      )}
-      <main className={styles.content} data-testid="content" data-dnd-zone="content">
-        {findOpen && <FindBar onClose={closeFind} />}
-        {!hasActive && ready && (
-          <div className={`${styles.empty} ${sidebarVisible ? '' : styles.emptyFull}`}>
-            <div className={styles.emptyCard}>
-              <div className={styles.emptyTitle}>
-                {space?.emoji} {space?.name}
-              </div>
-              <p className={styles.emptyHint}>
-                Press <kbd>{modKey}</kbd> <kbd>T</kbd> to open a tab
-              </p>
-            </div>
-          </div>
+          aria-hidden={!sidebarVisible}
+        >
+          <Sidebar width={sidebarWidth} onToggle={toggleSidebar} />
+          {downloadsOpen && <DownloadsPanel onClose={() => setDownloadsOpen(false)} />}
+          {siteControlOpen && activeTab && (
+            <SiteControl tab={activeTab} onClose={() => setSiteControlOpen(false)} />
+          )}
+          <div
+            className={styles.resizer}
+            onPointerDown={onResizeStart}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            aria-valuenow={sidebarWidth}
+            aria-valuemin={SIDEBAR_MIN_WIDTH}
+            aria-valuemax={SIDEBAR_MAX_WIDTH}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft') setSidebarWidth(Math.max(SIDEBAR_MIN_WIDTH, sidebarWidth - 10));
+              if (e.key === 'ArrowRight') setSidebarWidth(Math.min(SIDEBAR_MAX_WIDTH, sidebarWidth + 10));
+            }}
+          />
+        </div>
+        {!sidebarVisible && (
+          <div
+            className={styles.edge}
+            onMouseEnter={() => void invoke('overlay/show', { kind: 'sidebar' })}
+            data-testid="sidebar-edge"
+          />
         )}
-      </main>
+        <main className={styles.content} data-testid="content" data-dnd-zone="content">
+          {findOpen && <FindBar onClose={closeFind} />}
+          {!hasActive && ready && (
+            <div className={`${styles.empty} ${sidebarVisible ? '' : styles.emptyFull}`}>
+              <div className={styles.emptyCard}>
+                <div className={styles.emptyTitle}>
+                  {space?.emoji} {space?.name}
+                </div>
+                <p className={styles.emptyHint}>
+                  Press <kbd>{modKey}</kbd> <kbd>T</kbd> to open a tab
+                </p>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
       <SplitHandles />
       {toast && (
         <div className={styles.toast} role="status" data-testid="toast">

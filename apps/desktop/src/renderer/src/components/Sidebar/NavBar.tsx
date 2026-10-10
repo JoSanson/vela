@@ -1,5 +1,5 @@
 import { prettyUrl } from '@vela/core';
-import { invoke, isMac } from '../../lib/api';
+import { invoke, isMac, modKey } from '../../lib/api';
 import { selectActiveTab, useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import styles from './NavBar.module.css';
@@ -17,7 +17,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           className={styles.btn}
           onClick={onToggleSidebar}
           aria-label="Hide sidebar"
-          title="Hide sidebar (⌘S)"
+          title={`Hide sidebar (${modKey}S)`}
         >
           <Icon name="sidebar" />
         </button>

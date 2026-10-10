@@ -1,4 +1,4 @@
-import { dispatch, invoke } from '../../lib/api';
+import { dispatch, invoke, modKey } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import styles from './SpaceBar.module.css';
@@ -54,7 +54,7 @@ export function SpaceBar() {
         <button
           className={styles.add}
           aria-label="New space"
-          title="New space (⌘⇧N)"
+          title={`New space (${modKey}⇧N)`}
           onClick={() => editSpace('new')}
           data-testid="new-space"
         >

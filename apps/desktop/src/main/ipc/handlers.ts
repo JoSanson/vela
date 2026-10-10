@@ -1,6 +1,7 @@
 import type { ShellSnapshot } from '@vela/shared';
 import { app, shell } from 'electron';
 import { runCommand } from '../commands';
+import { flushStateNow } from '../index';
 import type { AppContext } from '../context';
 import { showSidebarMenu } from '../contextMenu';
 import { findInTab, stopFind } from '../find';
@@ -11,7 +12,13 @@ import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
 import { dialog } from 'electron';
 import { readFileSync } from 'node:fs';
-import { emit, handle } from './typed';
+import { emit, handle, isTrustedShell } from './typed';
+import { ipcMain } from 'electron';
+import { channel, UNRESERVED_SHORTCUTS } from '@vela/shared';
+
+const UNRESERVED_IDS = new Set(UNRESERVED_SHORTCUTS.map((s) => s.id));
+
+const pickedFiles = new Set<string>();
 
 export function registerCoreHandlers(ctx: AppContext): void {
   const { store, prefs, tabs, windows, overlay } = ctx;
@@ -132,6 +139,13 @@ export function registerCoreHandlers(ctx: AppContext): void {
     return undefined;
   });
   handle('perf/marks', 'internal', () => ({ ...ctx.perf }));
+  // Unreserved shortcuts forwarded by the tab preload once the page declined them.
+  ipcMain.on(channel('shortcut'), (event, id: unknown) => {
+    if (typeof id !== 'string' || !UNRESERVED_IDS.has(id)) return;
+    const senderIsTab = tabs.liveTabIds().some((t) => tabs.webContents(t)?.id === event.sender.id);
+    if (!senderIsTab && !isTrustedShell(event.sender)) return;
+    runCommand(ctx, id);
+  });
   handle('command/run', 'shell', ({ id, payload }) => {
     runCommand(ctx, id, payload);
     return undefined;
@@ -250,8 +264,10 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
 
   handle('extensions/list', 'internal', () => ctx.extensions.list());
-  handle('extensions/load', 'internal', ({ path }) =>
-    path ? ctx.extensions.load(path) : ctx.extensions.pickAndLoad(windows.main?.win),
+  handle('extensions/load', 'internal', ({ path }, event) =>
+    path && isTrustedShell(event.sender)
+      ? ctx.extensions.load(path)
+      : ctx.extensions.pickAndLoad(windows.main?.win),
   );
   handle('extensions/remove', 'internal', ({ id }) => {
     ctx.extensions.remove(id);
@@ -294,9 +310,15 @@ export function registerCoreHandlers(ctx: AppContext): void {
     const win = windows.main?.win;
     const opts = { title, properties: ['openFile' as const], ...(filters ? { filters } : {}) };
     const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
-    return res.canceled ? null : (res.filePaths[0] ?? null);
+    const picked = res.canceled ? null : (res.filePaths[0] ?? null);
+    if (picked) pickedFiles.add(picked);
+    return picked;
   });
-  handle('app/readFile', 'internal', ({ path }) => readFileSync(path, 'utf8'));
+  // Only files the user just picked through the dialog can be read back by internal pages.
+  handle('app/readFile', 'internal', ({ path }) => {
+    if (!pickedFiles.has(path)) throw new Error('readFile: path was not picked by the user');
+    return readFileSync(path, 'utf8');
+  });
 
   handle('app/openExternal', 'internal', async ({ url }) => {
     if (/^(https?|mailto):/i.test(url)) await shell.openExternal(url);
@@ -304,13 +326,19 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
   handle('app/relaunch', 'internal', () => {
     app.relaunch();
+    flushStateNow();
     app.exit(0);
     return undefined;
   });
 
-  const winWc = windows.main?.win.webContents;
-  if (winWc) {
-    windows.main?.win.on('enter-full-screen', () => emit(winWc, 'window/fullscreen', true));
-    windows.main?.win.on('leave-full-screen', () => emit(winWc, 'window/fullscreen', false));
-  }
+  const wireWindow = (mw: NonNullable<typeof windows.main>): void => {
+    mw.win.on('enter-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', true));
+    mw.win.on('leave-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', false));
+    mw.win.on('closed', () => {
+      tabs.destroyAll();
+      overlay.destroy();
+    });
+  };
+  windows.setWindowCreatedListener(wireWindow);
+  if (windows.main) wireWindow(windows.main);
 }

@@ -1,8 +1,9 @@
-import { createFolder, createTab, type Id } from '@vela/core';
+import { createFolder, createTab, reduce, type CoreState, type Id } from '@vela/core';
 import type { BrowserImportSource, ImportResult } from '@vela/shared';
 import Database from 'better-sqlite3';
 import { app } from 'electron';
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { copyFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AppContext } from './context';
@@ -64,17 +65,19 @@ function importBookmarks(ctx: AppContext, dir: string): number {
   const file = join(dir, 'Bookmarks');
   if (!existsSync(file)) return 0;
   const data = JSON.parse(readFileSync(file, 'utf8')) as ChromeBookmarks;
-  const state = ctx.store.state;
+  // Fold everything through the pure reducer locally and commit once: thousands of bookmarks
+  // would otherwise mean thousands of broadcasts, layouts and SQLite rewrites.
+  let state: CoreState = ctx.store.state;
   const spaceId = state.activeSpaceId;
   const now = Date.now();
   let count = 0;
   const walk = (node: ChromeBookmarkNode, parentFolderId: Id | null, depth: number): void => {
     for (const child of node.children ?? []) {
-      if (child.type === 'url' && child.url && /^https?:/i.test(child.url)) {
+      if (child.type === 'url' && child.url && /^https?:/i.test(child.url) && count < 5000) {
         const tab = createTab({ url: child.url, spaceId, kind: 'pinned', title: child.name, now });
-        ctx.store.dispatch({ type: 'tab/open', tab, activate: false });
+        state = reduce(state, { type: 'tab/open', tab, activate: false });
         if (parentFolderId) {
-          ctx.store.dispatch({
+          state = reduce(state, {
             type: 'tab/move',
             id: tab.id,
             to: { container: { kind: 'folder', folderId: parentFolderId }, index: Number.MAX_SAFE_INTEGER },
@@ -84,7 +87,11 @@ function importBookmarks(ctx: AppContext, dir: string): number {
         count++;
       } else if (child.type === 'folder' && depth < 6) {
         const folder = createFolder({ spaceId, name: child.name || 'Folder' });
-        ctx.store.dispatch({ type: 'folder/create', folder, ...(parentFolderId ? { parentFolderId } : {}) });
+        state = reduce(state, {
+          type: 'folder/create',
+          folder,
+          ...(parentFolderId ? { parentFolderId } : {}),
+        });
         walk(child, folder.id, depth + 1);
       }
     }
@@ -93,24 +100,25 @@ function importBookmarks(ctx: AppContext, dir: string): number {
   const other = data.roots.other;
   if (bar) {
     const topFolder = createFolder({ spaceId, name: 'Bookmarks bar', emoji: '📑' });
-    ctx.store.dispatch({ type: 'folder/create', folder: topFolder });
+    state = reduce(state, { type: 'folder/create', folder: topFolder });
     walk(bar, topFolder.id, 1);
   }
   if (other?.children?.length) {
     const otherFolder = createFolder({ spaceId, name: 'Other bookmarks', emoji: '📚' });
-    ctx.store.dispatch({ type: 'folder/create', folder: otherFolder });
+    state = reduce(state, { type: 'folder/create', folder: otherFolder });
     walk(other, otherFolder.id, 1);
   }
+  if (count > 0) ctx.store.dispatch({ type: 'state/replace', state });
   return count;
 }
 
-function importHistory(ctx: AppContext, dir: string): number {
+async function importHistory(ctx: AppContext, dir: string): Promise<number> {
   const file = join(dir, 'History');
   if (!existsSync(file)) return 0;
-  // Chrome keeps the DB locked while running: read from a temp copy.
+  // Chrome keeps the DB locked while running: read from a temp copy (async, the file can be huge).
   const tmp = mkdtempSync(join(tmpdir(), 'vela-import-'));
   const copy = join(tmp, 'History');
-  copyFileSync(file, copy);
+  await copyFile(file, copy);
   let count = 0;
   try {
     const db = new Database(copy, { readonly: true, fileMustExist: true });
@@ -138,17 +146,17 @@ function importHistory(ctx: AppContext, dir: string): number {
   return count;
 }
 
-export function runImport(
+export async function runImport(
   ctx: AppContext,
   source: BrowserImportSource['id'],
   bookmarks: boolean,
   history: boolean,
-): ImportResult {
+): Promise<ImportResult> {
   const dir = profileDirs(source)[0];
   if (!dir) return { bookmarks: 0, history: 0 };
   const result: ImportResult = { bookmarks: 0, history: 0 };
   if (bookmarks) result.bookmarks = importBookmarks(ctx, dir);
-  if (history) result.history = importHistory(ctx, dir);
+  if (history) result.history = await importHistory(ctx, dir);
   ctx.prefs.set({ importedFrom: source });
   return result;
 }

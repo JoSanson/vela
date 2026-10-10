@@ -30,6 +30,9 @@ export class PeekManager {
       wc.on('input-event', (_e, input) => {
         if (input.type === 'mouseDown') this.lastClickAt.set(tabId, Date.now());
       });
+      wc.once('destroyed', () => {
+        this.lastClickAt.delete(tabId);
+      });
       wc.on('will-navigate', (event, url) => {
         const tab = ctx.store.state.tabs[tabId];
         if (!tab || (tab.kind !== 'pinned' && tab.kind !== 'favorite') || !tab.homeUrl) return;
@@ -96,7 +99,7 @@ export class PeekManager {
       push();
     });
     wc.setWindowOpenHandler(({ url: u }) => {
-      void wc.loadURL(u);
+      if (/^https?:/i.test(u)) void wc.loadURL(u);
       return { action: 'deny' };
     });
     wc.on('will-navigate', (e, u) => {

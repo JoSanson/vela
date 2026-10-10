@@ -168,19 +168,6 @@ export function AboutSection() {
           </div>
         )}
       </Card>
-
-      <p className={styles.h3}>Coming soon</p>
-      <Card>
-        <div className={styles.updateRow}>
-          <div className={styles.updateText}>
-            <span>Extensions</span>
-            <span className={styles.updateSub}>Load unpacked Chrome extensions from a folder.</span>
-          </div>
-          <span className={styles.soon}>
-            <Icon name="puzzle" size={13} /> Coming soon
-          </span>
-        </div>
-      </Card>
     </div>
   );
 }

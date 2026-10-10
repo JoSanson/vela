@@ -200,7 +200,8 @@ function moveTab(state: CoreState, id: Id, to: MoveTarget, now: number): CoreSta
   const kind = kindForContainer(to.container);
   let next = detach(state, id);
   const prevSpaceId = tab.spaceId;
-  if (prevSpaceId && prevSpaceId !== targetSpaceId) {
+  // Favorites stay visible in the space they were active in; only real space changes re-pick.
+  if (prevSpaceId && prevSpaceId !== targetSpaceId && kind !== 'favorite') {
     next = removeFromSplit(next, prevSpaceId, id);
     const prev = next.spaces[prevSpaceId];
     if (prev?.activeTabId === id) {

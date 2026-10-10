@@ -59,7 +59,16 @@ export class OverlayManager {
     }
     this.layout();
     emit(this.view.webContents, 'overlay/changed', this.current);
-    this.view.webContents.focus();
+    // Passive overlays (hover sidebar, prompts, update notes) must not steal keyboard focus from the page.
+    if (
+      kind === 'commandBar' ||
+      kind === 'switcher' ||
+      kind === 'spaceEditor' ||
+      kind === 'peek' ||
+      kind === 'zap'
+    ) {
+      this.view.webContents.focus();
+    }
   }
 
   onHide(fn: () => void): void {

@@ -44,7 +44,11 @@ export function handle<K extends IpcInvokeChannel>(name: K, access: Access, fn: 
   });
   ipcMain.on(ch, (event, req: IpcInvokeMap[K]['req']) => {
     if (!allowed(event, access)) return;
-    void fn(req, event);
+    try {
+      void Promise.resolve(fn(req, event)).catch((err: unknown) => console.error(`ipc ${name}`, err));
+    } catch (err) {
+      console.error(`ipc ${name}`, err);
+    }
   });
 }
 
