@@ -84,6 +84,15 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 10.3 Wave 2: one theme source, tinted pages, loading ring, undo, native controls, a11y — fbce139
 - [x] 10.4 Verification: e2e 53/53 ×3, perf all ✅ (PERF.md), lint/typecheck clean — see CHANGELOG
 
+## Phase 11 — "Pitch to Google" total audit (owner request)
+- [x] 11.1 Four parallel audits: architecture/robustness, feature gaps vs top browsers, stress/perf, hands-on UX walkthrough
+- [x] 11.2 Wave B compatibility: HTTP auth, PDFs inline, print/save/open file/view source, private spaces, clear data, default browser, HTTPS-first, external schemes, Sec-GPC, IME guards, context menus — 36095fc
+- [x] 11.3 Wave C robustness: self-healing DB, diff upserts, persist retry, durable prefs, crash revival, GPU re-layout, sleep race, error-page URL, popup registry — 36095fc
+- [x] 11.4 Wave D architecture: action deltas (D019), FTS5 history, on-demand command bar, 3-OS e2e matrix, manual Electron majors — c0f830e
+- [x] 11.5 Downloads: held executables, retry; a11y labels — 061acee
+- [ ] 11.6 Verification after the stress + walkthrough reports: build, e2e 3×, perf, screenshots
+- [ ] 11.7 Second round from the walkthrough/stress findings
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x

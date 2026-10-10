@@ -78,3 +78,11 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 9.1 Senior Chromium-engineer review pass 1 → tasks → fix → full DoD
 - [x] 9.2 Pass 2 → full DoD
 - [x] 9.3 Docs: README (GIF), ARCHITECTURE, SECURITY, RELEASING, CHANGELOG
+
+## Phase 11 — Total audit before a public pitch
+- [x] 11.1 Parallel audits (architecture, features, stress, UX walkthrough)
+- [x] 11.2 Compatibility wave (auth, PDF, print, files, private, clear data, HTTPS-first, external schemes)
+- [x] 11.3 Robustness wave (DB self-healing, crash recovery, persistence)
+- [x] 11.4 Architecture wave (action deltas, FTS history, CI matrix)
+- [ ] 11.6 Full verification
+- [ ] 11.7 Second round
