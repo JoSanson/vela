@@ -19,8 +19,11 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
   restores lazily, background views are detached so Chromium throttles them, and the shell idles
   at ~110 MB. Measured by `pnpm perf` → [PERF.md](PERF.md).
 - **Auto PiP**, **Boosts** (per-site CSS/JS + Zap element picker), built-in **content blocker**,
-  **reader mode**, downloads, history, per-site permissions, import from Chrome/Brave/Edge,
-  unpacked Chrome extensions, in-app auto-updates.
+  **reader mode**, downloads, history (full-text), per-site permissions, import from
+  Chrome/Brave/Edge, unpacked Chrome extensions, in-app auto-updates.
+- **Daily-driver basics done right.** HTTP auth prompt, inline PDFs, print and save page, local
+  files (open, drop, Finder), private spaces, clear browsing data, HTTPS-first, external-app links
+  with a confirmation, default-browser registration, translate via Peek.
 - **Chromium always fresh.** A scheduled workflow (`engine-watch.yml`) bumps Electron within 24 h
   of a stable release, runs the full CI and publishes a release automatically.
 

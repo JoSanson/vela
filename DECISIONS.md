@@ -132,3 +132,42 @@ registered in `TabManager` first (`openWithView`), then the tab is opened: recon
 existing view and attaches it. Same ordering rule for "unloading" a pinned tab: the active tab
 changes before `tab/reset`, so no throw-away renderer is spawned.
 
+## D019 — Renderers replay actions, main broadcasts deltas
+
+Every state tick used to ship the whole `CoreState` to the shell, the overlay and each internal
+page (95 KB at 200 tabs, ~1 MB at 2000, several times per navigation). Main now coalesces the
+actions of one tick into a single `state/changed` delta `{fromRev, rev, actions}`; renderers run
+them through the same pure reducer (`packages/core/src/delta.ts`) and keep the archive empty
+(D016). Actions whose result depends on the archive (`archive/*`, `state/replace`) are sent as a
+snapshot. A revision gap triggers a `snapshot/get` resync, so a renderer that loads late or drops
+a message heals itself.
+
+## D020 — Private browsing is a Space with an ephemeral profile
+
+Rather than a separate window kind (D011 keeps one main window), a private space uses a profile
+whose partition has no `persist:` prefix: Chromium keeps cookies and storage in memory, main
+records no history and caches no favicons for it, the reducer never archives its tabs, the state
+repository never writes them, and `dropEphemeralTabs` removes them at the next start. The space
+itself (name, theme) survives so the user keeps their "Private" entry point.
+
+## D021 — HTTPS-first with silent fallback
+
+Typed hosts already defaulted to https. Now every plain `http://` main-frame navigation to a
+non-local host is upgraded; if the https attempt fails (connection or certificate error) the
+original http URL loads and the host is remembered for the session. Local hosts (localhost,
+RFC 1918 ranges, `*.local`) are never upgraded. Chrome calls this HTTPS-Upgrades.
+
+## D022 — External-app links ask once per scheme
+
+`zoommtg:`, `slack:`, `vscode:`… were silently dropped by the window-open and navigation guards.
+They now go through `ExternalLinkManager`: an overlay prompt ("Open in app?") with a remembered
+per-scheme answer in prefs. `javascript:`, `file:` and `vela:` stay blocked unconditionally.
+
+## D023 — The state database heals itself
+
+`openDatabase` runs `quick_check`, refuses a schema newer than the binary (so a downgrade never
+destroys data), takes a `VACUUM INTO` backup before any migration and daily, and on corruption
+quarantines the file and restores the newest backup (or starts fresh) with a toast. Rows that fail
+to parse are skipped individually. Saves are diff-based upserts and retried with backoff instead of
+being dropped when the disk is full.
+

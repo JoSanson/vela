@@ -39,7 +39,22 @@ export function registerCoreHandlers(ctx: AppContext): void {
     };
   });
 
-  handle('state/dispatch', 'internal', (action) => {
+  // Internal pages are our own code, but the model is still guarded at the boundary: no full
+  // replacement from a page, and tab URLs limited to schemes a page may legitimately set.
+  const PAGE_URL = /^(https?|vela|about|view-source):/i;
+  handle('state/dispatch', 'internal', (action, event) => {
+    const fromShell = event.sender.id === windows.main?.win.webContents.id;
+    if (!fromShell) {
+      if (action.type === 'state/replace') throw new Error('state/replace is not allowed from a page');
+      if (action.type === 'tab/open' && !PAGE_URL.test(action.tab.url))
+        throw new Error('tab/open: scheme not allowed');
+      if (
+        action.type === 'tab/update' &&
+        typeof action.patch.url === 'string' &&
+        !PAGE_URL.test(action.patch.url)
+      )
+        throw new Error('tab/update: scheme not allowed');
+    }
     store.dispatch(action);
     return undefined;
   });

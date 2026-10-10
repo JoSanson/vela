@@ -68,7 +68,20 @@ Electron security checklist point by point against the code, and describes the t
 - **Import** of a JSON export backs up the database (`VACUUM INTO`, last three kept) and sanitises
   the state (string ids, only `http(s)`/`vela://` URLs, dangling references dropped, prefs
   shape-checked key by key, no extension paths or window geometry from the file).
-- **Downloads** are written to `~/Downloads` with unique names; no automatic opening.
+- **Downloads** are written to `~/Downloads` (or the folder chosen in Settings) with unique names,
+  or through a save dialog when "Ask where to save" is on; no automatic opening.
+- **HTTP authentication** challenges (`app.on('login')`) are answered through an overlay prompt
+  tied to the requesting tab; a navigation or close cancels the challenge.
+- **External-app links** (custom URL schemes) never navigate; the user is asked per scheme and
+  the answer can be remembered. `javascript:`, `file:` and `vela:` are always refused.
+- **Private spaces** use in-memory partitions: no cookies, history, favicons or tab rows reach the
+  disk, and their tabs are dropped at the next start (D020).
+- **HTTPS-first**: plain `http://` navigations to public hosts are upgraded; a failing upgrade
+  falls back to http once per host and session (D021). Every request carries `Sec-GPC: 1`.
+- **Crash reports** are minidumps kept locally (`crashReporter` with `uploadToServer: false`);
+  nothing is sent anywhere.
+- **IPC boundary**: internal pages may not dispatch `state/replace` and may only open or update
+  tabs with `http(s)`, `vela`, `about` or `view-source` URLs.
 - **Boosts** (user CSS/JS) are injected only on the host the user configured, with `cssOrigin: 'user'`.
 - **Zap picker** runs in the page's main world but only returns a selector string.
 - **Profiles** are isolated `persist:profile-<id>` partitions; every session (default and profile)

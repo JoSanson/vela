@@ -6,6 +6,26 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- HTTP and proxy authentication prompt; links to other apps (`zoommtg:`, `slack:`…) ask once per
+  scheme; PDFs open inline; print, save page, open local files (dialog, drag & drop, Finder/argv),
+  view source, translate page/selection via Peek; richer context menus (save link, copy image
+  address, video picture-in-picture, email address).
+- Private spaces (in-memory profile: no history, favicons, archive or persisted tabs), clear
+  browsing data, default-browser setting, download folder and ask-where-to-save, find match case,
+  HTTPS-first with silent fallback, Global Privacy Control header.
+- Command bar results now include history (FTS5) and the archive on demand.
+
+### Changed
+
+- State is broadcast as action deltas with revisions (D019); the state database heals itself and
+  saves with row-level upserts (D023); prefs are debounced, fsync'd and backed up.
+- Crash handling: shell/overlay renderers are revived, GPU restarts re-layout views, main keeps
+  local minidumps, an unclean exit is reported at the next start.
+- CI runs the e2e suite on ubuntu, macOS and Windows; Electron major bumps are no longer
+  auto-merged.
+
 ### Changed (UX polish pass, two independent design reviews)
 
 - Motion vocabulary: every button answers a press in the same frame; sidebar lists glide (FLIP) on

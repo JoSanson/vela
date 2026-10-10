@@ -39,7 +39,8 @@ export class LittleWindow {
     trustShell(this.win.webContents);
     this.win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.win.webContents.on('will-navigate', (e) => e.preventDefault());
-    this.view = ctx.tabs.createDetachedView(null);
+    const space = ctx.store.state.spaces[ctx.store.state.activeSpaceId];
+    this.view = ctx.tabs.createDetachedView(space?.profileId ?? null);
     this.state = { url, title: '', favicon: null, loading: true, canGoBack: false, canGoForward: false };
     this.wire(this.view.webContents);
     this.win.contentView.addChildView(this.view);
