@@ -75,7 +75,9 @@ export class MainWindow {
   }
 
   setGlass(enabled: boolean): void {
-    if (process.platform === 'darwin') this.win.setVibrancy(enabled ? 'sidebar' : null);
+    // Vibrancy is macOS-only; elsewhere a transparent background would paint black.
+    if (process.platform !== 'darwin') return;
+    this.win.setVibrancy(enabled ? 'sidebar' : null);
     this.win.setBackgroundColor(enabled ? '#00000000' : this.opaqueBackground);
   }
 

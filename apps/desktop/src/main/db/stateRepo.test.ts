@@ -107,7 +107,7 @@ describe.skipIf(!sqliteAvailable)('StateRepo', () => {
   let db: Db;
 
   beforeEach(() => {
-    db = openDatabase(':memory:');
+    db = openDatabase(':memory:').db;
     expect(migrate(db)).toBe(1);
   });
 

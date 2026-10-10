@@ -1,8 +1,13 @@
 import { displayTitle, type Id } from '@vela/core';
 import type { ContextMenuKind } from '@vela/shared';
-import { clipboard, Menu, shell, type MenuItemConstructorOptions, type WebContents } from 'electron';
+import { app, clipboard, Menu, shell, type MenuItemConstructorOptions, type WebContents } from 'electron';
+import { savePageAs } from './commands';
 import type { AppContext } from './context';
 import { emit } from './ipc/typed';
+
+function uiLang(): string {
+  return app.getLocale().split('-')[0] || 'en';
+}
 
 function toShell(ctx: AppContext, id: string, payload?: unknown): void {
   const wc = ctx.windows.main?.win.webContents;
@@ -190,6 +195,38 @@ export function installPageContextMenu(ctx: AppContext): void {
               void clipboard.writeText(params.linkURL);
             },
           },
+          ...(/^mailto:/i.test(params.linkURL)
+            ? [
+                {
+                  label: 'Copy email address',
+                  click: () => {
+                    void clipboard.writeText(params.linkURL.replace(/^mailto:/i, '').split('?')[0] ?? '');
+                  },
+                },
+              ]
+            : [{ label: 'Save link as…', click: () => wc.downloadURL(params.linkURL) }]),
+          { type: 'separator' },
+        );
+      }
+      if (params.mediaType === 'video') {
+        items.push(
+          {
+            label: 'Picture in picture',
+            click: () =>
+              void wc
+                .executeJavaScript(
+                  `(() => { const el = document.elementFromPoint(${params.x}, ${params.y}); const v = el && (el.tagName === 'VIDEO' ? el : el.querySelector('video')); if (v) v.requestPictureInPicture().catch(() => undefined); })()`,
+                  true,
+                )
+                .catch(() => undefined),
+          },
+          {
+            label: 'Copy video address',
+            enabled: !!params.srcURL,
+            click: () => {
+              void clipboard.writeText(params.srcURL);
+            },
+          },
           { type: 'separator' },
         );
       }
@@ -199,7 +236,14 @@ export function installPageContextMenu(ctx: AppContext): void {
             label: 'Open image in new tab',
             click: () => ctx.tabs.openUrl({ input: params.srcURL, activate: true, noAtc: true }),
           },
+          { label: 'Open image in Peek', click: () => ctx.peek.open(params.srcURL, tabId) },
           { label: 'Copy image', click: () => wc.copyImageAt(params.x, params.y) },
+          {
+            label: 'Copy image address',
+            click: () => {
+              void clipboard.writeText(params.srcURL);
+            },
+          },
           { label: 'Save image as…', click: () => wc.downloadURL(params.srcURL) },
           { type: 'separator' },
         );
@@ -210,6 +254,14 @@ export function installPageContextMenu(ctx: AppContext): void {
         items.push(
           { label: 'Copy', role: 'copy' },
           { label: `Search for “${short}”`, click: () => ctx.tabs.openUrl({ input: text, activate: true }) },
+          {
+            label: 'Translate selection',
+            click: () =>
+              ctx.peek.open(
+                `https://translate.google.com/?sl=auto&tl=${uiLang()}&text=${encodeURIComponent(text)}&op=translate`,
+                tabId,
+              ),
+          },
           { type: 'separator' },
         );
       }
@@ -265,7 +317,24 @@ export function installPageContextMenu(ctx: AppContext): void {
         { type: 'separator' },
         { label: 'Zap element…', click: () => void ctx.boosts.zap(wc) },
         { label: 'Reader mode', click: () => toShell(ctx, 'readerMode', { tabId }) },
+        {
+          label: 'Translate page',
+          enabled: /^https?:/i.test(wc.getURL()),
+          click: () =>
+            ctx.peek.open(
+              `https://translate.google.com/translate?sl=auto&tl=${uiLang()}&u=${encodeURIComponent(wc.getURL())}`,
+              tabId,
+            ),
+        },
         { type: 'separator' },
+        { label: 'Save page as…', click: () => void savePageAs(ctx, tabId) },
+        { label: 'Print…', click: () => wc.print({}, () => undefined) },
+        { type: 'separator' },
+        {
+          label: 'View page source',
+          enabled: /^https?:/i.test(wc.getURL()),
+          click: () => ctx.tabs.openRaw(`view-source:${wc.getURL()}`),
+        },
         { label: 'Inspect element', click: () => wc.inspectElement(params.x, params.y) },
       );
       const win = ctx.windows.main?.win;

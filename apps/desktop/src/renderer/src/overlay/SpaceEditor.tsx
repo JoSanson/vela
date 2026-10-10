@@ -13,6 +13,7 @@ import { dispatch, invoke } from '../lib/api';
 import { useShell } from '../lib/store';
 import styles from './SpaceEditor.module.css';
 
+const PRIVATE = '__private__';
 const MODES: ThemeMode[] = ['system', 'light', 'dark'];
 const MODE_LABEL: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 
@@ -45,12 +46,19 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
   const save = (): void => {
     const now = Date.now();
     const n = name.trim() || 'Space';
+    let pid = profileId;
+    if (pid === PRIVATE) {
+      // One in-memory profile per private space: cookies and logins vanish with it.
+      const p = createProfile('Private', theme.from, undefined, true);
+      dispatch({ type: 'profile/create', profile: p });
+      pid = p.id;
+    }
     if (isNew) {
-      const space = createSpace({ name: n, emoji, theme, profileId, now });
+      const space = createSpace({ name: n, emoji, theme, profileId: pid, now });
       dispatch({ type: 'space/create', space });
       dispatch({ type: 'space/activate', id: space.id, now });
     } else if (existing) {
-      dispatch({ type: 'space/update', id: existing.id, patch: { name: n, emoji, theme, profileId } });
+      dispatch({ type: 'space/update', id: existing.id, patch: { name: n, emoji, theme, profileId: pid } });
     }
     close();
   };
@@ -205,11 +213,16 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                 data-testid="space-profile"
               >
                 <option value="">Default</option>
-                {Object.values(core.profiles).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {Object.values(core.profiles)
+                  .filter((p) => !p.ephemeral || p.id === existing?.profileId)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.ephemeral ? 'Private (this space)' : p.name}
+                    </option>
+                  ))}
+                {!core.profiles[existing?.profileId ?? '']?.ephemeral && (
+                  <option value={PRIVATE}>Private: nothing is saved</option>
+                )}
               </select>
               <input
                 className={styles.input}
@@ -228,7 +241,11 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                 <Icon name="plus" size={14} />
               </button>
             </div>
-            <p className={styles.hint}>Profiles keep cookies and logins separate (e.g. work vs personal).</p>
+            <p className={styles.hint}>
+              {profileId === PRIVATE || core.profiles[profileId ?? '']?.ephemeral
+                ? 'Private: cookies live in memory, nothing is written to history, and the tabs are gone after a restart.'
+                : 'Profiles keep cookies and logins separate (for example work and personal).'}
+            </p>
           </div>
 
           <div className={styles.actions}>

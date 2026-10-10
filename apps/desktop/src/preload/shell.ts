@@ -1,5 +1,5 @@
 import type { IpcEventChannel, IpcEventMap, IpcInvokeChannel, IpcInvokeMap, VelaBridge } from '@vela/shared';
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 // Inlined on purpose: a sandboxed preload must be a single file with no shared chunks.
 const channel = (name: string): string => `vela:${name}`;
@@ -16,6 +16,9 @@ const bridge: VelaBridge = {
     const listener = (_e: Electron.IpcRendererEvent, payload: IpcEventMap[K]): void => cb(payload);
     ipcRenderer.on(channel(ch), listener);
     return () => ipcRenderer.removeListener(channel(ch), listener);
+  },
+  pathForFile(file: File): string {
+    return webUtils.getPathForFile(file);
   },
 };
 

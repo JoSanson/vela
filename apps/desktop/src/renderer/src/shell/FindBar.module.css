@@ -52,6 +52,19 @@
   color: var(--fg);
 }
 
+.toggle {
+  width: auto;
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.toggleOn {
+  background: color-mix(in oklab, var(--space-from) 18%, transparent);
+  color: var(--fg);
+}
+
 @keyframes drop {
   from {
     opacity: 0;

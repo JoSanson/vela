@@ -126,12 +126,26 @@ export function App() {
   }, [setFindOpen, setTopStrip]);
 
   useEffect(() => {
-    return vela.on('ui/command', ({ id }) => {
+    return vela.on('ui/command', ({ id, payload }) => {
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
       if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
+      if (id === 'toast') showToast({ text: String((payload as { text?: string } | undefined)?.text ?? '') });
     });
-  }, [toggleSidebar, openFind, setDownloadsOpen]);
+  }, [toggleSidebar, openFind, setDownloadsOpen, showToast]);
+
+  // Files dropped anywhere on the shell open as tabs (web pages, PDFs, images).
+  const onDrop = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.files.length) return;
+    e.preventDefault();
+    for (const file of Array.from(e.dataTransfer.files)) {
+      const path = vela.pathForFile?.(file);
+      if (path) void invoke('tab/openPath', { path });
+    }
+  }, []);
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+  }, []);
 
   useEffect(() => {
     return vela.on('zap/pick', ({ selector }) => {
@@ -185,7 +199,7 @@ export function App() {
   const hasActive = !!space?.activeTabId;
 
   return (
-    <div className={styles.app} data-ready={ready ? 'true' : 'false'}>
+    <div className={styles.app} data-ready={ready ? 'true' : 'false'} onDrop={onDrop} onDragOver={onDragOver}>
       <TopBar />
       <div className={styles.row}>
         <div

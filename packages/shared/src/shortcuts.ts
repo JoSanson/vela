@@ -60,6 +60,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: 'zoomOut', label: 'Zoom out', accelerator: 'CmdOrCtrl+-', group: 'page', reserved: false },
   { id: 'zoomReset', label: 'Reset zoom', accelerator: 'CmdOrCtrl+0', group: 'page', reserved: false },
   { id: 'devtools', label: 'Developer tools', accelerator: 'CmdOrCtrl+Alt+I', group: 'page', reserved: true },
+  {
+    id: 'viewSource',
+    label: 'View page source',
+    accelerator: 'CmdOrCtrl+Alt+U',
+    group: 'page',
+    reserved: true,
+  },
+  { id: 'print', label: 'Print page', accelerator: 'CmdOrCtrl+P', group: 'page', reserved: true },
   { id: 'readerMode', label: 'Reader mode', accelerator: 'CmdOrCtrl+Alt+R', group: 'page', reserved: false },
   {
     id: 'toggleSidebar',
@@ -115,6 +123,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: 'history', label: 'History', accelerator: 'CmdOrCtrl+Y', group: 'window', reserved: true },
   { id: 'settings', label: 'Settings', accelerator: 'CmdOrCtrl+,', group: 'window', reserved: true },
   { id: 'newWindow', label: 'New window', accelerator: 'CmdOrCtrl+N', group: 'window', reserved: true },
+  { id: 'openFile', label: 'Open file', accelerator: 'CmdOrCtrl+O', group: 'window', reserved: true },
   {
     id: 'littleWindow',
     label: 'New Little Vela window',

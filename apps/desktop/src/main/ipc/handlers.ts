@@ -1,6 +1,7 @@
 import type { ShellSnapshot } from '@vela/shared';
-import { app, shell } from 'electron';
-import { runCommand } from '../commands';
+import { app, dialog, session, shell } from 'electron';
+import { pathToFileURL } from 'node:url';
+import { openLocalFile, runCommand, savePageAs } from '../commands';
 import { flushStateNow } from '../index';
 import type { AppContext } from '../context';
 import { showSidebarMenu } from '../contextMenu';
@@ -221,6 +222,62 @@ export function registerCoreHandlers(ctx: AppContext): void {
     ctx.permissions.respond(id, decision, remember);
     return undefined;
   });
+  handle('auth/respond', 'shell', ({ id, username, password }) => {
+    ctx.auth.respond(id, username, password);
+    return undefined;
+  });
+  handle('external/respond', 'shell', ({ id, allow, remember }) => {
+    ctx.external.respond(id, allow, remember);
+    return undefined;
+  });
+  handle('tab/openPath', 'shell', ({ path }) => {
+    if (!path.startsWith('/') && !/^[a-zA-Z]:[\\/]/.test(path)) return null;
+    return tabs.openRaw(pathToFileURL(path).toString());
+  });
+  handle('downloads/pickDir', 'internal', async () => {
+    const win = windows.main?.win;
+    const opts: Electron.OpenDialogOptions = {
+      title: 'Download folder',
+      properties: ['openDirectory', 'createDirectory'],
+    };
+    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+    const dir = res.canceled ? null : (res.filePaths[0] ?? null);
+    if (dir) prefs.set({ downloadDir: dir });
+    return dir;
+  });
+  handle('tab/print', 'internal', ({ tabId }) => {
+    tabs.print(tabId);
+    return undefined;
+  });
+  handle('tab/savePage', 'internal', ({ tabId }) => savePageAs(ctx, tabId));
+  handle('app/openFile', 'internal', () => openLocalFile(ctx));
+  handle('app/defaultBrowser', 'internal', ({ set }) => {
+    if (set) {
+      app.setAsDefaultProtocolClient('http');
+      app.setAsDefaultProtocolClient('https');
+    }
+    return app.isDefaultProtocolClient('http') && app.isDefaultProtocolClient('https');
+  });
+  // Clearing is per session so every profile (and the shell's default session) is covered.
+  handle('privacy/clear', 'internal', async (req) => {
+    const storages: Electron.ClearStorageDataOptions['storages'] = [];
+    if (req.cookies) storages.push('cookies');
+    if (req.storage) storages.push('localstorage', 'indexdb', 'filesystem', 'serviceworkers', 'cachestorage');
+    const sessions = [
+      session.defaultSession,
+      ...ctx.sessions.allPartitions().map((p) => session.fromPartition(p)),
+    ];
+    await Promise.all(
+      sessions.map(async (ses) => {
+        if (storages.length) await ses.clearStorageData({ storages }).catch(() => undefined);
+        if (req.cache) await ses.clearCache().catch(() => undefined);
+        if (req.cookies) await ses.clearAuthCache().catch(() => undefined);
+      }),
+    );
+    if (req.history) ctx.history.delete({ all: true });
+    if (req.downloads) ctx.downloads.clearFinished();
+    return undefined;
+  });
 
   handle('boosts/list', 'internal', () => ctx.boosts.list());
   handle('boosts/save', 'internal', async (b) => {
@@ -315,6 +372,9 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
 
   const wireWindow = (mw: NonNullable<typeof windows.main>): void => {
+    mw.win.webContents.on('render-process-gone', (_e, d) => {
+      if (d.reason !== 'clean-exit') mw.win.webContents.reload();
+    });
     mw.win.on('enter-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', true));
     mw.win.on('leave-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', false));
     mw.win.on('closed', () => {

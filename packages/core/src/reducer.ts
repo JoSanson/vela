@@ -1,3 +1,4 @@
+import { isEphemeralSpace } from './privacy';
 import type { CoreAction } from './actions';
 import { toArchived } from './factories';
 import type {
@@ -171,7 +172,8 @@ function deleteTab(state: CoreState, id: Id, now: number, reason: ArchiveReason 
   const tabs = { ...next.tabs };
   delete tabs[id];
   next = { ...next, tabs, mru: without(next.mru, id) };
-  if (reason && tab.url && !tab.url.startsWith('vela://')) next = archiveTab(next, tab, now, reason);
+  if (reason && tab.url && !tab.url.startsWith('vela://') && !isEphemeralSpace(state, tab.spaceId))
+    next = archiveTab(next, tab, now, reason);
   return next;
 }
 

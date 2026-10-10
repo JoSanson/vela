@@ -1,4 +1,6 @@
-import { activeSpace, createSpace, SPACE_PRESET_THEMES } from '@vela/core';
+import { activeSpace, createSpace, SPACE_PRESET_THEMES, type Id } from '@vela/core';
+import { dialog } from 'electron';
+import { pathToFileURL } from 'node:url';
 import type { AppContext } from './context';
 import { emit } from './ipc/typed';
 
@@ -135,6 +137,20 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       if (tid) ctx.peek.open(`vela://reader/?tab=${encodeURIComponent(tid)}`, tid);
       return;
     }
+    case 'print':
+      if (activeId) tabs.print(activeId);
+      return;
+    case 'viewSource': {
+      const tab = activeId ? state.tabs[activeId] : undefined;
+      if (tab && /^https?:/i.test(tab.url)) tabs.openRaw(`view-source:${tab.url}`);
+      return;
+    }
+    case 'openFile':
+      void openLocalFile(ctx);
+      return;
+    case 'savePage':
+      if (activeId) void savePageAs(ctx, activeId);
+      return;
     case 'zap': {
       const tid = (payload as { tabId?: string } | undefined)?.tabId ?? activeId;
       if (!tid) return;
@@ -163,4 +179,42 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       toShell(id, payload);
     }
   }
+}
+
+export async function openLocalFile(ctx: AppContext): Promise<Id | null> {
+  const win = ctx.windows.main?.win;
+  const opts: Electron.OpenDialogOptions = {
+    title: 'Open file',
+    properties: ['openFile'],
+    filters: [
+      {
+        name: 'Web pages and documents',
+        extensions: ['html', 'htm', 'pdf', 'svg', 'txt', 'md', 'json', 'xml'],
+      },
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  };
+  const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+  const file = res.canceled ? undefined : res.filePaths[0];
+  if (!file) return null;
+  return ctx.tabs.openRaw(pathToFileURL(file).toString());
+}
+
+export async function savePageAs(ctx: AppContext, tabId: Id): Promise<boolean> {
+  const tab = ctx.store.state.tabs[tabId];
+  const win = ctx.windows.main?.win;
+  if (!tab || !win) return false;
+  const base =
+    (tab.title || 'page')
+      .replace(/[\\/:*?"<>|]+/g, ' ')
+      .trim()
+      .slice(0, 80) || 'page';
+  const res = await dialog.showSaveDialog(win, {
+    title: 'Save page',
+    defaultPath: `${base}.html`,
+    filters: [{ name: 'Web page, complete', extensions: ['html'] }],
+  });
+  if (res.canceled || !res.filePath) return false;
+  return ctx.tabs.savePage(tabId, res.filePath);
 }

@@ -10,6 +10,7 @@ export function SpaceBar() {
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
   const active = core.spaces[core.activeSpaceId];
+  const isPrivate = !!core.profiles[active?.profileId ?? '']?.ephemeral;
   // Live download progress on the sidebar button: a ring fills while anything is in flight.
   const [downloads, setDownloads] = useState<DownloadItemState[]>([]);
   useEffect(() => {
@@ -35,11 +36,14 @@ export function SpaceBar() {
           e.preventDefault();
           void invoke('menu/show', { kind: 'space', id: core.activeSpaceId });
         }}
-        aria-label={`Edit space ${active?.name ?? ''}`}
+        aria-label={`Edit space ${active?.name ?? ''}${isPrivate ? ' (private)' : ''}`}
+        title={isPrivate ? 'Private space: nothing is saved' : undefined}
         data-testid="space-name"
+        data-private={isPrivate ? 'true' : undefined}
       >
         <span aria-hidden="true">{active?.emoji}</span>
         <span className={styles.label}>{active?.name}</span>
+        {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
       </button>
       <div className={styles.dots} role="tablist" aria-label="Spaces">
         {core.spaceOrder.map((id, i) => {

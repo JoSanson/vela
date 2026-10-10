@@ -96,9 +96,11 @@ export interface AtcRule {
 export interface Profile {
   id: Id;
   name: string;
-  /** Electron session partition, always `persist:<id>`. */
+  /** Electron session partition: `persist:profile-<id>`, or `private-<id>` (in memory) when ephemeral. */
   partition: string;
   color: string;
+  /** Private browsing: nothing is written to disk and its tabs are dropped at the next start. */
+  ephemeral?: boolean;
 }
 
 export interface CoreState {

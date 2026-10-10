@@ -565,3 +565,191 @@ test.describe('review fixes', () => {
       .toBe(true);
   });
 });
+
+test.describe('daily-driver compatibility', () => {
+  test('HTTP basic auth shows a sign-in prompt and the credentials reach the server', async ({
+    vela,
+    fixtures,
+  }) => {
+    await evalMain(
+      vela,
+      `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/auth`)}, noAtc: true })`,
+    );
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('auth-prompt')).toBeVisible();
+    await expect(overlay.getByTestId('auth-prompt')).toContainText('Vela test');
+    await vela.shot('70-auth-prompt');
+    await overlay.getByTestId('auth-username').fill('user');
+    await overlay.getByTestId('auth-password').fill('pass');
+    await overlay.getByTestId('auth-submit').click();
+    const page = await vela.tabPage('/auth');
+    await expect(page.locator('#authed')).toHaveText('welcome user');
+    await vela.overlayHidden();
+  });
+
+  test('cancelling the auth prompt leaves the page on its 401', async ({ vela, fixtures }) => {
+    await evalMain(
+      vela,
+      `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/auth`)}, noAtc: true })`,
+    );
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('auth-prompt')).toBeVisible();
+    await overlay.getByTestId('auth-cancel').click();
+    const page = await vela.tabPage('/auth');
+    await expect(page.locator('#denied')).toHaveText('denied');
+  });
+
+  test('a private space keeps cookies in memory, records no history and drops its tabs on restart', async ({
+    vela,
+    fixtures,
+  }) => {
+    await evalMain(
+      vela,
+      `const { createProfile, createSpace } = __vela.core;
+       const p = createProfile('Private', '#333333', 'p-private', true);
+       __vela.ctx.store.dispatch({ type: 'profile/create', profile: p });
+       const s = createSpace({ id: 's-private', name: 'Private', profileId: p.id });
+       __vela.ctx.store.dispatch({ type: 'space/create', space: s });
+       __vela.ctx.store.dispatch({ type: 'space/activate', id: s.id, now: Date.now() });
+       __vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/Secret`)}, spaceId: s.id, noAtc: true });`,
+    );
+    const page = await vela.tabPage('/page/Secret');
+    await page.evaluate(() => {
+      document.cookie = 'vela_private=1; path=/';
+    });
+    await expect(vela.shell.getByTestId('space-name')).toHaveAttribute('data-private', 'true');
+    await vela.shot('71-private-space');
+    const partitions = await evalMain<string[]>(vela, 'return __vela.ctx.sessions.allPartitions()');
+    expect(partitions).toContain('private-p-private');
+    const history = await evalMain<{ url: string }[]>(
+      vela,
+      "return __vela.ctx.history.search({ query: 'Secret', limit: 10 })",
+    );
+    expect(history.filter((h) => h.url.includes('/page/Secret'))).toEqual([]);
+    const stored = await evalMain<string | null>(
+      vela,
+      "return __vela.ctx.sessions.get('private-p-private').storagePath",
+    );
+    expect(stored).toBeNull();
+    // Relaunch: the private tab is gone, the space itself stays.
+    const userData = vela.userData;
+    await vela.close();
+    const again = await launchVela({ userData, fixtures });
+    try {
+      const st = await again.state();
+      expect(st.spaces['s-private']).toBeDefined();
+      expect(Object.values(st.tabs).some((t) => t.url.includes('/page/Secret'))).toBe(false);
+    } finally {
+      await again.close();
+    }
+  });
+
+  test('clear browsing data wipes cookies and history', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Cookie`);
+    const page = await vela.tabPage('/page/Cookie');
+    await page.evaluate(() => {
+      document.cookie = 'vela_keep=1; path=/';
+    });
+    await expect
+      .poll(
+        async () =>
+          (
+            await evalMain<{ url: string }[]>(
+              vela,
+              "return __vela.ctx.history.search({ query: 'Cookie', limit: 10 })",
+            )
+          ).length,
+      )
+      .toBeGreaterThan(0);
+    await vela.openTab('vela://settings');
+    const settings = await vela.tabPage('vela://settings');
+    await settings.getByTestId('settings-clear-data').click();
+    await settings.getByTestId('settings-clear-confirm').click();
+    await expect
+      .poll(
+        async () =>
+          (
+            await evalMain<{ url: string }[]>(
+              vela,
+              "return __vela.ctx.history.search({ query: 'Cookie', limit: 10 })",
+            )
+          ).length,
+      )
+      .toBe(0);
+    expect(await page.evaluate(() => document.cookie)).toBe('');
+  });
+
+  test('view source opens the page source in a new tab', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Source`);
+    await vela.command('viewSource');
+    await expect
+      .poll(async () =>
+        Object.values((await vela.state()).tabs).some((t) => t.url.startsWith('view-source:')),
+      )
+      .toBe(true);
+    const src = await vela.tabPage('view-source:');
+    await expect(src.locator('body')).toContainText('data-testid="heading"');
+  });
+
+  test('PDFs open inline instead of downloading', async ({ vela, fixtures }) => {
+    await evalMain(
+      vela,
+      `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/doc.pdf`)}, noAtc: true })`,
+    );
+    await expect
+      .poll(async () => Object.values((await vela.state()).tabs).some((t) => t.url.endsWith('/doc.pdf')))
+      .toBe(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    const downloads = await evalMain<unknown[]>(vela, 'return __vela.ctx.downloads.list()');
+    expect(downloads).toEqual([]);
+    const url = await evalMain<string>(
+      vela,
+      "const id = Object.values(__vela.ctx.store.state.tabs).find(t => t.url.endsWith('/doc.pdf')).id; return __vela.ctx.tabs.webContents(id).getURL()",
+    );
+    expect(url).toContain('/doc.pdf');
+  });
+
+  test('links to other apps ask before leaving the browser', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/external`);
+    const page = await vela.tabPage('/external');
+    await page.click('#zoom', { noWaitAfter: true });
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('external-prompt')).toBeVisible();
+    await expect(overlay.getByTestId('external-prompt')).toContainText('zoommtg');
+    await vela.shot('72-external-prompt');
+    await overlay.getByTestId('external-deny').click();
+    await vela.overlayHidden();
+    expect(page.url()).toContain('/external');
+  });
+
+  test('find in page can match case', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Case`);
+    await vela.tabPage('/page/Case');
+    await vela.command('findInPage');
+    const input = vela.shell.getByTestId('find-input');
+    await input.fill('LOREM');
+    await expect(vela.shell.getByTestId('find-count')).toContainText('/400');
+    await vela.shell.getByTestId('find-match-case').click();
+    await expect(vela.shell.getByTestId('find-count')).toContainText('0/0');
+    await input.press('Escape');
+  });
+
+  test('local files open as tabs', async ({ vela }) => {
+    const dir = mkdtempSync(join(tmpdir(), 'vela-file-'));
+    const file = join(dir, 'local.html');
+    writeFileSync(file, '<title>Local file</title><h1 id="local">from disk</h1>');
+    try {
+      await vela.shell.evaluate(
+        (p) =>
+          (
+            window as unknown as { vela: { invoke: (c: string, r: unknown) => Promise<unknown> } }
+          ).vela.invoke('tab/openPath', { path: p }),
+        file,
+      );
+      const page = await vela.tabPage('local.html');
+      await expect(page.locator('#local')).toHaveText('from disk');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

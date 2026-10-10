@@ -34,10 +34,15 @@ export class FaviconCache {
     if (running) return running;
     const task = (async (): Promise<string | null> => {
       try {
-        const res = await ses.fetch(iconUrl, { headers: { Accept: 'image/*' } });
+        const res = await ses.fetch(iconUrl, {
+          headers: { Accept: 'image/*' },
+          signal: AbortSignal.timeout(5000),
+        });
         if (!res.ok) return null;
         const mime = res.headers.get('content-type') ?? 'image/x-icon';
         if (!mime.startsWith('image/')) return null;
+        const declared = Number(res.headers.get('content-length') ?? '0');
+        if (declared > MAX_BYTES) return null;
         const buf = Buffer.from(await res.arrayBuffer());
         if (buf.length === 0 || buf.length > MAX_BYTES) return null;
         const now = Date.now();

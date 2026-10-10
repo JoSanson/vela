@@ -6,3 +6,4 @@ export * from './selectors';
 export * from './url';
 export * from './atc';
 export * from './search';
+export * from './privacy';

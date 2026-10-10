@@ -26,7 +26,11 @@ export function findInTab(ctx: AppContext, req: FindRequest): void {
   }
   // Electron's `findNext` means "start a new session" (true for the first request of a query),
   // the opposite of the IPC flag which means "step to the next match".
-  wc.findInPage(req.text, { forward: req.forward, findNext: !req.findNext, matchCase: false });
+  wc.findInPage(req.text, {
+    forward: req.forward,
+    findNext: !req.findNext,
+    matchCase: req.matchCase ?? false,
+  });
 }
 
 export function stopFind(

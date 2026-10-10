@@ -22,6 +22,13 @@ export interface Prefs {
   /** Host → zoom factor. */
   zoomByHost: Record<string, number>;
   windowBounds: { x: number; y: number; width: number; height: number } | null;
+  /** HTTPS-first: upgrade plain http:// navigations, fall back silently when the site has no TLS. */
+  httpsUpgrade: boolean;
+  /** Remembered answers for external-app links (`zoommtg:`, `slack:`…), keyed by scheme. */
+  externalSchemes: Record<string, 'allow' | 'deny'>;
+  /** null = the OS downloads folder. */
+  downloadDir: string | null;
+  askWhereToSave: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -43,6 +50,10 @@ export const DEFAULT_PREFS: Prefs = {
   extensionPaths: [],
   zoomByHost: {},
   windowBounds: null,
+  httpsUpgrade: true,
+  externalSchemes: {},
+  downloadDir: null,
+  askWhereToSave: false,
 };
 
 export const SIDEBAR_MIN_WIDTH = 200;

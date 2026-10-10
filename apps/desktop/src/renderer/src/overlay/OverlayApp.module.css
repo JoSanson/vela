@@ -28,6 +28,8 @@
 
 .root[data-kind='sidebar'] .backdrop,
 .root[data-kind='permissionPrompt'] .backdrop,
+.root[data-kind='authPrompt'] .backdrop,
+.root[data-kind='externalPrompt'] .backdrop,
 .root[data-kind='updateNotes'] .backdrop {
   background: transparent;
 }

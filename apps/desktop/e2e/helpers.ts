@@ -52,6 +52,29 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       );
       return;
     }
+    if (p === '/doc.pdf') {
+      const pdf = Buffer.from(
+        '%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>',
+      );
+      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Length': String(pdf.length) });
+      res.end(pdf);
+      return;
+    }
+    if (p === '/external') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<title>External</title><a id="zoom" href="zoommtg://zoom.us/join?confno=1">join</a>');
+      return;
+    }
+    if (p === '/auth') {
+      if (req.headers.authorization === `Basic ${Buffer.from('user:pass').toString('base64')}`) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<title>Authed</title><h1 id="authed">welcome user</h1>');
+      } else {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Vela test"', 'Content-Type': 'text/html' });
+        res.end('<title>401</title><h1 id="denied">denied</h1>');
+      }
+      return;
+    }
     if (p === '/redirect') {
       res.writeHead(302, { Location: u.searchParams.get('to') ?? '/' });
       res.end();

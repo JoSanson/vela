@@ -94,8 +94,14 @@ export function createFolder(init: FolderInit): Folder {
   };
 }
 
-export function createProfile(name: string, color: string, id: Id = createId()): Profile {
-  return { id, name, partition: `persist:profile-${id}`, color };
+export function createProfile(name: string, color: string, id: Id = createId(), ephemeral = false): Profile {
+  return {
+    id,
+    name,
+    partition: ephemeral ? `private-${id}` : `persist:profile-${id}`,
+    color,
+    ...(ephemeral ? { ephemeral: true } : {}),
+  };
 }
 
 export function toArchived(

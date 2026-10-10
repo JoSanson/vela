@@ -3,12 +3,15 @@ import { app, shell, type DownloadItem, type Session } from 'electron';
 import { existsSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import type { DownloadsRepo } from './db/repos';
+import type { PrefsStore } from './prefs';
 
 export class DownloadManager {
   private items = new Map<string, DownloadItem>();
   private states = new Map<string, DownloadItemState>();
   private listeners = new Set<(list: DownloadItemState[]) => void>();
   private timer: NodeJS.Timeout | null = null;
+
+  prefs: PrefsStore | null = null;
 
   constructor(private readonly repo: DownloadsRepo) {
     for (const d of repo.list()) {
@@ -34,8 +37,15 @@ export class DownloadManager {
   }
 
   /** Chrome-like: save straight into ~/Downloads with a unique name instead of prompting. */
-  private static uniquePath(filename: string): string {
-    const dir = process.env.VELA_DOWNLOAD_DIR ?? app.getPath('downloads');
+  private static uniquePath(filename: string, preferredDir: string | null): string {
+    let fallback: string;
+    try {
+      fallback = app.getPath('downloads');
+    } catch {
+      fallback = join(app.getPath('home'), 'Downloads');
+    }
+    const dir =
+      process.env.VELA_DOWNLOAD_DIR ?? (preferredDir && existsSync(preferredDir) ? preferredDir : fallback);
     const ext = extname(filename);
     const base = filename.slice(0, filename.length - ext.length) || 'download';
     let candidate = join(dir, filename);
@@ -45,7 +55,16 @@ export class DownloadManager {
 
   private track(item: DownloadItem): void {
     const id = crypto.randomUUID();
-    item.setSavePath(DownloadManager.uniquePath(item.getFilename() || 'download'));
+    const prefs = this.prefs?.value;
+    if (prefs?.askWhereToSave && !process.env.VELA_DOWNLOAD_DIR) {
+      item.setSaveDialogOptions({
+        defaultPath: DownloadManager.uniquePath(item.getFilename() || 'download', prefs.downloadDir),
+      });
+    } else {
+      item.setSavePath(
+        DownloadManager.uniquePath(item.getFilename() || 'download', prefs?.downloadDir ?? null),
+      );
+    }
     this.items.set(id, item);
     let lastSaved = 0;
     const update = (state: DownloadItemState['state'], ended = false): void => {

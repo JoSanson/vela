@@ -17,6 +17,8 @@ import type { PrefsStore } from './prefs';
 import type { SessionManager } from './sessions';
 import type { Store } from './store';
 import type { TabManager } from './tabs/tabManager';
+import type { AuthManager } from './auth';
+import type { ExternalLinkManager } from './externalLinks';
 import type { WindowManager } from './windows/windowManager';
 
 export type RendererPage = 'index' | 'overlay' | 'little' | 'pages';
@@ -34,6 +36,8 @@ export interface AppContext {
   peek: PeekManager;
   downloads: DownloadManager;
   permissions: PermissionManager;
+  auth: AuthManager;
+  external: ExternalLinkManager;
   boosts: BoostsManager;
   blocker: ContentBlocker;
   extensions: ExtensionManager;

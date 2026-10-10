@@ -28,6 +28,7 @@ export function InlineEdit({ value, onCommit, onCancel, placeholder }: Props) {
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
         e.stopPropagation();
+        if (e.nativeEvent.isComposing) return;
         if (e.key === 'Enter') {
           e.preventDefault();
           onCommit(text);

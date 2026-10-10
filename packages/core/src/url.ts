@@ -44,6 +44,23 @@ export function resolveInput(raw: string, engine: SearchEngine): { url: string; 
   return { url: searchUrl(input, engine), isSearch: true };
 }
 
+const LOCAL_HOST_RE =
+  /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[^.]+\.local)$/i;
+
+/** HTTPS-first: the https:// twin of a plain http:// URL, or null when upgrading makes no sense (local hosts). */
+export function httpsUpgradeCandidate(url: string): string | null {
+  if (!/^http:\/\//i.test(url)) return null;
+  try {
+    const u = new URL(url);
+    if (LOCAL_HOST_RE.test(u.hostname)) return null;
+    u.protocol = 'https:';
+    if (u.port === '80') u.port = '';
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function searchUrl(query: string, engine: SearchEngine): string {
   return engine.searchUrl.replace('%s', encodeURIComponent(query));
 }

@@ -1,11 +1,13 @@
-import { activeSpace, type CoreState } from '@vela/core';
-import { app, session } from 'electron';
+import { activeSpace, type CoreState, dropEphemeralTabs } from '@vela/core';
+import { app, crashReporter, dialog, session } from 'electron';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import v8 from 'node:v8';
 import { runInNewContext } from 'node:vm';
 import { runCommand } from './commands';
 import type { AppContext } from './context';
-import { openDatabase } from './db/database';
+import { backup, NewerSchemaError, openDatabase } from './db/database';
 import { HistoryRepo } from './db/historyRepo';
 import { StateRepo } from './db/stateRepo';
 import { registerCoreHandlers } from './ipc/handlers';
@@ -26,6 +28,8 @@ import { ExtensionManager } from './extensions';
 import { UpdateManager } from './updater';
 import { installMaintenance } from './maintenance';
 import { installAutoPip } from './pip';
+import { AuthManager } from './auth';
+import { ExternalLinkManager } from './externalLinks';
 import { setPermissionDecider } from './security';
 import { PrefsStore } from './prefs';
 import { installInternalProtocol, registerInternalScheme } from './protocol';
@@ -54,6 +58,15 @@ app.setAppUserModelId('app.vela.browser');
 registerInternalScheme();
 
 const gotLock = app.requestSingleInstanceLock();
+// Minidumps stay on disk (no upload) so a crash can be diagnosed from a bug report.
+crashReporter.start({ uploadToServer: false, compress: true });
+process.on('uncaughtException', (err) => {
+  console.error('[vela] uncaught', err);
+  flushState?.();
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[vela] unhandled rejection', reason);
+});
 if (!gotLock) app.quit();
 
 const pendingUrls: string[] = [];
@@ -65,13 +78,20 @@ export function flushStateNow(): void {
 }
 
 app.on('second-instance', (_e, argv) => {
-  const urls = argv.filter((a) => /^https?:\/\//i.test(a) || /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(a));
+  const urls = argv.slice(1).filter((a) => /^https?:\/\//i.test(a));
   for (const u of urls) handleExternalUrl(u);
+  for (const f of argv.slice(1).filter((a) => a.startsWith('/') && existsSync(a)))
+    handleExternalUrl(pathToFileURL(f).toString());
   const win = ctx?.windows.main?.win;
   if (win) {
     if (win.isMinimized()) win.restore();
     win.focus();
   }
+});
+
+app.on('open-file', (e, path) => {
+  e.preventDefault();
+  handleExternalUrl(pathToFileURL(path).toString());
 });
 
 app.on('open-url', (e, url) => {
@@ -84,20 +104,32 @@ function handleExternalUrl(url: string): void {
     pendingUrls.push(url);
     return;
   }
-  ctx.openLittle(url);
+  if (url.startsWith('file:')) ctx.tabs.openRaw(url);
+  else ctx.openLittle(url);
 }
 
 function persistLoop(ctx: AppContext): () => void {
   let timer: NodeJS.Timeout | null = null;
   let dirty: CoreState | null = null;
+  let failures = 0;
   const flush = (): void => {
     if (!dirty) return;
     const s = dirty;
-    dirty = null;
     try {
       ctx.repo.save(s);
+      dirty = null;
+      failures = 0;
     } catch (err) {
+      // Disk full / locked: keep the state dirty and retry with backoff instead of dropping it.
+      failures++;
       console.error('[db] save failed', err);
+      const target = ctx.windows.main?.win.webContents;
+      if (failures === 3 && target)
+        emit(target, 'ui/command', {
+          id: 'toast',
+          payload: { text: "Vela can't save your tabs (disk full?)." },
+        });
+      setTimeout(flush, Math.min(30_000, 500 * 2 ** failures));
     }
   };
   ctx.store.subscribe((next) => {
@@ -119,7 +151,8 @@ function persistLoop(ctx: AppContext): () => void {
 
 async function boot(): Promise<void> {
   const userData = app.getPath('userData');
-  const db = openDatabase(join(userData, 'state.db'));
+  const opened = openDatabase(join(userData, 'state.db'));
+  const db = opened.db;
   const repo = new StateRepo(db);
   const history = new HistoryRepo(db);
   const prefs = new PrefsStore(join(userData, 'prefs.json'));
@@ -131,10 +164,15 @@ async function boot(): Promise<void> {
   const favicons = new FaviconCache(new FaviconsRepo(db));
   tabs.faviconResolver = (ses, pageUrl, iconUrl) => favicons.cache(ses, pageUrl, iconUrl);
   const downloads = new DownloadManager(new DownloadsRepo(db));
-  const permissions = new PermissionManager(new PermissionsRepo(db), overlay, (wcId) => {
+  downloads.prefs = prefs;
+  const tabIdOfWc = (wcId: number): string | undefined => {
     for (const id of tabs.liveTabIds()) if (tabs.webContents(id)?.id === wcId) return id;
     return undefined;
-  });
+  };
+  const permissions = new PermissionManager(new PermissionsRepo(db), overlay, tabIdOfWc);
+  const auth = new AuthManager(overlay, tabIdOfWc);
+  const external = new ExternalLinkManager(overlay, prefs);
+  tabs.onExternalScheme = (tabId, url) => external.request(tabId, url);
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
   const extensions = new ExtensionManager(prefs, sessions);
@@ -154,6 +192,8 @@ async function boot(): Promise<void> {
     peek: new PeekManager({ tabs, overlay, windows, store, history }),
     downloads,
     permissions,
+    auth,
+    external,
     boosts,
     blocker,
     extensions,
@@ -209,7 +249,10 @@ async function boot(): Promise<void> {
   });
   overlay.onHide((kind) => {
     if (kind === 'permissionPrompt') permissions.dismissAll();
+    if (kind === 'authPrompt') auth.dismissAll();
+    if (kind === 'externalPrompt') external.dismissAll();
   });
+  auth.install();
   installAppSecurity(c);
   installPageContextMenu(c);
   installFind(c);
@@ -257,6 +300,8 @@ async function boot(): Promise<void> {
     console.info(`[vela] window shown in ${Date.now() - startedAt} ms`);
   });
 
+  const withoutPrivate = dropEphemeralTabs(store.state);
+  if (withoutPrivate !== store.state) store.dispatch({ type: 'state/replace', state: withoutPrivate });
   tabs.reconcile(store.state, null);
   await overlay.init();
   sweepers = installMaintenance(c);
@@ -274,6 +319,66 @@ async function boot(): Promise<void> {
     tabs.openUrl({ input: 'vela://onboarding', noAtc: true });
   }
   for (const u of pendingUrls.splice(0)) handleExternalUrl(u);
+
+  if (opened.recovered) {
+    mw.win.webContents.once('did-finish-load', () =>
+      emit(mw.win.webContents, 'ui/command', {
+        id: 'toast',
+        payload: {
+          text:
+            opened.recovered === 'backup'
+              ? 'Your tab database was damaged; the last backup was restored.'
+              : 'Your tab database was damaged and could not be recovered; starting fresh.',
+        },
+      }),
+    );
+  }
+  // A marker that only a clean quit removes: its presence at boot means the last session crashed.
+  const marker = join(userData, 'running');
+  if (existsSync(marker) && Object.keys(store.state.tabs).length > 0 && !process.env.VELA_E2E) {
+    mw.win.webContents.once('did-finish-load', () =>
+      emit(mw.win.webContents, 'ui/command', {
+        id: 'toast',
+        payload: { text: 'Vela did not shut down cleanly. Your tabs were restored.' },
+      }),
+    );
+  }
+  try {
+    mkdirSync(userData, { recursive: true });
+    writeFileSync(marker, String(process.pid));
+  } catch {
+    /* read-only userData */
+  }
+  app.once('before-quit', () => rmSync(marker, { force: true }));
+  app.once('will-quit', () => {
+    prefs.flush();
+    try {
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.close();
+    } catch {
+      /* already closed */
+    }
+  });
+  // Daily backup of the tab database (rotated by openDatabase).
+  setTimeout(() => backup(db, join(userData, 'state.db'), 'daily'), 60_000).unref();
+  setInterval(() => backup(db, join(userData, 'state.db'), 'daily'), 24 * 3600 * 1000).unref();
+  app.on('child-process-gone', (_e, details) => {
+    if (details.type !== 'GPU' || details.reason === 'clean-exit') return;
+    // Chromium restarts the GPU process; views must be re-laid out to repaint.
+    setTimeout(() => tabs.layout(), 300);
+    const target = shellWcNow();
+    if (target) emit(target, 'ui/command', { id: 'toast', payload: { text: 'Graphics process restarted.' } });
+  });
+  const reviveShell = (wc: Electron.WebContents, what: string): void => {
+    wc.on('render-process-gone', (_e, d) => {
+      if (d.reason === 'clean-exit') return;
+      console.error(`[vela] ${what} renderer gone (${d.reason}), reloading`);
+      wc.reload();
+    });
+    wc.on('unresponsive', () => console.warn(`[vela] ${what} unresponsive`));
+  };
+  reviveShell(mw.win.webContents, 'shell');
+  if (overlay.view) reviveShell(overlay.view.webContents, 'overlay');
 }
 
 app
@@ -282,6 +387,13 @@ app
   .catch((err: unknown) => {
     console.error('[vela] boot failed', err);
     flushState?.();
+    const detail =
+      err instanceof NewerSchemaError
+        ? 'Your data was saved by a newer version of Vela. Update Vela, or restore a backup from the profile folder.'
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    dialog.showErrorBox('Vela could not start', detail);
     app.exit(1);
   });
 

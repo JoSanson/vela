@@ -60,6 +60,8 @@ export const migrations: Migration[] = [
   },
 ];
 
+export const LATEST_SCHEMA = migrations[migrations.length - 1]?.version ?? 0;
+
 export function migrate(db: Database): number {
   const current = (db.pragma('user_version', { simple: true }) as number) ?? 0;
   const pending = migrations.filter((m) => m.version > current).sort((a, b) => a.version - b.version);

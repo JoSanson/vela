@@ -94,6 +94,32 @@ export interface PermissionPrompt {
   permission: PermissionKind;
 }
 
+/** HTTP (or proxy) authentication challenge waiting for credentials. */
+export interface AuthPrompt {
+  id: string;
+  tabId: Id;
+  host: string;
+  realm: string;
+  isProxy: boolean;
+}
+
+/** A page tried to open another application (custom URL scheme). */
+export interface ExternalPrompt {
+  id: string;
+  tabId: Id;
+  url: string;
+  scheme: string;
+  host: string;
+}
+
+export interface ClearDataRequest {
+  history: boolean;
+  cookies: boolean;
+  cache: boolean;
+  storage: boolean;
+  downloads: boolean;
+}
+
 export interface Boost {
   id: Id;
   host: string;
@@ -146,6 +172,7 @@ export interface FindRequest {
   text: string;
   forward: boolean;
   findNext: boolean;
+  matchCase?: boolean;
 }
 
 export interface FindResult {
@@ -295,6 +322,15 @@ export interface IpcInvokeMap {
   'theme/fromImagePath': { req: { path: string }; res: ThemePalette | null };
   'app/openExternal': { req: { url: string }; res: undefined };
   'app/relaunch': { req: undefined; res: undefined };
+  'app/defaultBrowser': { req: { set?: boolean }; res: boolean };
+  'app/openFile': { req: undefined; res: Id | null };
+  'auth/respond': { req: { id: string; username: string | null; password: string | null }; res: undefined };
+  'external/respond': { req: { id: string; allow: boolean; remember: boolean }; res: undefined };
+  'tab/openPath': { req: { path: string }; res: Id | null };
+  'downloads/pickDir': { req: undefined; res: string | null };
+  'privacy/clear': { req: ClearDataRequest; res: undefined };
+  'tab/print': { req: { tabId: Id }; res: undefined };
+  'tab/savePage': { req: { tabId: Id }; res: boolean };
 }
 
 export type OverlayKind =
@@ -305,6 +341,8 @@ export type OverlayKind =
   | 'peek'
   | 'zap'
   | 'permissionPrompt'
+  | 'authPrompt'
+  | 'externalPrompt'
   | 'siteControl'
   | 'updateNotes'
   | 'none';
@@ -323,6 +361,8 @@ export interface IpcEventMap {
   'find/result': FindResult;
   'downloads/changed': DownloadItemState[];
   'permissions/prompt': PermissionPrompt;
+  'auth/prompt': AuthPrompt;
+  'external/prompt': ExternalPrompt;
   'update/changed': UpdateStatus;
   'window/fullscreen': boolean;
   'zap/pick': { tabId: Id; selector: string };
@@ -346,4 +386,6 @@ export interface VelaBridge {
   /** Fire-and-forget (used for per-frame layout updates). */
   send<K extends IpcInvokeChannel>(ch: K, req: IpcInvokeMap[K]['req']): void;
   on<K extends IpcEventChannel>(ch: K, cb: (payload: IpcEventMap[K]) => void): () => void;
+  /** Shell only: the OS path of a dropped File (webUtils), for opening local files. */
+  pathForFile?: (file: File) => string;
 }

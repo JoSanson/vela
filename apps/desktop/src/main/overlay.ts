@@ -73,7 +73,8 @@ export class OverlayManager {
       kind === 'switcher' ||
       kind === 'spaceEditor' ||
       kind === 'peek' ||
-      kind === 'zap'
+      kind === 'zap' ||
+      kind === 'authPrompt'
     ) {
       this.view.webContents.focus();
     }

@@ -75,6 +75,7 @@ export function LittleApp() {
           onChange={(e) => setInput(e.target.value)}
           onBlur={() => setEditing(false)}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return;
             if (e.key === 'Enter') navigate();
             if (e.key === 'Escape') setEditing(false);
           }}

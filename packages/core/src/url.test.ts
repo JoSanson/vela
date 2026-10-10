@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { SEARCH_ENGINES, hostOf, isInternalUrl, originOf, prettyUrl, resolveInput, searchUrl } from './url';
+import {
+  SEARCH_ENGINES,
+  hostOf,
+  httpsUpgradeCandidate,
+  isInternalUrl,
+  originOf,
+  prettyUrl,
+  resolveInput,
+  searchUrl,
+} from './url';
 import type { SearchEngine } from './url';
 
 const google: SearchEngine = SEARCH_ENGINES[0] ?? {
@@ -115,5 +124,20 @@ describe('prettyUrl', () => {
     expect(prettyUrl('vela://history')).toBe('vela://history');
     expect(prettyUrl('not a url')).toBe('not a url');
     expect(prettyUrl('')).toBe('');
+  });
+});
+
+describe('httpsUpgradeCandidate', () => {
+  it('upgrades public http URLs and keeps path/query', () => {
+    expect(httpsUpgradeCandidate('http://example.com/a?b=1')).toBe('https://example.com/a?b=1');
+    expect(httpsUpgradeCandidate('http://example.com:80/')).toBe('https://example.com/');
+  });
+  it('leaves https, local and private hosts alone', () => {
+    expect(httpsUpgradeCandidate('https://example.com/')).toBeNull();
+    expect(httpsUpgradeCandidate('http://localhost:3000/')).toBeNull();
+    expect(httpsUpgradeCandidate('http://127.0.0.1:8080/x')).toBeNull();
+    expect(httpsUpgradeCandidate('http://192.168.1.10/')).toBeNull();
+    expect(httpsUpgradeCandidate('http://printer.local/')).toBeNull();
+    expect(httpsUpgradeCandidate('not a url')).toBeNull();
   });
 });

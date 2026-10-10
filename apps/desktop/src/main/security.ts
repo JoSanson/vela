@@ -78,6 +78,10 @@ export function hardenSession(ses: Session): void {
   });
   ses.setDevicePermissionHandler(() => false);
   ses.setBluetoothPairingHandler?.((_details, callback) => callback({ confirmed: false }));
+  // Global Privacy Control: a legally meaningful "do not sell/share" signal (unlike DNT).
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    callback({ requestHeaders: { ...details.requestHeaders, 'Sec-GPC': '1' } });
+  });
 }
 
 const checkCache = new Map<string, boolean>();
@@ -129,6 +133,11 @@ export function installAppSecurity(ctx: AppContext): void {
     callback(false);
     const tabId = ctx.tabs.tabIdOf(wc);
     if (!tabId) return;
+    const fallback = ctx.tabs.fallbackFor(url);
+    if (fallback) {
+      void wc.loadURL(fallback).catch(() => undefined);
+      return;
+    }
     // Subresources (iframes, images, XHR) with bad certificates are simply blocked; only a failing
     // main-frame navigation gets the interstitial.
     const pending = noFragment(pendingMainFrame.get(wc.id) ?? '');

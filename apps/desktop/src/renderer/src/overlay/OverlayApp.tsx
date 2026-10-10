@@ -5,9 +5,11 @@ import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { CommandBar, type CommandBarPayload } from './CommandBar';
 import { PeekChrome } from './PeekChrome';
+import { AuthPromptView } from './AuthPrompt';
+import { ExternalPromptView } from './ExternalPrompt';
 import { PermissionPromptView } from './PermissionPrompt';
 import { UpdateNotes, type UpdateNotesPayload } from './UpdateNotes';
-import type { PermissionPrompt } from '@vela/shared';
+import type { AuthPrompt, ExternalPrompt, PermissionPrompt } from '@vela/shared';
 import { SpaceEditor, type SpaceEditorPayload } from './SpaceEditor';
 import { Switcher, type SwitcherPayload } from './Switcher';
 import styles from './OverlayApp.module.css';
@@ -79,6 +81,8 @@ export function OverlayApp() {
       {view.kind === 'permissionPrompt' && (
         <PermissionPromptView initial={view.payload as PermissionPrompt} />
       )}
+      {view.kind === 'authPrompt' && <AuthPromptView initial={view.payload as AuthPrompt} />}
+      {view.kind === 'externalPrompt' && <ExternalPromptView initial={view.payload as ExternalPrompt} />}
       {view.kind === 'updateNotes' && <UpdateNotes payload={view.payload as UpdateNotesPayload} />}
       {view.kind === 'sidebar' && (
         <div

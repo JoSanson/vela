@@ -1,6 +1,8 @@
 import {
   activeSpace,
   createTab,
+  httpsUpgradeCandidate,
+  isEphemeralSpace,
   matchAtc,
   pickNextActive,
   resolveInput,
@@ -190,7 +192,42 @@ export class TabManager {
       scrollBounce: true,
       navigateOnDragDrop: false,
       enableWebSQL: false,
+      // Chromium's built-in PDF viewer.
+      plugins: true,
     };
+  }
+
+  /** Pages asking for another app (`zoommtg:`, `slack:`…): decided by main through a prompt. */
+  onExternalScheme: ((tabId: Id, url: string) => void) | null = null;
+
+  /** https:// URLs that replaced a plain http:// one, so a TLS failure can fall back silently. */
+  private readonly upgraded = new Map<string, string>();
+  private readonly noUpgradeHosts = new Set<string>();
+
+  private upgrade(url: string): string {
+    if (!this.deps.prefs.value.httpsUpgrade) return url;
+    const https = httpsUpgradeCandidate(url);
+    if (!https) return url;
+    try {
+      if (this.noUpgradeHosts.has(new URL(url).host)) return url;
+    } catch {
+      return url;
+    }
+    this.upgraded.set(https, url);
+    return https;
+  }
+
+  /** Returns the original http:// URL when `url` was an automatic upgrade that just failed. */
+  fallbackFor(url: string): string | null {
+    const original = this.upgraded.get(url);
+    if (!original) return null;
+    this.upgraded.delete(url);
+    try {
+      this.noUpgradeHosts.add(new URL(original).host);
+    } catch {
+      /* ignore */
+    }
+    return original;
   }
 
   private ensureView(tab: Tab): WebContentsView {
@@ -207,7 +244,7 @@ export class TabManager {
     for (const hook of this.viewHooks) hook(tab.id, view.webContents);
     const zoom = this.deps.prefs.value.zoomByHost[hostKey(tab.url)] ?? tab.zoom;
     if (zoom !== 1) view.webContents.setZoomFactor(zoom);
-    const url = tab.url || 'about:blank';
+    const url = this.upgrade(tab.url || 'about:blank');
     const wasSleeping = tab.sleeping;
     void view.webContents.loadURL(url).catch(() => undefined);
     this.patch(tab.id, { loaded: true, sleeping: false });
@@ -301,6 +338,11 @@ export class TabManager {
     this.deps.store.dispatch({ type: 'tab/update', id, patch });
   }
 
+  /** Tabs of a private space leave no trace: no history rows, no cached favicons. */
+  private isPrivate(id: Id): boolean {
+    return isEphemeralSpace(this.state, this.state.tabs[id]?.spaceId);
+  }
+
   private wire(id: Id, wc: WebContents): void {
     const nav = (): TabPatch => ({
       canGoBack: wc.navigationHistory.canGoBack(),
@@ -309,26 +351,33 @@ export class TabManager {
     wc.on('did-start-loading', () => this.patch(id, { loading: true }));
     wc.on('did-stop-loading', () => this.patch(id, { loading: false, ...nav() }));
     wc.on('did-navigate', (_e, url) => {
+      // Error pages are transient: the tab keeps the URL it was trying to reach (restore retries it).
+      if (url.startsWith('vela://error/')) {
+        this.patch(id, nav());
+        return;
+      }
       // Chromium zoom is per host within a session: apply the remembered level and mirror the real one.
       const stored = this.deps.prefs.value.zoomByHost[hostKey(url)];
       if (stored !== undefined && Math.abs(wc.getZoomFactor() - stored) > 0.001) wc.setZoomFactor(stored);
       this.patch(id, { url, zoom: Math.round(wc.getZoomFactor() * 100) / 100, ...nav() });
-      this.deps.history.recordVisit(url, wc.getTitle());
+      if (!this.isPrivate(id)) this.deps.history.recordVisit(url, wc.getTitle());
     });
     wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
       if (!isMainFrame) return;
       this.patch(id, { url, ...nav() });
-      this.deps.history.recordVisit(url, wc.getTitle());
+      if (!this.isPrivate(id)) this.deps.history.recordVisit(url, wc.getTitle());
     });
     wc.on('page-title-updated', (_e, title) => {
+      if (wc.getURL().startsWith('vela://error/')) return;
       this.patch(id, { title });
-      this.deps.history.setTitle(wc.getURL(), title);
+      if (!this.isPrivate(id)) this.deps.history.setTitle(wc.getURL(), title);
     });
     wc.on('page-favicon-updated', (_e, favicons) => {
       const favicon = favicons[0] ?? null;
       if (!favicon) return;
       const pageUrl = wc.getURL();
       const resolver = this.faviconResolver;
+      if (this.isPrivate(id)) return;
       if (!resolver) {
         this.patch(id, { favicon });
         this.deps.history.setFavicon(pageUrl, favicon);
@@ -361,6 +410,11 @@ export class TabManager {
     });
     wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
       if (!isMainFrame || ERROR_IGNORED_CODES.has(code)) return;
+      const fallback = this.fallbackFor(url);
+      if (fallback) {
+        void wc.loadURL(fallback).catch(() => undefined);
+        return;
+      }
       void wc.loadURL(errorPageUrl('net', url, `${desc} (${code})`)).catch(() => undefined);
     });
     wc.on('render-process-gone', (_e, details) => {
@@ -369,9 +423,25 @@ export class TabManager {
       void wc.loadURL(errorPageUrl('crash', tab?.url ?? '', details.reason)).catch(() => undefined);
     });
     wc.on('will-navigate', (e, url) => {
-      if (url.startsWith('file:') || url.startsWith('vela://')) e.preventDefault();
+      if (url.startsWith('file:') || url.startsWith('vela://')) {
+        e.preventDefault();
+        return;
+      }
+      if (!/^(https?|about|blob|data|view-source):/i.test(url)) {
+        // Another application's scheme: never navigate, ask the user instead.
+        e.preventDefault();
+        if (!/^javascript:/i.test(url)) this.onExternalScheme?.(id, url);
+        return;
+      }
+      const https = this.upgrade(url);
+      if (https !== url) {
+        e.preventDefault();
+        void wc.loadURL(https).catch(() => undefined);
+      }
     });
     wc.on('did-create-window', (child) => {
+      this.popups.add(child);
+      child.once('closed', () => this.popups.delete(child));
       const pseudoId = `popup:${++this.detachedCounter}`;
       for (const hook of this.viewHooks) hook(pseudoId, child.webContents);
       child.webContents.setWindowOpenHandler(({ url: u }) => {
@@ -383,7 +453,11 @@ export class TabManager {
       });
     });
     wc.setWindowOpenHandler(({ url, disposition }) => {
-      if (!/^(https?|mailto|tel|about):/i.test(url)) return { action: 'deny' };
+      if (!/^(https?|mailto|tel|about):/i.test(url)) {
+        if (/^[a-z][a-z0-9+.-]*:/i.test(url) && !/^(javascript|file|vela|data|blob):/i.test(url))
+          this.onExternalScheme?.(id, url);
+        return { action: 'deny' };
+      }
       const tab = this.state.tabs[id];
       if (/^(mailto|tel):/i.test(url)) {
         void import('electron').then(({ shell }) => shell.openExternal(url));
@@ -450,7 +524,7 @@ export class TabManager {
     if (!url) return;
     const wc = this.webContents(tabId);
     if (wc) {
-      void wc.loadURL(url).catch(() => undefined);
+      void wc.loadURL(this.upgrade(url)).catch(() => undefined);
     } else {
       this.patch(tabId, { url });
     }
@@ -544,6 +618,28 @@ export class TabManager {
     this.setZoom(tabId, delta === 0 ? 1 : tab.zoom + delta);
   }
 
+  print(tabId: Id): void {
+    this.webContents(tabId)?.print({}, () => undefined);
+  }
+
+  async savePage(tabId: Id, path: string): Promise<boolean> {
+    const wc = this.webContents(tabId);
+    if (!wc) return false;
+    try {
+      await wc.savePage(path, 'HTMLComplete');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Opens a tab on a URL that must not go through input resolution (file://, view-source:). */
+  openRaw(url: string, spaceId: Id = this.state.activeSpaceId): Id {
+    const tab = createTab({ url, spaceId });
+    this.deps.store.dispatch({ type: 'tab/open', tab, activate: true });
+    return tab.id;
+  }
+
   toggleDevTools(tabId: Id): void {
     const wc = this.webContents(tabId);
     if (!wc) return;
@@ -561,6 +657,9 @@ export class TabManager {
     ])
       .then((v) => Math.max(0, Math.min(1e7, Number(v) || 0)))
       .catch(() => 0);
+    // The user may have switched to this tab while we were asking for its scroll position.
+    if (wc.isDestroyed() || this.webContents(tabId) !== wc || visibleTabIds(this.state).includes(tabId))
+      return;
     this.patch(tabId, {
       sleeping: true,
       loaded: false,
@@ -579,6 +678,8 @@ export class TabManager {
     this.deps.store.dispatch({ type: 'tab/activate', id: tabId, now: Date.now() });
   }
 
+  /** window.open() child windows (D015): closed with the main window, never leaked. */
+  private readonly popups = new Set<Electron.BrowserWindow>();
   private readonly previews = new Map<Id, string>();
   private readonly previewAt = new Map<Id, number>();
   private gcTimer: NodeJS.Timeout | null = null;
@@ -639,6 +740,8 @@ export class TabManager {
 
   destroyAll(): void {
     for (const id of [...this.views.keys()]) this.destroyView(id);
+    for (const p of [...this.popups]) if (!p.isDestroyed()) p.close();
+    this.popups.clear();
   }
 }
 

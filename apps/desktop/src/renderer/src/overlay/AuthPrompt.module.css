@@ -1,0 +1,111 @@
+.card {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 48px));
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  margin: 0;
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--border);
+  animation: drop var(--dur-fast) var(--ease-out);
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--space-from) 18%, transparent);
+  color: var(--accent);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.realm {
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--panel-fg);
+  font-size: 13px;
+  user-select: text;
+  cursor: text;
+}
+
+.input::placeholder {
+  color: var(--fg-faint);
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.remember input {
+  accent-color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.secondary,
+.primary {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.secondary {
+  background: var(--surface);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

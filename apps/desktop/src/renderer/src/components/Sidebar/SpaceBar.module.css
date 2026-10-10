@@ -37,6 +37,11 @@
   text-overflow: ellipsis;
 }
 
+.privateMark {
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+}
+
 .dots {
   flex: 1;
   display: flex;

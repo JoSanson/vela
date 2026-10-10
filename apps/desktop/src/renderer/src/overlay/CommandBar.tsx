@@ -208,6 +208,8 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   };
 
   const onKeyDown = (e: React.KeyboardEvent): void => {
+    // Confirming an IME conversion (CJK) must never submit or move the selection.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelected((s) => Math.min(results.length - 1, s + 1));

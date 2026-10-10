@@ -7,6 +7,7 @@ import styles from './FindBar.module.css';
 export function FindBar({ onClose }: { onClose: () => void }) {
   const tab = useShell(selectActiveTab);
   const [text, setText] = useState('');
+  const [matchCase, setMatchCase] = useState(false);
   const [result, setResult] = useState<{ active: number; total: number; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const tabId = tab?.id;
@@ -28,11 +29,11 @@ export function FindBar({ onClose }: { onClose: () => void }) {
       void invoke('tab/stopFind', { tabId, action: 'clearSelection' });
       return;
     }
-    void invoke('tab/find', { tabId, text, forward: true, findNext: false });
-  }, [text, tabId]);
+    void invoke('tab/find', { tabId, text, forward: true, findNext: false, matchCase });
+  }, [text, tabId, matchCase]);
 
   const step = (forward: boolean): void => {
-    if (tabId && text) void invoke('tab/find', { tabId, text, forward, findNext: true });
+    if (tabId && text) void invoke('tab/find', { tabId, text, forward, findNext: true, matchCase });
   };
   const close = (): void => {
     if (tabId) void invoke('tab/stopFind', { tabId, action: 'keepSelection' });
@@ -49,11 +50,22 @@ export function FindBar({ onClose }: { onClose: () => void }) {
         placeholder="Find in page"
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return;
           if (e.key === 'Enter') step(!e.shiftKey);
           if (e.key === 'Escape') close();
         }}
         data-testid="find-input"
       />
+      <button
+        className={`${styles.btn} ${styles.toggle} ${matchCase ? styles.toggleOn : ''}`}
+        onClick={() => setMatchCase((v) => !v)}
+        aria-pressed={matchCase}
+        aria-label="Match case"
+        title="Match case"
+        data-testid="find-match-case"
+      >
+        Aa
+      </button>
       <span className={styles.count} data-testid="find-count">
         {text ? (result?.text === text ? `${result.active}/${result.total}` : '…') : ''}
       </span>
