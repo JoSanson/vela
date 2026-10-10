@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Paris",
+  "rangeStrategy": "pin",
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "postUpdateOptions": ["pnpmDedupe"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Electron = Chromium: highest priority, any time, no limits, same commit message as engine-watch.yml so engine-release.yml picks it up after the squash merge.",
+      "matchPackageNames": ["electron"],
+      "groupName": "electron",
+      "labels": ["engine"],
+      "prPriority": 10,
+      "automerge": true,
+      "schedule": ["at any time"],
+      "prConcurrentLimit": 0,
+      "prHourlyLimit": 0,
+      "commitMessagePrefix": "chore(engine):",
+      "commitMessageAction": "bump",
+      "commitMessageTopic": "electron",
+      "commitMessageExtra": "to {{{newVersion}}}"
+    },
+    {
+      "description": "Minor/patch of runtime dependencies: automerge once CI is green.",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "All other devDependencies: one weekly grouped PR for minor/patch, automerged.",
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["!electron"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev dependencies (non-major)",
+      "schedule": ["before 6am on monday"],
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions: keep majors pinned (v4, v5…) and automerge minor/patch.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Majors always need a human.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ]
+}

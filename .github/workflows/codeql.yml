@@ -1,0 +1,40 @@
+# CodeQL static analysis (javascript-typescript) on PRs, pushes to main and once a day.
+# Repo setting: Security ▸ Code scanning ▸ "Default setup" must be OFF, otherwise it conflicts
+# with this advanced setup.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          # No compilation needed for JS/TS extraction.
+          build-mode: none
+          queries: security-and-quality
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:javascript-typescript'

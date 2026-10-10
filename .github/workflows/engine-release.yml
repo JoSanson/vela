@@ -1,0 +1,80 @@
+# Engine release — second half of the engine pipeline.
+#
+# When an engine bump lands on main (squash-merged PR titled "chore(engine): bump electron to X",
+# from engine-watch.yml or Renovate), bump the app patch version, commit "chore(release): vX.Y.Z",
+# tag vX.Y.Z and push. The tag triggers release.yml.
+#
+# Needs to push to main: branch protection must let the token's actor bypass "require a pull
+# request" (see RELEASING.md). With a PAT (ENGINE_WATCH_TOKEN) the tag push fires release.yml
+# natively; with GITHUB_TOKEN it would not, so we dispatch release.yml explicitly.
+name: Engine release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: engine-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: bump version & tag
+    # Quoted: the ": " inside the string would otherwise be read as a YAML mapping.
+    if: "contains(github.event.head_commit.message, 'chore(engine): bump electron')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+      HAS_PAT: ${{ secrets.ENGINE_WATCH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Skip if HEAD is already tagged (re-run safety)
+        id: guard
+        run: |
+          if [ -n "$(git tag --points-at HEAD)" ]; then
+            echo "::notice::HEAD already carries a tag — nothing to do"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump patch version, commit, tag, push
+        if: steps.guard.outputs.skip != 'true'
+        id: bump
+        run: |
+          ELECTRON=$(node -p "require('./apps/desktop/package.json').devDependencies.electron")
+          NEW=$(node scripts/bump-version.mjs patch)
+          TAG="v$NEW"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json apps/desktop/package.json
+          [ -f CHANGELOG.md ] && git add CHANGELOG.md
+          git commit -m "chore(release): $TAG" -m "Electron $ELECTRON"
+          git tag -a "$TAG" -m "Vela $TAG (Electron $ELECTRON)"
+          git push origin HEAD:main
+          git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "::notice::tagged $TAG"
+
+      - name: Trigger release.yml (GITHUB_TOKEN fallback)
+        if: steps.bump.outputs.tag != ''
+        run: |
+          if [ "$HAS_PAT" = "true" ]; then
+            echo "PAT in use — the tag push already triggered release.yml."
+          else
+            echo "::warning::ENGINE_WATCH_TOKEN not set — dispatching release.yml for ${{ steps.bump.outputs.tag }}"
+            gh workflow run release.yml --ref "${{ steps.bump.outputs.tag }}" -f tag="${{ steps.bump.outputs.tag }}"
+          fi

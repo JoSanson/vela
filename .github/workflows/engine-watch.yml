@@ -1,0 +1,233 @@
+# Engine watch — keeps Chromium (via Electron) up to date in < 24 h.
+#
+#   every 6 h ──► check: `npm view electron version` vs the exact pin in apps/desktop/package.json
+#                  │ newer?
+#                  ▼
+#                 branch engine/electron-<ver> ─► pnpm add -D -E electron@<ver> ─► commit ─► push
+#                  ─► PR labelled `engine` ─► `gh pr merge --auto --squash`
+#                  │
+#                  ▼ (CI green + branch protection satisfied)  → squash-merged into main
+#                  ▼ engine-release.yml bumps the app patch version, tags → release.yml ships it
+#                  ▼ (CI red)  → report-failure job below opens "Electron <ver> bump failed"
+#
+# Token: PRs/branches created with GITHUB_TOKEN never trigger `pull_request` workflows, so CI
+# would not run on the PR and auto-merge would wait forever. Set the repo secret
+# ENGINE_WATCH_TOKEN (fine-grained PAT: contents + pull-requests + workflows + issues write).
+# Without it we fall back to GITHUB_TOKEN and explicitly dispatch ci.yml on the branch; the
+# check runs land on the same commit SHA, which is what branch protection looks at.
+#
+# Renovate also watches `electron` (renovate.json) with the same commit message, so both paths
+# feed engine-release.yml; this workflow skips when an `engine` PR for that version is open.
+name: Engine watch
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_version:
+        description: 'Pretend this exact Electron version (x.y.z) is the latest — for testing the pipeline.'
+        required: false
+        type: string
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: engine-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: check & bump
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+      HAS_PAT: ${{ secrets.ENGINE_WATCH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          token: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Compare pinned vs latest Electron
+        id: check
+        run: |
+          if [ -n "${{ inputs.force_version }}" ]; then
+            node scripts/engine-check.mjs --force "${{ inputs.force_version }}"
+          else
+            node scripts/engine-check.mjs
+          fi
+
+      - name: Up to date
+        if: steps.check.outputs.update != 'true'
+        run: echo "Electron ${{ steps.check.outputs.current }} is the latest stable — nothing to do."
+
+      - name: Skip if an engine PR for this version is already open
+        if: steps.check.outputs.update == 'true'
+        id: existing
+        env:
+          VER: ${{ steps.check.outputs.latest }}
+        run: |
+          OPEN=$(gh pr list --state open --label engine --json title,headRefName \
+            --jq "[.[] | select(.headRefName == \"engine/electron-$VER\" or (.title | contains(\"$VER\")))] | length")
+          if [ "$OPEN" != "0" ]; then
+            echo "::notice::an open engine PR for Electron $VER already exists — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump electron pin (updates pnpm-lock.yaml)
+        if: steps.check.outputs.update == 'true' && steps.existing.outputs.skip != 'true'
+        env:
+          VER: ${{ steps.check.outputs.latest }}
+        # --ignore-scripts: no need to download the Electron binary or rebuild better-sqlite3 here,
+        # CI on the PR does the real install.
+        run: |
+          pnpm --filter @vela/desktop add -D -E "electron@$VER" --ignore-scripts
+          node -e "const v=require('./apps/desktop/package.json').devDependencies.electron; if (v!==process.env.VER) { console.error('pin not updated: '+v); process.exit(1) }"
+          git status --short
+
+      - name: Commit, push, open PR
+        if: steps.check.outputs.update == 'true' && steps.existing.outputs.skip != 'true'
+        id: pr
+        env:
+          VER: ${{ steps.check.outputs.latest }}
+          PREV: ${{ steps.check.outputs.current }}
+          CHROMIUM: ${{ steps.check.outputs.chromium }}
+          NODE: ${{ steps.check.outputs.node }}
+          FORCED: ${{ inputs.force_version != '' }}
+        run: |
+          BRANCH="engine/electron-$VER"
+          # The commit title is what engine-release.yml matches after the squash merge — keep it
+          # in sync with the `contains()` filter there and with renovate.json.
+          TITLE="chore(engine): bump electron to $VER"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add apps/desktop/package.json pnpm-lock.yaml
+          git commit -m "$TITLE" -m "Electron $PREV → $VER (Chromium $CHROMIUM, Node $NODE)"
+          git push --force-with-lease origin "HEAD:$BRANCH"
+
+          gh label create engine --color 7057ff --description "Electron / Chromium engine bump" --force
+
+          cat > pr-body.md <<EOF
+          Automated engine bump by \`engine-watch.yml\`.
+
+          | | Version |
+          |---|---|
+          | Electron | **$VER** (was $PREV) |
+          | Chromium | $CHROMIUM |
+          | Node | $NODE |
+
+          - Release notes: https://releases.electronjs.org/release/v$VER
+          - Auto-merge (squash) is enabled: merges as soon as \`quality\`, \`e2e\` and \`build\` are green.
+          - On merge, \`engine-release.yml\` bumps the app patch version, tags it and \`release.yml\` ships it.
+          $( [ "$FORCED" = "true" ] && echo "- **Forced via workflow_dispatch (force_version) — test run.**" )
+          EOF
+
+          URL=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file pr-body.md --label engine)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "::notice::opened $URL"
+
+      - name: Enable auto-merge (squash)
+        if: steps.pr.outputs.url != ''
+        # Fails when "Allow auto-merge" is off in repo settings or branch protection has no
+        # required checks — the PR still exists, so only warn.
+        run: gh pr merge --auto --squash "${{ steps.pr.outputs.url }}" || echo "::warning::could not enable auto-merge — enable it in Settings ▸ General and add required checks (see RELEASING.md)"
+
+      - name: Trigger CI on the branch (GITHUB_TOKEN fallback)
+        if: steps.pr.outputs.url != ''
+        run: |
+          if [ "$HAS_PAT" = "true" ]; then
+            echo "PAT in use — the pull_request event already triggered CI."
+          else
+            echo "::warning::ENGINE_WATCH_TOKEN not set — dispatching ci.yml manually on ${{ steps.pr.outputs.branch }}"
+            gh workflow run ci.yml --ref "${{ steps.pr.outputs.branch }}"
+          fi
+
+  report-failure:
+    name: report failed engine PR
+    # Fires for every completed CI run; only acts on red runs of engine/* branches.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      startsWith(github.event.workflow_run.head_branch, 'engine/electron-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const version = run.head_branch.replace('engine/electron-', '');
+            const title = `Electron ${version} bump failed`;
+            const label = 'engine';
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: label, per_page: 100,
+            });
+            const existing = open.find((i) => i.title === title);
+
+            // Failed jobs + tail of their logs.
+            const { data: jobsData } = await github.rest.actions.listJobsForWorkflowRun({
+              ...context.repo, run_id: run.id, per_page: 100,
+            });
+            const failedJobs = jobsData.jobs.filter((j) => j.conclusion === 'failure');
+            const sections = [];
+            for (const job of failedJobs.slice(0, 4)) {
+              let tail = '(logs unavailable)';
+              try {
+                const res = await github.rest.actions.downloadJobLogsForWorkflowRun({ ...context.repo, job_id: job.id });
+                const text = typeof res.data === 'string' ? res.data : Buffer.from(res.data).toString('utf8');
+                tail = text.split('\n').slice(-100).join('\n').replace(/\u001b\[[0-9;]*m/g, '');
+              } catch (e) {
+                tail = `(could not fetch logs: ${e.message})`;
+              }
+              sections.push(`<details><summary>${job.name} — last 100 log lines</summary>\n\n\`\`\`\n${tail}\n\`\`\`\n\n</details>`);
+            }
+
+            const prs = run.pull_requests?.map((p) => `#${p.number}`).join(', ');
+            const body = [
+              `CI failed on the automated Electron **${version}** bump (branch \`${run.head_branch}\`).`,
+              '',
+              `- Run: ${run.html_url}`,
+              `- Commit: ${run.head_sha}`,
+              prs ? `- PR: ${prs}` : `- PR: see branch \`${run.head_branch}\``,
+              `- Failed jobs: ${failedJobs.map((j) => `\`${j.name}\``).join(', ') || 'unknown'}`,
+              '',
+              'Auto-merge is blocked until CI is green. Fix on the branch or close the PR; the next',
+              'Electron release will open a new one.',
+              '',
+              ...sections,
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: existing.number, body: `Failed again.\n\n${body}`,
+              });
+              return;
+            }
+            try {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: '7057ff', description: 'Electron / Chromium engine bump' });
+            } catch (e) {
+              if (e.status !== 422) throw e;
+            }
+            const { data: issue } = await github.rest.issues.create({ ...context.repo, title, body, labels: [label] });
+            core.notice(`opened ${issue.html_url}`);

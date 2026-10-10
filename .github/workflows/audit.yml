@@ -1,0 +1,96 @@
+# Daily `pnpm audit` (high + critical). On failure, opens or updates ONE issue labelled
+# `security`; when the audit is clean again the issue is closed automatically.
+name: Audit
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: pnpm audit
+        id: audit
+        # `pnpm audit` only needs the lockfile, no install. Output is kept for the issue body.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm audit --audit-level=high 2>&1 | tee audit.txt
+
+      - name: Open / update / close the security issue
+        uses: actions/github-script@v8
+        env:
+          AUDIT_FAILED: ${{ steps.audit.outcome == 'failure' }}
+        with:
+          script: |
+            const fs = require('fs');
+            const title = 'Security audit: high/critical vulnerabilities (pnpm audit)';
+            const label = 'security';
+            const failed = process.env.AUDIT_FAILED === 'true';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const raw = fs.existsSync('audit.txt') ? fs.readFileSync('audit.txt', 'utf8') : '(no output)';
+            // Issue bodies are capped at 65 536 chars; keep the tail, that's where the summary is.
+            const output = raw.length > 50000 ? `…\n${raw.slice(-50000)}` : raw;
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: label, per_page: 100,
+            });
+            const existing = open.find((i) => i.title === title);
+
+            if (!failed) {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  ...context.repo, issue_number: existing.number,
+                  body: `Audit is clean again ([run](${runUrl})). Closing.`,
+                });
+                await github.rest.issues.update({ ...context.repo, issue_number: existing.number, state: 'closed' });
+              }
+              return;
+            }
+
+            const body = [
+              `\`pnpm audit --audit-level=high\` failed on ${new Date().toISOString().slice(0, 10)}.`,
+              '',
+              `Run: ${runUrl}`,
+              '',
+              'Fix: bump the vulnerable package (Renovate usually has a PR open) or add a `pnpm.overrides` entry.',
+              '',
+              '<details><summary>pnpm audit output</summary>',
+              '',
+              '```',
+              output.trim(),
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body: `Still failing.\n\n${body}` });
+              return;
+            }
+
+            try {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: 'd73a4a', description: 'Security vulnerability' });
+            } catch (e) {
+              if (e.status !== 422) throw e; // 422 = label already exists
+            }
+            await github.rest.issues.create({ ...context.repo, title, body, labels: [label] });
+
+      - name: Fail the run when the audit failed
+        if: steps.audit.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,169 @@
+# CI — runs on every PR and on pushes to main.
+#
+# Jobs (all three are required checks in branch protection, see RELEASING.md):
+#   quality  lint + typecheck + format:check + unit tests with coverage (ubuntu)
+#   e2e      Playwright _electron under xvfb (ubuntu)
+#   build    electron-builder installers for mac arm64 / mac x64 / win x64 / linux
+#
+# workflow_dispatch exists so engine-watch can trigger CI on branches it pushed with
+# GITHUB_TOKEN (events created by GITHUB_TOKEN never trigger `pull_request` runs).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Never try to sign in CI; signing happens only in release.yml.
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        # No `version:` — pnpm/action-setup reads `packageManager` from package.json.
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+
+      - name: Unit tests + coverage
+        run: pnpm coverage
+
+      - name: Upload coverage summary
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage-summary
+          path: coverage/coverage-summary.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Electron runtime libs + xvfb
+        # libasound2 was renamed libasound2t64 on Ubuntu 24.04; try both so the job survives
+        # a runner image bump in either direction.
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1 xvfb
+          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle (electron-vite build)
+        run: pnpm build:bundle
+
+      - name: Playwright _electron
+        # scripts/e2e.mjs wraps the run with `xvfb-run -a` when DISPLAY is unset on Linux.
+        # Playwright `_electron` drives our own Electron binary: no browser download needed.
+        run: pnpm e2e
+        env:
+          SKIP_BUILD: '1'
+
+      - name: Upload e2e artifacts (traces, screenshots, HTML report)
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-artifacts
+          path: apps/desktop/e2e-artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Each entry builds on its native arch so that better-sqlite3 (rebuilt for Electron in
+          # `postinstall`) matches the packaged Electron binary.
+          - name: mac-arm64
+            os: macos-14
+            args: --mac --arm64
+          - name: mac-x64
+            os: macos-15-intel
+            args: --mac --x64
+          - name: win-x64
+            os: windows-latest
+            args: --win --x64
+          - name: linux-x64
+            os: ubuntu-latest
+            args: --linux
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Electron runtime libs (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1
+          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build installers
+        # `pnpm build` = electron-vite build + electron-builder --publish never. Extra args are
+        # appended to the electron-builder invocation and restrict the target/arch.
+        run: pnpm build ${{ matrix.args }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v5
+        with:
+          name: installers-${{ matrix.name }}
+          # File globs only: this skips the *-unpacked/ and mac-*/ directories.
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.yml
+          if-no-files-found: error
+          retention-days: 7

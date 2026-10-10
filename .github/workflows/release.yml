@@ -1,0 +1,212 @@
+# Release — builds signed (when secrets exist) installers for every platform and publishes a
+# GitHub Release carrying the electron-updater metadata (latest-mac.yml, latest.yml,
+# latest-linux.yml).
+#
+# Flow:   tag vX.Y.Z pushed  ─►  verify  ─►  build (4 runners, --publish never)  ─►  publish
+#
+# Why not `electron-builder --publish always` from each runner?  electron-updater on macOS reads a
+# single latest-mac.yml listing BOTH the arm64 and x64 zips. Each runner would upload its own
+# latest-mac.yml and the last one would win, breaking auto-update for the other arch. So every
+# runner uploads its output as a workflow artifact, and the `publish` job merges the two mac
+# metadata files (scripts/merge-latest-mac.mjs) before attaching everything to the release.
+#
+# workflow_dispatch: engine-release.yml falls back to it when the tag was pushed with GITHUB_TOKEN
+# (tags pushed by GITHUB_TOKEN never fire `push` workflows). Run it with `--ref <tag>`.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (vX.Y.Z). Must match --ref.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  verify:
+    name: verify tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Tag must match apps/desktop/package.json version
+        id: v
+        run: |
+          PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "v$PKG_VERSION" != "$TAG" ]; then
+            echo "::error::tag $TAG does not match package version $PKG_VERSION"
+            exit 1
+          fi
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build (${{ matrix.name }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: mac-arm64
+            os: macos-14
+            args: --mac --arm64
+          - name: mac-x64
+            os: macos-15-intel
+            args: --mac --x64
+          - name: win-x64
+            os: windows-latest
+            args: --win --x64
+          - name: linux-x64
+            os: ubuntu-latest
+            args: --linux
+    env:
+      # All optional. electron-builder reads them directly; empty values are treated as unset.
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Electron runtime libs (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1
+          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure signing
+        # Without a certificate electron-builder would otherwise try to auto-discover one in the
+        # runner keychain and fail; with CSC_IDENTITY_AUTO_DISCOVERY=false it produces an unsigned
+        # build. Notarization is only meaningful on a signed build, hence the double condition.
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            if [ -z "$CSC_LINK" ]; then
+              echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+              echo "::notice::CSC_LINK not set — building an UNSIGNED macOS app"
+            elif [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              echo "EB_EXTRA_ARGS=-c.mac.notarize=true" >> "$GITHUB_ENV"
+              echo "::notice::Signing + notarizing macOS app"
+            else
+              echo "::notice::Signing macOS app (no notarization: APPLE_* secrets missing)"
+            fi
+          elif [ "$RUNNER_OS" = "Windows" ] && [ -z "$WIN_CSC_LINK" ]; then
+            echo "::notice::WIN_CSC_LINK not set — building an UNSIGNED Windows installer"
+          fi
+
+      - name: Bundle (electron-vite build)
+        run: pnpm build:bundle
+
+      - name: Package installers
+        # electron-builder auto-discovers ./electron-builder.yml; `-c.key=value` overrides from
+        # the step above are layered on top (mixing `--config <file>` with `-c.key` is fragile).
+        working-directory: apps/desktop
+        shell: bash
+        run: pnpm exec electron-builder --publish never ${{ matrix.args }} $EB_EXTRA_ARGS
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-${{ matrix.name }}
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/*.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish GitHub Release
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: release-*
+          path: dist
+          # Keep one directory per runner: both mac runners produce a latest-mac.yml.
+
+      - name: Assemble assets (merge latest-mac.yml)
+        run: |
+          mkdir -p assets
+          node scripts/merge-latest-mac.mjs assets/latest-mac.yml \
+            dist/release-mac-arm64/latest-mac.yml dist/release-mac-x64/latest-mac.yml
+          find dist -type f ! -name latest-mac.yml -exec cp {} assets/ \;
+          ls -la assets
+
+      - name: Release notes (CHANGELOG section + generated commit list)
+        run: |
+          node scripts/release-notes.mjs "$TAG" > changelog-section.md
+          PREV=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | grep -vx "$TAG" | head -1 || true)
+          if [ -n "$PREV" ]; then
+            gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$TAG" -f previous_tag_name="$PREV" --jq .body > generated.md
+          else
+            gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body > generated.md
+          fi
+          {
+            if [ -s changelog-section.md ]; then
+              echo "## Changelog"; echo; cat changelog-section.md; echo
+            fi
+            cat generated.md
+          } > notes.md
+          cat notes.md
+
+      - name: Create or update draft release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG exists — updating assets"
+            gh release edit "$TAG" --draft=true --notes-file notes.md
+          else
+            gh release create "$TAG" --verify-tag --draft --title "Vela $TAG" --notes-file notes.md
+          fi
+          gh release upload "$TAG" assets/* --clobber
+
+      - name: Publish (undraft)
+        # Only after every asset is attached, so electron-updater never sees a half-uploaded release.
+        run: gh release edit "$TAG" --draft=false --latest
