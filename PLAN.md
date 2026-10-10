@@ -16,25 +16,25 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 1.7 Playwright _electron smoke test + screenshot; vitest wired
 
 ## Phase 2 — Core model (packages/core, no Electron)
-- [ ] 2.1 Types: Space, Tab (today/pinned), Folder (nested), Favorite, Profile, SplitLayout, Archive entry
-- [ ] 2.2 Reducer + actions: spaces CRUD, tabs CRUD, pin/unpin, folders, move/reorder (DnD semantics), favorites
-- [ ] 2.3 Auto-archive policy (12h/24h/7d/30d) + archive search/restore
-- [ ] 2.4 MRU ordering, split layouts (2–4 panes) per space
-- [ ] 2.5 ATC rules matcher (URL pattern → space/profile)
-- [ ] 2.6 Command ranking (fuzzy over tabs/archive/history/favorites/commands) < 30 ms for 10k items
-- [ ] 2.7 Persistence adapters: SQLite schema + versioned migrations (main), JSON prefs
-- [ ] 2.8 Coverage > 85 %
+- [x] 2.1 Types: Space, Tab (today/pinned), Folder (nested), Favorite, Profile, SplitLayout, Archive entry
+- [x] 2.2 Reducer + actions: spaces CRUD, tabs CRUD, pin/unpin, folders, move/reorder (DnD semantics), favorites
+- [x] 2.3 Auto-archive policy (12h/24h/7d/30d) + archive search/restore
+- [x] 2.4 MRU ordering, split layouts (2–4 panes) per space
+- [x] 2.5 ATC rules matcher (URL pattern → space/profile)
+- [x] 2.6 Command ranking (fuzzy over tabs/archive/history/favorites/commands) < 30 ms for 10k items
+- [x] 2.7 Persistence adapters: SQLite schema + versioned migrations (main), JSON prefs
+- [x] 2.8 Coverage > 85 %
 
 ## Phase 3 — Navigation UX
-- [ ] 3.1 Sidebar full: Favorites grid, Pinned (rename, emoji, folders), Today, resize, hide (Cmd/Ctrl+S) + hover reveal, 60 fps
-- [ ] 3.2 Spaces UI: create/edit (name, emoji, theme gradient+grain, light/dark), dots, Ctrl+1..9, trackpad swipe
-- [ ] 3.3 Command bar (Cmd/Ctrl+T, Cmd/Ctrl+L): URL/search/suggestions/fuzzy/commands
-- [ ] 3.4 Tab switcher Ctrl+Tab MRU with previews
-- [ ] 3.5 Shortcuts: Cmd/Ctrl+W, Shift+T, R, zoom, fullscreen, back/forward buttons + gesture, find in page
-- [ ] 3.6 Split view 2–4 panes, resizable, DnD into pane, persisted per space
-- [ ] 3.7 Peek modal for favorites/pinned links + "open as tab"
-- [ ] 3.8 Little Vela: open-url / second-instance → floating window + "send to main → space"
-- [ ] 3.9 Drag & drop everywhere (reorder, folder, favorites, between spaces, into split)
+- [x] 3.1 Sidebar full: Favorites grid, Pinned (rename, emoji, folders), Today, resize, hide (Cmd/Ctrl+S) + hover reveal, 60 fps
+- [x] 3.2 Spaces UI: create/edit (name, emoji, theme gradient+grain, light/dark), dots, Ctrl+1..9, trackpad swipe
+- [x] 3.3 Command bar (Cmd/Ctrl+T, Cmd/Ctrl+L): URL/search/suggestions/fuzzy/commands
+- [x] 3.4 Tab switcher Ctrl+Tab MRU with previews
+- [x] 3.5 Shortcuts: Cmd/Ctrl+W, Shift+T, R, zoom, fullscreen, back/forward buttons + gesture, find in page
+- [x] 3.6 Split view 2–4 panes, resizable, DnD into pane, persisted per space
+- [x] 3.7 Peek modal for favorites/pinned links + "open as tab"
+- [x] 3.8 Little Vela: open-url / second-instance → floating window + "send to main → space"
+- [x] 3.9 Drag & drop everywhere (reorder, folder, favorites, between spaces, into split)
 
 ## Phase 4 — Pages, media, lightness, comfort
 - [ ] 4.1 DevTools, favicons, titles, audio badge + mute, notifications

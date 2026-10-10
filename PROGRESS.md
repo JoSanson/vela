@@ -15,25 +15,25 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 1.7 e2e smoke + screenshot + vitest — 7dda31e
 
 ## Phase 2 — Core model
-- [ ] 2.1 Types
-- [ ] 2.2 Reducer/actions
-- [ ] 2.3 Auto-archive
-- [ ] 2.4 MRU + split layouts
-- [ ] 2.5 ATC matcher
-- [ ] 2.6 Command ranking
-- [ ] 2.7 Persistence + migrations
-- [ ] 2.8 Coverage > 85 %
+- [x] 2.1 Types — aaee214
+- [x] 2.2 Reducer/actions — aaee214
+- [x] 2.3 Auto-archive — aaee214
+- [x] 2.4 MRU + split layouts — aaee214
+- [x] 2.5 ATC matcher — aaee214
+- [x] 2.6 Command ranking — aaee214
+- [x] 2.7 Persistence + migrations — aaee214
+- [x] 2.8 Coverage > 85 % — aaee214
 
 ## Phase 3 — Navigation UX
-- [ ] 3.1 Sidebar full
-- [ ] 3.2 Spaces UI
-- [ ] 3.3 Command bar
-- [ ] 3.4 Tab switcher
-- [ ] 3.5 Shortcuts + find in page
-- [ ] 3.6 Split view
-- [ ] 3.7 Peek
-- [ ] 3.8 Little Vela
-- [ ] 3.9 Drag & drop
+- [x] 3.1 Sidebar full — d7bd570
+- [x] 3.2 Spaces UI — d7bd570
+- [x] 3.3 Command bar — d7bd570
+- [x] 3.4 Tab switcher — d7bd570
+- [x] 3.5 Shortcuts + find in page — d7bd570
+- [x] 3.6 Split view — d7bd570
+- [x] 3.7 Peek — d7bd570
+- [x] 3.8 Little Vela — d7bd570
+- [x] 3.9 Drag & drop — d7bd570
 
 ## Phase 4
 - [ ] 4.1 DevTools/favicons/audio/notifications
