@@ -5,6 +5,7 @@ import type { AppContext } from '../context';
 import { showSidebarMenu } from '../contextMenu';
 import { findInTab, stopFind } from '../find';
 import { fetchSuggestions } from '../suggest';
+import { extractReadable } from '../reader';
 import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
 import { dialog } from 'electron';
@@ -31,7 +32,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
     };
   });
 
-  handle('state/dispatch', 'shell', (action) => {
+  handle('state/dispatch', 'internal', (action) => {
     store.dispatch(action);
     return undefined;
   });
@@ -233,6 +234,20 @@ export function registerCoreHandlers(ctx: AppContext): void {
   handle('boosts/export', 'internal', () => ctx.boosts.exportJson());
   handle('boosts/import', 'internal', ({ json }) => ctx.boosts.importJson(json));
 
+  handle('blocker/stats', 'internal', ({ tabId }) => {
+    const wc = tabs.webContents(tabId);
+    const tab = store.state.tabs[tabId];
+    return ctx.blocker.stats(wc?.getURL() || tab?.url || '', wc?.id);
+  });
+  handle('blocker/setHost', 'internal', ({ host, enabled }) => {
+    ctx.blocker.setHostEnabled(host, enabled);
+    return undefined;
+  });
+  handle('tab/reader', 'internal', async ({ tabId }) => {
+    const wc = tabs.webContents(tabId);
+    return wc ? extractReadable(wc) : null;
+  });
+
   handle('certificate/trust', 'internal', ({ fingerprint }) => {
     tabs.trustedCertificates.add(fingerprint);
     return undefined;
@@ -265,7 +280,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
   handle('app/readFile', 'internal', ({ path }) => readFileSync(path, 'utf8'));
 
-  handle('app/openExternal', 'shell', async ({ url }) => {
+  handle('app/openExternal', 'internal', async ({ url }) => {
     if (/^(https?|mailto):/i.test(url)) await shell.openExternal(url);
     return undefined;
   });

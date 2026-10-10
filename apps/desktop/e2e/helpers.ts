@@ -43,6 +43,15 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       res.end(Buffer.alloc(2 * 1024 * 1024, 7));
       return;
     }
+    if (p === '/ads/banner.png' || p === '/tracker.js') {
+      res.writeHead(200, { 'Content-Type': p.endsWith('.js') ? 'text/javascript' : 'image/svg+xml' });
+      res.end(
+        p.endsWith('.js')
+          ? 'window.__tracked = true;'
+          : '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
+      );
+      return;
+    }
     if (p === '/slow') {
       setTimeout(() => {
         res.writeHead(200, { 'Content-Type': 'text/html' });

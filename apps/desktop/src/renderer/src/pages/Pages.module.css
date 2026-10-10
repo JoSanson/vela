@@ -1,24 +1,54 @@
 .page {
-  min-height: 100%;
-  background: light-dark(#f7f7fa, #141319);
-  color: light-dark(rgba(18, 16, 30, 0.92), rgba(255, 255, 255, 0.92));
+  --p-bg: light-dark(#f7f7fa, #141319);
+  --p-fg: light-dark(rgba(18, 16, 30, 0.92), rgba(255, 255, 255, 0.92));
+  --p-muted: light-dark(rgba(18, 16, 30, 0.6), rgba(255, 255, 255, 0.6));
+  --p-faint: light-dark(rgba(18, 16, 30, 0.4), rgba(255, 255, 255, 0.4));
+  --p-card: light-dark(#ffffff, #1e1d26);
+  --p-border: light-dark(rgba(18, 16, 30, 0.08), rgba(255, 255, 255, 0.1));
+  --p-hover: light-dark(rgba(18, 16, 30, 0.05), rgba(255, 255, 255, 0.06));
+  --p-active: light-dark(rgba(18, 16, 30, 0.09), rgba(255, 255, 255, 0.11));
+  --p-input: light-dark(rgba(18, 16, 30, 0.05), rgba(255, 255, 255, 0.08));
+  --p-accent: light-dark(#4b58d6, #97a0ff);
+  --p-accent-soft: light-dark(rgba(91, 108, 255, 0.13), rgba(151, 160, 255, 0.18));
+  --p-danger: #e5484d;
+  --p-danger-soft: rgba(229, 72, 77, 0.12);
+  --p-success: light-dark(#1f9d6a, #4fd59d);
+  --p-success-soft: rgba(31, 157, 106, 0.14);
+  --p-warning: light-dark(#c47a10, #ffb347);
+  --p-warning-soft: rgba(230, 160, 40, 0.16);
+  --p-primary-bg: light-dark(#1b1a24, #f2f2f7);
+  --p-primary-fg: light-dark(#ffffff, #15141c);
+  --p-shadow: light-dark(
+    0 1px 2px rgba(0, 0, 0, 0.05) 0 12px 32px rgba(0, 0, 0, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.35) 0 12px 32px rgba(0, 0, 0, 0.35)
+  );
+  --p-ring: light-dark(rgba(75, 88, 214, 0.35), rgba(151, 160, 255, 0.45));
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--p-bg);
+  color: var(--p-fg);
   user-select: text;
   cursor: auto;
 }
 
 .center {
-  min-height: 100vh;
+  min-height: 100%;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 32px;
+  overflow: auto;
 }
 
 .card {
   width: min(520px, 100%);
   padding: 32px;
   border-radius: 18px;
-  background: light-dark(#ffffff, #1e1d26);
+  background: var(--p-card);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.05),
     0 16px 48px rgba(0, 0, 0, 0.08);
@@ -48,7 +78,7 @@
 
 .muted {
   margin: 0;
-  color: light-dark(rgba(18, 16, 30, 0.6), rgba(255, 255, 255, 0.6));
+  color: var(--p-muted);
   line-height: 1.5;
   font-size: 14px;
 }
@@ -62,7 +92,7 @@
 }
 
 .dl dt {
-  color: light-dark(rgba(18, 16, 30, 0.5), rgba(255, 255, 255, 0.5));
+  color: var(--p-faint);
 }
 
 .dl dd {
@@ -87,8 +117,8 @@
 }
 
 .primary {
-  background: light-dark(#1b1a24, #f2f2f7);
-  color: light-dark(#fff, #15141c);
+  background: var(--p-primary-bg);
+  color: var(--p-primary-fg);
 }
 
 .secondary {

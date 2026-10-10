@@ -7,6 +7,7 @@ import type { StateRepo } from './db/stateRepo';
 import type { OverlayManager } from './overlay';
 import type { PeekManager } from './peek';
 import type { BoostsManager } from './boosts';
+import type { ContentBlocker } from './blocker';
 import type { DownloadManager } from './downloads';
 import type { FaviconCache } from './favicons';
 import type { PermissionManager } from './permissions';
@@ -33,6 +34,7 @@ export interface AppContext {
   downloads: DownloadManager;
   permissions: PermissionManager;
   boosts: BoostsManager;
+  blocker: ContentBlocker;
   favicons: FaviconCache;
   updater: UpdateManager;
   openLittle: (url: string) => void;

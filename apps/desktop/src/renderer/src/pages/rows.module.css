@@ -1,0 +1,130 @@
+.dayHeader {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding: 0 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--p-faint);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.row:hover,
+.row[data-selected='true'] {
+  background: var(--p-hover);
+}
+
+.row[data-selected='true'] {
+  box-shadow: inset 0 0 0 2px var(--p-ring);
+}
+
+.row:hover .rowActions,
+.row[data-selected='true'] .rowActions,
+.row:focus-within .rowActions {
+  opacity: 1;
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-input);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--p-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--p-faint);
+}
+
+.time {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--p-faint);
+  font-variant-numeric: tabular-nums;
+  width: 56px;
+  text-align: right;
+}
+
+.rowActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.count {
+  font-size: 12px;
+  color: var(--p-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.hintBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 12px 10px;
+  font-size: 12px;
+  color: var(--p-faint);
+}
+
+.hintBar kbd {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--p-input);
+  color: var(--p-muted);
+}

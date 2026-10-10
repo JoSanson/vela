@@ -19,6 +19,7 @@ import { FaviconCache } from './favicons';
 import { DownloadManager } from './downloads';
 import { PermissionManager } from './permissions';
 import { BoostsManager } from './boosts';
+import { ContentBlocker } from './blocker';
 import { UpdateManager } from './updater';
 import { installMaintenance } from './maintenance';
 import { installAutoPip } from './pip';
@@ -31,6 +32,9 @@ import { Store } from './store';
 import { TabManager } from './tabs/tabManager';
 import { WindowManager } from './windows/windowManager';
 
+import pkg from '../../package.json';
+
+const APP_VERSION = (pkg as { version: string }).version;
 const startedAt = Date.now();
 const perf: Record<string, number> = {
   processStart: startedAt - Math.round(process.uptime() * 1000),
@@ -39,6 +43,9 @@ const perf: Record<string, number> = {
 
 if (process.env.VELA_USER_DATA) app.setPath('userData', process.env.VELA_USER_DATA);
 app.setName('Vela');
+// Lets the main process release full-resolution capture bitmaps right after thumbnails are made
+// (see TabManager.snapshot); only affects main-process JS, renderers are untouched.
+app.commandLine.appendSwitch('js-flags', '--expose-gc');
 app.setAppUserModelId('app.vela.browser');
 registerInternalScheme();
 
@@ -120,6 +127,7 @@ async function boot(): Promise<void> {
     return undefined;
   });
   const boosts = new BoostsManager(new BoostsRepo(db));
+  const blocker = new ContentBlocker(prefs, userData);
   const rendererDir = join(__dirname, '../renderer');
   const devUrl = process.env.ELECTRON_RENDERER_URL;
 
@@ -137,6 +145,7 @@ async function boot(): Promise<void> {
     downloads,
     permissions,
     boosts,
+    blocker,
     favicons,
     updater: new UpdateManager({ windows, prefs, overlay }),
     perf,
@@ -145,7 +154,7 @@ async function boot(): Promise<void> {
       const w = new LittleWindow({ tabs, history, store, windows }, url, theme?.from ?? '#1b1b22');
       windows.registerLittle(w);
     },
-    version: app.getVersion(),
+    version: app.isPackaged ? app.getVersion() : APP_VERSION,
     isDev: !!devUrl,
     userData,
   };
@@ -153,6 +162,7 @@ async function boot(): Promise<void> {
   if (process.env.VELA_E2E) {
     const { detectSources, runImport } = await import('./importer');
     const exporter = await import('./exporter');
+    const reader = await import('./reader');
     const core = await import('@vela/core');
     (globalThis as Record<string, unknown>).__vela = {
       core,
@@ -161,6 +171,7 @@ async function boot(): Promise<void> {
         runImport: (s: 'chrome' | 'brave' | 'edge', b: boolean, h: boolean) => runImport(c, s, b, h),
       },
       exporter,
+      reader,
       sweep: () => sweepers?.sleepNow(),
       ctx: c,
       runCommand: (id: string, payload?: unknown) => runCommand(c, id, payload),
@@ -172,11 +183,16 @@ async function boot(): Promise<void> {
     installInternalProtocol(ses, rendererDir, devUrl, serveFavicon);
     hardenSession(ses);
     downloads.attach(ses);
+    blocker.attach(ses);
   });
+  void blocker.init();
   installInternalProtocol(sessions.get('persist:default'), rendererDir, devUrl, serveFavicon);
   installInternalProtocol(session.defaultSession, rendererDir, devUrl, serveFavicon);
   setPermissionDecider((origin, permission, wcId) => permissions.decide(origin, permission, wcId));
-  tabs.onViewCreated((_id, wc) => boosts.attach(wc));
+  tabs.onViewCreated((_id, wc) => {
+    boosts.attach(wc);
+    wc.on('did-navigate', () => blocker.resetTab(wc.id));
+  });
   overlay.onHide(() => permissions.dismissAll());
   installAppSecurity(c);
   installPageContextMenu(c);
@@ -190,13 +206,20 @@ async function boot(): Promise<void> {
   const mw = await windows.createMain(theme?.from ?? '#1b1b22');
   registerCoreHandlers(c);
   const shellWc = mw.win.webContents;
+  const internalPages = (): Electron.WebContents[] =>
+    tabs
+      .liveTabIds()
+      .map((id) => tabs.webContents(id))
+      .filter((wc): wc is Electron.WebContents => !!wc && wc.getURL().startsWith('vela://'));
   store.subscribe((next) => {
     emit(shellWc, 'state/changed', next);
     if (overlay.view) emit(overlay.view.webContents, 'state/changed', next);
+    for (const wc of internalPages()) emit(wc, 'state/changed', next);
   });
   prefs.subscribe((p) => {
     emit(shellWc, 'prefs/changed', p);
     if (overlay.view) emit(overlay.view.webContents, 'prefs/changed', p);
+    for (const wc of internalPages()) emit(wc, 'prefs/changed', p);
   });
 
   mw.win.once('ready-to-show', () => {

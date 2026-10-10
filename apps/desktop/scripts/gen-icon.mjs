@@ -36,15 +36,20 @@ app.whenReady().then(async () => {
     transparent: true,
     webPreferences: { offscreen: true },
   });
-  await win.loadURL(`data:text/html,<body style="margin:0;background:transparent">${encodeURIComponent(svg)}</body>`);
+  await win.loadURL(
+    `data:text/html,<body style="margin:0;background:transparent">${encodeURIComponent(svg)}</body>`,
+  );
   await new Promise((r) => setTimeout(r, 300));
   const image = await win.webContents.capturePage({ x: 0, y: 0, width: 1024, height: 1024 });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'icon.png'), image.toPNG());
   mkdirSync(join(out, 'icons'), { recursive: true });
   for (const size of [16, 32, 48, 64, 128, 256, 512, 1024]) {
-    writeFileSync(join(out, 'icons', `${size}x${size}.png`), image.resize({ width: size, height: size }).toPNG());
+    writeFileSync(
+      join(out, 'icons', `${size}x${size}.png`),
+      image.resize({ width: size, height: size }).toPNG(),
+    );
   }
-  console.log('icon written to', out);
+  process.stdout.write(`icon written to ${out}\n`);
   app.exit(0);
 });

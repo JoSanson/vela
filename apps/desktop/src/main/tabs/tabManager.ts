@@ -206,6 +206,7 @@ export class TabManager {
     this.detach(id);
     this.views.delete(id);
     this.previews.delete(id);
+    this.previewAt.delete(id);
     if (!view.webContents.isDestroyed()) view.webContents.close();
     if (this.htmlFullscreenTab === id) this.htmlFullscreenTab = null;
   }
@@ -500,7 +501,7 @@ export class TabManager {
   async sleep(tabId: Id): Promise<void> {
     const wc = this.webContents(tabId);
     const tab = this.state.tabs[tabId];
-    if (!wc || !tab || tab.sleeping) return;
+    if (!wc || !tab || tab.sleeping || visibleTabIds(this.state).includes(tabId)) return;
     const scrollY = await Promise.race([
       wc.executeJavaScript('window.scrollY', false) as Promise<number>,
       new Promise<number>((r) => setTimeout(() => r(0), 300)),
@@ -523,11 +524,24 @@ export class TabManager {
   }
 
   private readonly previews = new Map<Id, string>();
+  private readonly previewAt = new Map<Id, number>();
+  private gcTimer: NodeJS.Timeout | null = null;
+
+  /** Full-res `capturePage` bitmaps (~24 MB at 2x) linger until V8 collects them; nudge it. */
+  private scheduleGc(): void {
+    if (this.gcTimer) return;
+    this.gcTimer = setTimeout(() => {
+      this.gcTimer = null;
+      (globalThis as { gc?: () => void }).gc?.();
+    }, 500);
+  }
 
   /** Stores a small thumbnail of a currently attached view (used by the switcher). */
   private async snapshot(tabId: Id): Promise<void> {
     const wc = this.webContents(tabId);
     if (!wc || !this.attached.includes(tabId) || wc.isLoading()) return;
+    if (Date.now() - (this.previewAt.get(tabId) ?? 0) < 2000) return;
+    this.previewAt.set(tabId, Date.now());
     try {
       const img = await Promise.race([
         wc.capturePage(),
@@ -542,6 +556,8 @@ export class TabManager {
       );
     } catch {
       /* not paintable */
+    } finally {
+      this.scheduleGc();
     }
   }
 
