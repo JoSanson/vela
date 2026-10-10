@@ -3,7 +3,7 @@ import { dialog, type Extension, type Session } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PrefsStore } from './prefs';
-import type { SessionManager } from './sessions';
+import { DEFAULT_PARTITION, type SessionManager } from './sessions';
 
 /**
  * Unpacked Chrome extensions (MV3 subset supported by Electron, see docs/EXTENSIONS.md).
@@ -11,19 +11,25 @@ import type { SessionManager } from './sessions';
  */
 export class ExtensionManager {
   private loaded = new Map<string, { path: string; byPartition: Map<string, Extension> }>();
+  /** Remembered folders not yet loaded anywhere (tab sessions are created lazily). */
+  private pending = new Set<string>();
 
   constructor(
     private readonly prefs: PrefsStore,
     private readonly sessions: SessionManager,
   ) {
     sessions.addConfigurator((ses, partition) => {
-      for (const [, entry] of this.loaded) void this.loadInto(ses, partition, entry.path);
+      const paths = new Set<string>([...this.pending, ...[...this.loaded.values()].map((e) => e.path)]);
+      this.pending.clear();
+      for (const p of paths) void this.loadInto(ses, partition, p);
     });
   }
 
   async init(): Promise<void> {
     for (const p of this.prefs.value.extensionPaths) {
-      if (existsSync(join(p, 'manifest.json'))) await this.load(p, false);
+      if (!existsSync(join(p, 'manifest.json'))) continue;
+      if (this.sessions.allPartitions().length === 0) this.pending.add(p);
+      else await this.load(p, false);
     }
   }
 
@@ -56,6 +62,7 @@ export class ExtensionManager {
 
   async load(path: string, remember = true): Promise<ExtensionInfo | null> {
     if (!existsSync(join(path, 'manifest.json'))) return null;
+    if (this.sessions.allPartitions().length === 0) this.sessions.get(DEFAULT_PARTITION);
     let first: Extension | null = null;
     for (const partition of this.sessions.allPartitions()) {
       const ext = await this.loadInto(this.sessions.get(partition), partition, path);

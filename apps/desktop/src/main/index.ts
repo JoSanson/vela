@@ -198,9 +198,8 @@ async function boot(): Promise<void> {
     downloads.attach(ses);
     blocker.attach(ses);
   });
-  void blocker.init();
+  if (process.env.VELA_BLOCKER_FILTERS) void blocker.ensureLoaded();
   void extensions.init();
-  installInternalProtocol(sessions.get('persist:default'), rendererDir, devUrl, serveFavicon);
   installInternalProtocol(session.defaultSession, rendererDir, devUrl, serveFavicon);
   hardenSession(session.defaultSession);
   setPermissionDecider((origin, permission, wcId) => permissions.decide(origin, permission, wcId));

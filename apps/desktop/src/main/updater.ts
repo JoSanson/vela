@@ -1,6 +1,6 @@
 import type { UpdateStatus } from '@vela/shared';
 import { app } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import type { AppUpdater } from 'electron-updater';
 import type { AppContext } from './context';
 import { emit } from './ipc/typed';
 
@@ -11,7 +11,15 @@ export class UpdateManager {
   private timer: NodeJS.Timeout | null = null;
   private enabled = app.isPackaged || !!process.env.VELA_UPDATE_URL;
 
-  constructor(private readonly ctx: Pick<AppContext, 'windows' | 'prefs' | 'overlay'>) {
+  private updater: AppUpdater | null = null;
+
+  constructor(private readonly ctx: Pick<AppContext, 'windows' | 'prefs' | 'overlay'>) {}
+
+  /** electron-updater (and its fs-extra/js-yaml graph) is only loaded on the first check. */
+  private async load(): Promise<AppUpdater> {
+    if (this.updater) return this.updater;
+    const { autoUpdater } = await import('electron-updater');
+    this.updater = autoUpdater;
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.allowPrerelease = false;
@@ -42,6 +50,7 @@ export class UpdateManager {
       else this.ctx.overlay.show('updateNotes', payload);
     });
     autoUpdater.on('error', (err) => this.set({ state: 'error', error: err.message }));
+    return autoUpdater;
   }
 
   start(): void {
@@ -60,7 +69,8 @@ export class UpdateManager {
       return this.status;
     }
     try {
-      await autoUpdater.checkForUpdates();
+      const updater = await this.load();
+      await updater.checkForUpdates();
     } catch (err) {
       this.set({ state: 'error', error: err instanceof Error ? err.message : String(err) });
     }
@@ -68,7 +78,7 @@ export class UpdateManager {
   }
 
   install(): void {
-    if (this.status.state === 'downloaded') autoUpdater.quitAndInstall(true, true);
+    if (this.status.state === 'downloaded') this.updater?.quitAndInstall(true, true);
   }
 
   private set(patch: Partial<UpdateStatus>): void {

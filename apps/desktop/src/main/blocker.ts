@@ -131,9 +131,18 @@ export class ContentBlocker {
     if (tab !== undefined) this.blockedByTab.set(tab, (this.blockedByTab.get(tab) ?? 0) + 1);
   }
 
+  private initPromise: Promise<void> | null = null;
+
+  /** Idle shells (no tab yet) do not pay for the engine: it loads with the first tab session. */
+  ensureLoaded(): Promise<void> {
+    this.initPromise ??= this.init();
+    return this.initPromise;
+  }
+
   attach(ses: Session): void {
     this.sessions.add(ses);
     if (this.engine) this.apply(ses);
+    else void this.ensureLoaded();
   }
 
   /**

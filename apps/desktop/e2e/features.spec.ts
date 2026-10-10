@@ -460,10 +460,14 @@ test.describe('review fixes', () => {
     );
     const page = await vela.tabPage('/page/ProfileTab');
     await expect(page.getByTestId('heading')).toHaveText('ProfileTab');
-    const wired = await evalMain<boolean>(
-      vela,
-      'return __vela.ctx.blocker.engine !== null && __vela.ctx.sessions.allPartitions().length === 2',
-    );
-    expect(wired).toBe(true);
+    // The engine loads lazily with the first tab session; both sessions must end up wired.
+    await expect
+      .poll(() =>
+        evalMain<boolean>(
+          vela,
+          "return __vela.ctx.blocker.status === 'ready' && __vela.ctx.sessions.allPartitions().includes('persist:profile-p-blocked')",
+        ),
+      )
+      .toBe(true);
   });
 });

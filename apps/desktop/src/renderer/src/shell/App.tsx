@@ -1,5 +1,4 @@
 import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH, shortcutForEvent } from '@vela/shared';
-import { animate } from 'motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
@@ -13,6 +12,25 @@ import { TopBar } from './TopBar';
 import styles from './App.module.css';
 
 const HIDE_DURATION = 0.22;
+
+/** cubic-bezier(0.22, 1, 0.36, 1) sampled by t — close enough for a 220 ms slide. */
+const easeOutQuint = (t: number): number => 1 - Math.pow(1 - t, 5);
+
+function tween(
+  from: number,
+  to: number,
+  ms: number,
+  cb: { onUpdate: (v: number) => void; onComplete: () => void },
+): void {
+  const start = performance.now();
+  const frame = (now: number): void => {
+    const t = Math.min(1, (now - start) / ms);
+    cb.onUpdate(from + (to - from) * easeOutQuint(t));
+    if (t < 1) requestAnimationFrame(frame);
+    else cb.onComplete();
+  };
+  requestAnimationFrame(frame);
+}
 
 export function App() {
   const ready = useShell((s) => s.ready);
@@ -73,9 +91,7 @@ export function App() {
     if (show) setSidebarVisible(true);
     const from = show ? -width : 0;
     const to = show ? 0 : -width;
-    animate(from, to, {
-      duration: HIDE_DURATION,
-      ease: [0.22, 1, 0.36, 1],
+    tween(from, to, HIDE_DURATION * 1000, {
       onUpdate: (x) => {
         el.style.transform = `translateX(${x}px)`;
         vela.send('layout/set', {
