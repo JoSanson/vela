@@ -41,7 +41,6 @@ export function SpaceBar() {
         data-testid="space-name"
         data-private={isPrivate ? 'true' : undefined}
       >
-        <span aria-hidden="true">{active?.emoji}</span>
         <span className={styles.label}>{active?.name}</span>
         {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
       </button>

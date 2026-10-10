@@ -172,6 +172,17 @@ async function boot(): Promise<void> {
   tabs.faviconResolver = (ses, pageUrl, iconUrl) => favicons.cache(ses, pageUrl, iconUrl);
   const downloads = new DownloadManager(new DownloadsRepo(db));
   downloads.prefs = prefs;
+  downloads.onStarted = (wc, filename) => {
+    const id = tabIdOfWc(wc.id);
+    // A navigation that became a download leaves an empty tab behind: close it, keep the user's page.
+    if (id && !wc.getURL() && Object.keys(store.state.tabs).length > 1)
+      store.dispatch({ type: 'tab/close', id, now: Date.now() });
+    const target = shellWcNow();
+    if (target) {
+      emit(target, 'ui/command', { id: 'showDownloads' });
+      emit(target, 'ui/command', { id: 'toast', payload: { text: `Downloading ${filename}` } });
+    }
+  };
   downloads.retry = (url) => {
     const wc = tabs.webContents(tabs.activeTabId() ?? '') ?? windows.main?.win.webContents;
     wc?.downloadURL(url);
@@ -192,7 +203,7 @@ async function boot(): Promise<void> {
     return undefined;
   };
   const permissions = new PermissionManager(new PermissionsRepo(db), overlay, tabIdOfWc);
-  const auth = new AuthManager(overlay, tabIdOfWc);
+  const auth = new AuthManager(overlay, tabIdOfWc, tabs.authPending);
   const external = new ExternalLinkManager(overlay, prefs);
   tabs.onExternalScheme = (tabId, url) => external.request(tabId, url);
   const boosts = new BoostsManager(new BoostsRepo(db));
@@ -336,6 +347,13 @@ async function boot(): Promise<void> {
     }
   });
   prefs.subscribe((p) => {
+    if (p.onboardingDone) {
+      for (const t of Object.values(store.state.tabs))
+        if (t.url.startsWith('vela://onboarding')) {
+          // The welcome page closes itself a beat after "Start browsing" (the page shows its success state first).
+          setTimeout(() => store.dispatch({ type: 'tab/close', id: t.id, now: Date.now() }), 1500);
+        }
+    }
     const target = shellWcNow();
     if (target) emit(target, 'prefs/changed', p);
     if (overlay.view) emit(overlay.view.webContents, 'prefs/changed', p);

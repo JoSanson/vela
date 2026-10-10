@@ -84,6 +84,9 @@ export function OverlayApp() {
       {view.kind === 'authPrompt' && <AuthPromptView initial={view.payload as AuthPrompt} />}
       {view.kind === 'externalPrompt' && <ExternalPromptView initial={view.payload as ExternalPrompt} />}
       {view.kind === 'updateNotes' && <UpdateNotes payload={view.payload as UpdateNotesPayload} />}
+      {view.kind === 'toast' && (
+        <OverlayToast text={String((view.payload as { text?: string } | null)?.text ?? '')} />
+      )}
       {view.kind === 'sidebar' && (
         <div
           className={styles.floatingSidebar}
@@ -98,6 +101,20 @@ export function OverlayApp() {
           <Sidebar width={sidebarWidth} onToggle={hide} floating />
         </div>
       )}
+    </div>
+  );
+}
+
+function OverlayToast({ text }: { text: string }) {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (useShell.getState().overlay.kind === 'toast') void invoke('overlay/hide', undefined);
+    }, 2600);
+    return () => clearTimeout(t);
+  }, [text]);
+  return (
+    <div className={styles.toast} role="status" data-testid="overlay-toast">
+      {text}
     </div>
   );
 }

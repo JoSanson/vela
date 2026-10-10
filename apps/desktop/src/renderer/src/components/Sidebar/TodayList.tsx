@@ -1,6 +1,6 @@
 import { todayTabs } from '@vela/core';
 import { useMemo, type PointerEvent } from 'react';
-import { invoke, modKey } from '../../lib/api';
+import { dispatch, invoke, modKey } from '../../lib/api';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import { useFlip } from '../useFlip';
@@ -22,14 +22,23 @@ export function TodayList({ onDragStart }: Props) {
   const tabs = todayTabs(core, space.id);
   const hasPinned = space.pinned.length > 0;
   const clearAll = (): void => {
-    const n = tabs.length;
+    const closed = tabs.map((t) => ({
+      ...t,
+      loaded: false,
+      loading: false,
+      audible: false,
+      sleeping: false,
+    }));
+    const wasActive = space.activeTabId;
     for (const t of tabs) void invoke('tab/close', { tabId: t.id });
     useShell.getState().showToast({
-      text: `Closed ${n} tab${n > 1 ? 's' : ''}`,
+      text: `Closed ${closed.length} tab${closed.length > 1 ? 's' : ''}`,
       action: {
         label: 'Undo',
         run: () => {
-          for (let i = 0; i < n; i++) void invoke('tab/reopenClosed', undefined);
+          // Re-open the very same tabs (internal pages included), in their original order.
+          for (const t of [...closed].reverse()) dispatch({ type: 'tab/open', tab: t, activate: false });
+          if (wasActive) dispatch({ type: 'tab/activate', id: wasActive, now: Date.now() });
         },
       },
     });

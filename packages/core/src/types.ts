@@ -63,6 +63,8 @@ export interface Tab {
   loaded: boolean;
   zoom: number;
   scrollY: number;
+  /** The current page loaded only because the user bypassed a certificate error. */
+  certWarning?: boolean;
 }
 
 export interface SplitLayout {

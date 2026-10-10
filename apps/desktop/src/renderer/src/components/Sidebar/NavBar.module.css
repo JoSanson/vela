@@ -76,6 +76,17 @@
   color: var(--fg);
 }
 
+.zoom {
+  flex: 0 0 auto;
+  margin-right: 24px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--space-from) 16%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .lock {
   color: var(--fg-muted);
   flex: 0 0 auto;
@@ -83,6 +94,10 @@
 
 .lockOk {
   color: var(--ok);
+}
+
+.lockBad {
+  color: var(--danger);
 }
 
 .site {

@@ -217,6 +217,28 @@ export class TabManager {
     return https;
   }
 
+  private readonly certBypassed = new Set<number>();
+  private readonly lastRecorded = new Map<number, string>();
+  /** WebContents that committed at least one navigation. */
+  private readonly committed = new Set<number>();
+  /** WebContents blocked on an HTTP auth challenge (set by AuthManager). */
+  readonly authPending = new Set<number>();
+
+  /**
+   * capturePage() on a WebContents that never committed, or whose navigation is parked on an
+   * HTTP auth challenge, kills the browser process (Electron 44 / Chromium 152, reproduced).
+   */
+  canCapture(wc: WebContents): boolean {
+    return (
+      !wc.isDestroyed() && this.committed.has(wc.id) && !this.authPending.has(wc.id) && wc.getURL() !== ''
+    );
+  }
+
+  /** Called from the certificate-error handler when a user-trusted certificate was accepted. */
+  markCertBypass(wcId: number): void {
+    this.certBypassed.add(wcId);
+  }
+
   /** Returns the original http:// URL when `url` was an automatic upgrade that just failed. */
   fallbackFor(url: string): string | null {
     const original = this.upgraded.get(url);
@@ -266,7 +288,12 @@ export class TabManager {
     this.views.delete(id);
     this.previews.delete(id);
     this.previewAt.delete(id);
-    if (!view.webContents.isDestroyed()) view.webContents.close();
+    if (!view.webContents.isDestroyed()) {
+      this.committed.delete(view.webContents.id);
+      this.authPending.delete(view.webContents.id);
+      this.lastRecorded.delete(view.webContents.id);
+      view.webContents.close();
+    }
     if (this.htmlFullscreenTab === id) this.htmlFullscreenTab = null;
   }
 
@@ -350,7 +377,10 @@ export class TabManager {
     });
     wc.on('did-start-loading', () => this.patch(id, { loading: true }));
     wc.on('did-stop-loading', () => this.patch(id, { loading: false, ...nav() }));
-    wc.on('did-navigate', (_e, url) => {
+    wc.on('did-navigate', (_e, navigated) => {
+      this.committed.add(wc.id);
+      // Chromium reports the inner URL for view-source: documents; keep what the tab really shows.
+      const url = wc.getURL().startsWith('view-source:') ? wc.getURL() : navigated;
       // Error pages are transient: the tab keeps the URL it was trying to reach (restore retries it).
       if (url.startsWith('vela://error/')) {
         this.patch(id, nav());
@@ -359,13 +389,22 @@ export class TabManager {
       // Chromium zoom is per host within a session: apply the remembered level and mirror the real one.
       const stored = this.deps.prefs.value.zoomByHost[hostKey(url)];
       if (stored !== undefined && Math.abs(wc.getZoomFactor() - stored) > 0.001) wc.setZoomFactor(stored);
-      this.patch(id, { url, zoom: Math.round(wc.getZoomFactor() * 100) / 100, ...nav() });
-      if (!this.isPrivate(id)) this.deps.history.recordVisit(url, wc.getTitle());
+      const certWarning = this.certBypassed.delete(wc.id);
+      this.patch(id, { url, certWarning, zoom: Math.round(wc.getZoomFactor() * 100) / 100, ...nav() });
+      if (!this.isPrivate(id)) {
+        this.deps.history.recordVisit(url, wc.getTitle());
+        this.lastRecorded.set(wc.id, url.split('#')[0] ?? url);
+      }
     });
     wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
       if (!isMainFrame) return;
       this.patch(id, { url, ...nav() });
-      if (!this.isPrivate(id)) this.deps.history.recordVisit(url, wc.getTitle());
+      // pushState/replaceState storms (GitHub, Twitter) must not inflate visit counts.
+      const key = url.split('#')[0] ?? url;
+      if (!this.isPrivate(id) && this.lastRecorded.get(wc.id) !== key) {
+        this.lastRecorded.set(wc.id, key);
+        this.deps.history.recordVisit(url, wc.getTitle());
+      }
     });
     wc.on('page-title-updated', (_e, title) => {
       if (wc.getURL().startsWith('vela://error/')) return;
@@ -503,6 +542,20 @@ export class TabManager {
     const state = this.state;
     const kind: TabKind = req.kind ?? 'today';
     let spaceId = req.spaceId && state.spaces[req.spaceId] ? req.spaceId : state.activeSpaceId;
+    // Settings, history… exist once per space: a second ⌘, focuses the open page.
+    if (url.startsWith('vela://') && kind === 'today') {
+      const want = url.split('#')[0] ?? url;
+      const existing = Object.values(state.tabs).find(
+        (t) => t.spaceId === spaceId && (t.url.split('#')[0] ?? t.url) === want,
+      );
+      if (existing) {
+        if (req.activate ?? true)
+          this.deps.store.dispatch({ type: 'tab/activate', id: existing.id, now: Date.now() });
+        const wc = this.webContents(existing.id);
+        if (wc && wc.getURL() !== url) void wc.loadURL(url).catch(() => undefined);
+        return existing.id;
+      }
+    }
     if (!req.noAtc && kind === 'today') {
       const routed = matchAtc(state.atcRules, url);
       if (routed && state.spaces[routed]) spaceId = routed;
@@ -696,7 +749,7 @@ export class TabManager {
   /** Stores a small thumbnail of a currently attached view (used by the switcher). */
   private async snapshot(tabId: Id): Promise<void> {
     const wc = this.webContents(tabId);
-    if (!wc || !this.attached.includes(tabId) || wc.isLoading()) return;
+    if (!wc || !this.attached.includes(tabId) || wc.isLoading() || !this.canCapture(wc)) return;
     if (Date.now() - (this.previewAt.get(tabId) ?? 0) < 2000) return;
     this.previewAt.set(tabId, Date.now());
     try {
@@ -720,7 +773,7 @@ export class TabManager {
 
   async capture(tabId: Id, width: number): Promise<string | null> {
     const wc = this.webContents(tabId);
-    if (wc && this.attached.includes(tabId)) {
+    if (wc && this.attached.includes(tabId) && this.canCapture(wc)) {
       try {
         const img = await wc.capturePage();
         if (!img.isEmpty()) {

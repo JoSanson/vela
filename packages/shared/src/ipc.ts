@@ -350,6 +350,7 @@ export type OverlayKind =
   | 'permissionPrompt'
   | 'authPrompt'
   | 'externalPrompt'
+  | 'toast'
   | 'siteControl'
   | 'updateNotes'
   | 'none';

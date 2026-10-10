@@ -130,6 +130,8 @@ export function App() {
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
       if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
+      if (id === 'showDownloads') setDownloadsOpen(true);
+      if (id === 'editSpace') void invoke('overlay/show', { kind: 'spaceEditor', payload });
       if (id === 'toast') {
         const p = payload as
           | {
@@ -168,9 +170,11 @@ export function App() {
   }, [showToast]);
   useEffect(() => {
     if (!toast) return;
+    // Sidebar hidden: the shell is fully covered by the page view, so the overlay shows the toast.
+    if (!sidebarVisible) void invoke('overlay/show', { kind: 'toast', payload: { text: toast.text } });
     const t = setTimeout(() => showToast(null), toast.action ? 5000 : 2600);
     return () => clearTimeout(t);
-  }, [toast, showToast]);
+  }, [toast, showToast, sidebarVisible]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -270,8 +274,13 @@ export function App() {
         </main>
       </div>
       <SplitHandles />
-      {toast && (
-        <div className={styles.toast} role="status" data-testid="toast">
+      {toast && sidebarVisible && (
+        <div
+          className={styles.toast}
+          role="status"
+          data-testid="toast"
+          style={{ '--sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+        >
           <span>{toast.text}</span>
           {toast.action && (
             <button

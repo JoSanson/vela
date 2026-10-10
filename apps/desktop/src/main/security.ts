@@ -127,6 +127,7 @@ export function installAppSecurity(ctx: AppContext): void {
   app.on('certificate-error', (event, wc, url, error, certificate, callback) => {
     if (ctx.tabs.trustedCertificates.has(certificate.fingerprint)) {
       event.preventDefault();
+      ctx.tabs.markCertBypass(wc.id);
       callback(true);
       return;
     }

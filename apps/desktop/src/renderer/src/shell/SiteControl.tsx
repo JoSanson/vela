@@ -16,7 +16,7 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
   const [boosts, setBoosts] = useState<Boost[]>([]);
   const host = hostOf(tab.url);
   const origin = originOf(tab.url);
-  const secure = tab.url.startsWith('https://') || tab.url.startsWith('vela://');
+  const secure = !tab.certWarning && (tab.url.startsWith('https://') || tab.url.startsWith('vela://'));
   const space = tab.spaceId ? core.spaces[tab.spaceId] : core.spaces[core.activeSpaceId];
   const profile = space?.profileId ? core.profiles[space.profileId] : null;
 
@@ -80,7 +80,13 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
           <div className={styles.host}>{host || prettyUrl(tab.url)}</div>
           <div className={`${styles.secure} ${secure ? '' : styles.insecure}`}>
             <Icon name="shield" size={11} />
-            {tab.url.startsWith('vela://') ? 'Vela page' : secure ? 'Connection is secure' : 'Not secure'}
+            {tab.url.startsWith('vela://')
+              ? 'Vela page'
+              : tab.certWarning
+                ? 'Certificate not trusted'
+                : secure
+                  ? 'Connection is secure'
+                  : 'Not secure'}
           </div>
         </div>
       </div>

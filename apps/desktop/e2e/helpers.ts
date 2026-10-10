@@ -295,6 +295,20 @@ export async function launchVela(
           getBounds: () => Electron.Rectangle;
         };
         if (!v.webContents || v.webContents.isDestroyed()) continue;
+        // Same rule as TabManager.canCapture: an uncommitted / auth-blocked view must not be captured.
+        const g = globalThis as unknown as {
+          __vela?: {
+            ctx: {
+              tabs: {
+                canCapture: (wc: Electron.WebContents) => boolean;
+                tabIdOf: (wc: Electron.WebContents) => string | undefined;
+              };
+            };
+          };
+        };
+        const tabs = g.__vela?.ctx.tabs;
+        if (tabs?.tabIdOf(v.webContents) && !tabs.canCapture(v.webContents)) continue;
+        if (v.webContents.getURL() === '') continue;
         try {
           const img = await v.webContents.capturePage();
           out.push({ dataUrl: img.toDataURL(), bounds: v.getBounds() });
@@ -328,7 +342,8 @@ export async function launchVela(
   };
   const close = async (): Promise<void> => {
     await app.close().catch(() => undefined);
-    rmSync(userData, { recursive: true, force: true });
+    // Only a directory this launch created is removed; explicit ones belong to the test (relaunches).
+    if (!opts.userData) rmSync(userData, { recursive: true, force: true });
   };
   return {
     app,

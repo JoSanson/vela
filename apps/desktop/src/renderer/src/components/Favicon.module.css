@@ -13,6 +13,12 @@
   object-fit: contain;
 }
 
+/* Dark sidebars: black-on-transparent icons (GitHub…) would vanish without a light plate. */
+:root[data-mode='dark'] .img {
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1px;
+}
+
 .badge {
   background: var(--surface);
   color: var(--fg-muted);

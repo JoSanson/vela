@@ -21,6 +21,7 @@ export class AuthManager {
   constructor(
     private readonly overlay: OverlayManager,
     private readonly tabIdOf: (wcId: number) => string | undefined,
+    private readonly pending: Set<number>,
   ) {}
 
   install(): void {
@@ -29,6 +30,7 @@ export class AuthManager {
       if (!wc || !tabId) return;
       event.preventDefault();
       const target = webContents.fromId(wc.id);
+      this.pending.add(wc.id);
       const abort = (): void => this.abandon(pending);
       const pending: Pending = {
         prompt: {
@@ -39,6 +41,7 @@ export class AuthManager {
           isProxy: authInfo.isProxy,
         },
         resolve: (u, p) => {
+          this.pending.delete(wc.id);
           target?.off('did-navigate', abort);
           target?.off('destroyed', abort);
           if (u === null || p === null) callback();

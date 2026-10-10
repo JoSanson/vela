@@ -114,7 +114,7 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       });
       store.dispatch({ type: 'space/create', space: sp });
       store.dispatch({ type: 'space/activate', id: sp.id, now });
-      toShell('editSpace', { spaceId: sp.id });
+      overlay.show('spaceEditor', { spaceId: sp.id });
       return;
     }
     case 'archiveView':

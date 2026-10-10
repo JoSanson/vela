@@ -600,41 +600,45 @@ test.describe('daily-driver compatibility', () => {
   });
 
   test('a private space keeps cookies in memory, records no history and drops its tabs on restart', async ({
-    vela,
     fixtures,
   }) => {
-    await evalMain(
-      vela,
-      `const { createProfile, createSpace } = __vela.core;
-       const p = createProfile('Private', '#333333', 'p-private', true);
-       __vela.ctx.store.dispatch({ type: 'profile/create', profile: p });
-       const s = createSpace({ id: 's-private', name: 'Private', profileId: p.id });
-       __vela.ctx.store.dispatch({ type: 'space/create', space: s });
-       __vela.ctx.store.dispatch({ type: 'space/activate', id: s.id, now: Date.now() });
-       __vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/Secret`)}, spaceId: s.id, noAtc: true });`,
-    );
-    const page = await vela.tabPage('/page/Secret');
-    await page.evaluate(() => {
-      document.cookie = 'vela_private=1; path=/';
-    });
-    await expect(vela.shell.getByTestId('space-name')).toHaveAttribute('data-private', 'true');
-    await vela.shot('71-private-space');
-    const partitions = await evalMain<string[]>(vela, 'return __vela.ctx.sessions.allPartitions()');
-    expect(partitions).toContain('private-p-private');
-    const history = await evalMain<{ url: string }[]>(
-      vela,
-      "return __vela.ctx.history.search({ query: 'Secret', limit: 10 })",
-    );
-    expect(history.filter((h) => h.url.includes('/page/Secret'))).toEqual([]);
-    const stored = await evalMain<string | null>(
-      vela,
-      "return __vela.ctx.sessions.get('private-p-private').storagePath",
-    );
-    expect(stored).toBeNull();
+    const userData = mkdtempSync(join(tmpdir(), 'vela-private-'));
+    const vela = await launchVela({ fixtures, userData });
+    try {
+      await evalMain(
+        vela,
+        `const { createProfile, createSpace } = __vela.core;
+         const p = createProfile('Private', '#333333', 'p-private', true);
+         __vela.ctx.store.dispatch({ type: 'profile/create', profile: p });
+         const s = createSpace({ id: 's-private', name: 'Private', profileId: p.id });
+         __vela.ctx.store.dispatch({ type: 'space/create', space: s });
+         __vela.ctx.store.dispatch({ type: 'space/activate', id: s.id, now: Date.now() });
+         __vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/Secret`)}, spaceId: s.id, noAtc: true });`,
+      );
+      const page = await vela.tabPage('/page/Secret');
+      await page.evaluate(() => {
+        document.cookie = 'vela_private=1; path=/';
+      });
+      await expect(vela.shell.getByTestId('space-name')).toHaveAttribute('data-private', 'true');
+      await vela.shot('71-private-space');
+      const partitions = await evalMain<string[]>(vela, 'return __vela.ctx.sessions.allPartitions()');
+      expect(partitions).toContain('private-p-private');
+      const history = await evalMain<{ url: string }[]>(
+        vela,
+        "return __vela.ctx.history.search('Secret', 10)",
+      );
+      expect(history.filter((h) => h.url.includes('/page/Secret'))).toEqual([]);
+      const stored = await evalMain<string | null>(
+        vela,
+        "return __vela.ctx.sessions.get('private-p-private').storagePath",
+      );
+      expect(stored).toBeNull();
+      await new Promise((r) => setTimeout(r, 400));
+    } finally {
+      await vela.close();
+    }
     // Relaunch: the private tab is gone, the space itself stays.
-    const userData = vela.userData;
-    await vela.close();
-    const again = await launchVela({ userData, fixtures });
+    const again = await launchVela({ fixtures, userData });
     try {
       const st = await again.state();
       expect(st.spaces['s-private']).toBeDefined();
@@ -653,12 +657,7 @@ test.describe('daily-driver compatibility', () => {
     await expect
       .poll(
         async () =>
-          (
-            await evalMain<{ url: string }[]>(
-              vela,
-              "return __vela.ctx.history.search({ query: 'Cookie', limit: 10 })",
-            )
-          ).length,
+          (await evalMain<{ url: string }[]>(vela, "return __vela.ctx.history.search('Cookie', 10)")).length,
       )
       .toBeGreaterThan(0);
     await vela.openTab('vela://settings');
@@ -668,12 +667,7 @@ test.describe('daily-driver compatibility', () => {
     await expect
       .poll(
         async () =>
-          (
-            await evalMain<{ url: string }[]>(
-              vela,
-              "return __vela.ctx.history.search({ query: 'Cookie', limit: 10 })",
-            )
-          ).length,
+          (await evalMain<{ url: string }[]>(vela, "return __vela.ctx.history.search('Cookie', 10)")).length,
       )
       .toBe(0);
     expect(await page.evaluate(() => document.cookie)).toBe('');
@@ -687,8 +681,17 @@ test.describe('daily-driver compatibility', () => {
         Object.values((await vela.state()).tabs).some((t) => t.url.startsWith('view-source:')),
       )
       .toBe(true);
-    const src = await vela.tabPage('view-source:');
-    await expect(src.locator('body')).toContainText('data-testid="heading"');
+    // view-source: pages are neither Playwright pages nor scriptable; check the committed URL in main.
+    await expect
+      .poll(() =>
+        evalMain<string>(
+          vela,
+          `const t = Object.values(__vela.ctx.store.state.tabs).find((x) => x.url.startsWith('view-source:'));
+           const wc = t && __vela.ctx.tabs.webContents(t.id);
+           return wc && !wc.isLoading() ? wc.getURL() : '';`,
+        ),
+      )
+      .toMatch(/^view-source:http:\/\/127\.0\.0\.1:\d+\/page\/Source$/);
   });
 
   test('PDFs open inline instead of downloading', async ({ vela, fixtures }) => {

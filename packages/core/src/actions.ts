@@ -15,6 +15,7 @@ export type TabPatch = Partial<
   Pick<
     Tab,
     | 'url'
+    | 'certWarning'
     | 'title'
     | 'customTitle'
     | 'emoji'

@@ -195,6 +195,13 @@ export function installPageContextMenu(ctx: AppContext): void {
               void clipboard.writeText(params.linkURL);
             },
           },
+          {
+            label: 'Copy link text',
+            enabled: !!params.linkText,
+            click: () => {
+              void clipboard.writeText(params.linkText);
+            },
+          },
           ...(/^mailto:/i.test(params.linkURL)
             ? [
                 {
@@ -300,6 +307,7 @@ export function installPageContextMenu(ctx: AppContext): void {
         },
         { label: 'Reload', click: () => wc.reload() },
         { type: 'separator' },
+        { label: 'Select all', role: 'selectAll' },
         {
           label: 'Copy page link',
           click: () => {

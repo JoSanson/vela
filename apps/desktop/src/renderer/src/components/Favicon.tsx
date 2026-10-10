@@ -1,6 +1,6 @@
 import { hostOf, type Tab } from '@vela/core';
 import { useState, type ReactNode } from 'react';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import styles from './Favicon.module.css';
 
 interface Props {
@@ -16,6 +16,22 @@ export function setFaviconToken(token: string): void {
 }
 
 const FAVICON_PREFIX = 'vela://favicon/';
+
+const INTERNAL_ICONS: Record<string, IconName> = {
+  settings: 'settings',
+  history: 'history',
+  archive: 'archive',
+  downloads: 'download',
+  shortcuts: 'keyboard',
+  onboarding: 'sparkle',
+  error: 'warning',
+  reader: 'book',
+};
+
+function internalIcon(url: string): IconName {
+  const host = url.slice('vela://'.length).split(/[/?#]/)[0] ?? '';
+  return INTERNAL_ICONS[host] ?? 'command';
+}
 
 export function faviconSrc(url: string): string {
   return url.startsWith(FAVICON_PREFIX)
@@ -36,7 +52,7 @@ export function Favicon({ tab, size = 16 }: Props) {
   } else if (tab.url.startsWith('vela://')) {
     inner = (
       <span className={styles.badge} style={style} aria-hidden="true">
-        <Icon name="command" size={size - 4} />
+        <Icon name={internalIcon(tab.url)} size={size - 4} />
       </span>
     );
   } else if (tab.favicon && !broken) {

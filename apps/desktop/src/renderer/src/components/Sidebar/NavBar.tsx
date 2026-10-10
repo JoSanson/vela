@@ -62,6 +62,11 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         data-testid="url-pill"
       >
         <span className={styles.urlText}>{tab ? prettyUrl(tab.url) : 'Search or enter URL'}</span>
+        {tab && Math.abs(tab.zoom - 1) > 0.001 && (
+          <span className={styles.zoom} data-testid="zoom-badge">
+            {Math.round(tab.zoom * 100)}%
+          </span>
+        )}
       </button>
       {tab && (
         <button
@@ -75,7 +80,9 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Icon
             name="shield"
             size={13}
-            className={tab.url.startsWith('https://') ? styles.lockOk : styles.lock}
+            className={
+              tab.certWarning ? styles.lockBad : tab.url.startsWith('https://') ? styles.lockOk : styles.lock
+            }
           />
         </button>
       )}

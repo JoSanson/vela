@@ -56,6 +56,8 @@ export class OverlayManager {
   show(kind: OverlayKind, payload: unknown = null): void {
     const mw = this.windows.main;
     if (!mw || !this.view) return;
+    // A toast never replaces something the user is interacting with.
+    if (kind === 'toast' && this.visible) return;
     this.current = { kind, payload };
     if (this.detachTimer) {
       clearTimeout(this.detachTimer);

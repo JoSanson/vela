@@ -38,7 +38,7 @@ export function resolveInput(raw: string, engine: SearchEngine): { url: string; 
     return { url: `http${LOCALHOST_RE.test(input) ? '' : 's'}://${input}`, isSearch: false };
   }
   if (SCHEME_RE.test(input)) {
-    if (/^(javascript|data|file):/i.test(input)) return { url: searchUrl(input, engine), isSearch: true };
+    if (/^(javascript|data):/i.test(input)) return { url: searchUrl(input, engine), isSearch: true };
     return { url: input, isSearch: false };
   }
   return { url: searchUrl(input, engine), isSearch: true };
@@ -84,7 +84,8 @@ export function originOf(url: string): string {
 /** Short, readable form for the URL bar: strips scheme for https and trailing slash. */
 export function prettyUrl(url: string): string {
   if (!url) return '';
-  if (url.startsWith('vela://')) return url;
+  if (url.startsWith('vela://')) return url.replace(/\/(?=$|[?#])/, '');
+  if (/^(about|view-source|file):/i.test(url)) return url;
   try {
     const u = new URL(url);
     const host = u.host.replace(/^www\./, '');

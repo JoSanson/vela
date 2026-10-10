@@ -30,6 +30,7 @@
 .root[data-kind='permissionPrompt'] .backdrop,
 .root[data-kind='authPrompt'] .backdrop,
 .root[data-kind='externalPrompt'] .backdrop,
+.root[data-kind='toast'] .backdrop,
 .root[data-kind='updateNotes'] .backdrop {
   background: transparent;
 }
@@ -41,6 +42,36 @@
   bottom: 8px;
   display: flex;
   animation: slideIn var(--dur) var(--ease-out);
+}
+
+.root[data-kind='toast'] {
+  pointer-events: none;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  white-space: nowrap;
+  animation: toastIn var(--dur-fast) var(--ease-out);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes fade {

@@ -60,12 +60,7 @@ describe('resolveInput', () => {
   });
 
   it('turns dangerous schemes into searches', () => {
-    for (const input of [
-      'javascript:alert(1)',
-      'JavaScript:alert(1)',
-      'data:text/html,<b>x</b>',
-      'file:///etc/passwd',
-    ]) {
+    for (const input of ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,<b>x</b>']) {
       const r = resolveInput(input, google);
       expect(r.isSearch).toBe(true);
       expect(r.url).toBe(`https://www.google.com/search?q=${encodeURIComponent(input)}`);

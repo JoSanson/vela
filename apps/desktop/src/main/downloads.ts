@@ -1,6 +1,6 @@
 import type { DownloadItemState } from '@vela/shared';
 import { app, shell, type DownloadItem, type Session } from 'electron';
-import { existsSync } from 'node:fs';
+import { existsSync, renameSync, rmSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import type { DownloadsRepo } from './db/repos';
 import type { PrefsStore } from './prefs';
@@ -52,8 +52,14 @@ export class DownloadManager {
     return () => this.listeners.delete(fn);
   }
 
+  /** Set by main: the tab whose navigation turned into a download (closes blank orphans). */
+  onStarted: ((wc: Electron.WebContents, filename: string) => void) | null = null;
+
   attach(ses: Session): void {
-    ses.on('will-download', (_event, item) => this.track(item));
+    ses.on('will-download', (_event, item, wc) => {
+      this.onStarted?.(wc, item.getFilename());
+      this.track(item);
+    });
   }
 
   list(): DownloadItemState[] {
@@ -85,26 +91,28 @@ export class DownloadManager {
   private track(item: DownloadItem): void {
     const id = crypto.randomUUID();
     const prefs = this.prefs?.value;
-    if (prefs?.askWhereToSave && !process.env.VELA_DOWNLOAD_DIR) {
-      item.setSaveDialogOptions({
-        defaultPath: DownloadManager.uniquePath(item.getFilename() || 'download', prefs.downloadDir),
-      });
-    } else {
-      item.setSavePath(
-        DownloadManager.uniquePath(item.getFilename() || 'download', prefs?.downloadDir ?? null),
-      );
-    }
-    this.items.set(id, item);
-    // Executables and installers do not run until the user says "Keep": paused at the first byte.
+    // Executables and installers land in a side file that cannot be opened until the user says
+    // "Keep" (then it is renamed into place) — the quarantine Chrome applies, without a pause.
     const dangerous = DANGEROUS_EXT.has(extname(item.getFilename() || '').toLowerCase());
     let held = dangerous;
+    const finalPath = DownloadManager.uniquePath(
+      item.getFilename() || 'download',
+      prefs?.downloadDir ?? null,
+    );
+    if (prefs?.askWhereToSave && !process.env.VELA_DOWNLOAD_DIR && !dangerous) {
+      item.setSaveDialogOptions({ defaultPath: finalPath });
+    } else {
+      item.setSavePath(dangerous ? `${finalPath}.vela-held` : finalPath);
+    }
+    this.items.set(id, item);
     let lastSaved = 0;
+    let finished: DownloadItemState['state'] | null = null;
     const update = (state: DownloadItemState['state'], ended = false): void => {
       const s: DownloadItemState = {
         id,
         url: item.getURL(),
-        filename: item.getFilename() || basename(item.getSavePath()),
-        path: item.getSavePath(),
+        filename: item.getFilename() || basename(finalPath),
+        path: held ? finalPath : item.getSavePath().replace(/\.vela-held$/, ''),
         state,
         paused: item.isPaused(),
         receivedBytes: item.getReceivedBytes(),
@@ -120,19 +128,33 @@ export class DownloadManager {
       }
       this.notify();
     };
+    const release = (): void => {
+      // Move the held file into place; only then does it count as completed.
+      try {
+        renameSync(`${finalPath}.vela-held`, finalPath);
+      } catch {
+        /* already moved or gone */
+      }
+      update('completed', true);
+    };
     update('progressing');
     if (held) {
-      item.pause();
       this.onDangerous?.(id, item.getFilename());
       this.keepers.set(id, () => {
         held = false;
-        if (item.canResume()) item.resume();
-        update('progressing');
+        if (finished === 'completed') release();
+        else update('progressing');
       });
     }
     item.on('updated', (_e, state) => update(state === 'interrupted' ? 'interrupted' : 'progressing'));
     item.once('done', (_e, state) => {
-      update(state === 'completed' ? 'completed' : state === 'cancelled' ? 'cancelled' : 'interrupted', true);
+      finished = state === 'completed' ? 'completed' : state === 'cancelled' ? 'cancelled' : 'interrupted';
+      if (finished === 'completed' && held) update('progressing');
+      else if (finished === 'completed') release();
+      else {
+        rmSync(`${finalPath}.vela-held`, { force: true });
+        update(finished, true);
+      }
       this.items.delete(id);
       if (state === 'completed' && process.platform === 'darwin') {
         // Bounce the dock icon like Chrome does.
@@ -168,6 +190,14 @@ export class DownloadManager {
         break;
       case 'cancel':
         item?.cancel();
+        if (state?.dangerous) {
+          rmSync(`${state.path}.vela-held`, { force: true });
+          this.keepers.delete(id);
+          const cancelled: DownloadItemState = { ...state, state: 'cancelled', endedAt: Date.now() };
+          this.states.set(id, cancelled);
+          this.repo.save(cancelled);
+          this.notify();
+        }
         break;
       case 'open':
         if (state?.path) void shell.openPath(state.path);

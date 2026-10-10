@@ -11,12 +11,46 @@ import {
   type SearchItem,
 } from '@vela/core';
 import { SHORTCUTS, type HistoryEntry } from '@vela/shared';
+import { isMac } from '../lib/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon, type IconName } from '../components/Icon';
 import { dispatch, invoke } from '../lib/api';
 import { useShell } from '../lib/store';
 import styles from './CommandBar.module.css';
+
+const KEY_GLYPH: Record<string, string> = isMac
+  ? {
+      CmdOrCtrl: '⌘',
+      Cmd: '⌘',
+      Ctrl: '⌃',
+      Alt: '⌥',
+      Shift: '⇧',
+      Left: '←',
+      Right: '→',
+      Up: '↑',
+      Down: '↓',
+      Tab: '⇥',
+    }
+  : {
+      CmdOrCtrl: 'Ctrl',
+      Cmd: 'Win',
+      Ctrl: 'Ctrl',
+      Alt: 'Alt',
+      Shift: 'Shift',
+      Left: '←',
+      Right: '→',
+      Up: '↑',
+      Down: '↓',
+      Tab: 'Tab',
+    };
+
+function acceleratorLabel(acc: string): string {
+  return acc
+    .split('+')
+    .map((p) => KEY_GLYPH[p] ?? p)
+    .join(isMac ? '' : '+');
+}
 
 export interface CommandBarPayload {
   mode: 'new' | 'edit' | 'split';
@@ -117,8 +151,15 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     }
     items.push(...remoteItems);
     for (const c of COMMANDS) {
+      const def = SHORTCUTS.find((s) => s.id === c.id);
       items.push(
-        makeSearchItem({ id: `cmd:${c.id}`, kind: 'command', title: c.label, subtitle: 'Command', boost: 0 }),
+        makeSearchItem({
+          id: `cmd:${c.id}`,
+          kind: 'command',
+          title: c.label,
+          subtitle: def ? acceleratorLabel(def.accelerator) : 'Command',
+          boost: 0,
+        }),
       );
     }
     return items;
@@ -141,10 +182,11 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     };
   }, [query]);
 
+  const activeId = core.spaces[core.activeSpaceId]?.activeTabId ?? '';
   const results = useMemo(() => {
     const q = query.trim();
     const ranked = rankItems(q, index, mode === 'split' ? 12 : 8).filter(
-      (r) => mode !== 'split' || !r.item.id.startsWith('cmd:'),
+      (r) => mode !== 'split' || (!r.item.id.startsWith('cmd:') && r.item.id !== `tab:${activeId}`),
     );
     const list: SearchItem[] = ranked.map((r) => r.item);
     if (q && engine) {
@@ -174,7 +216,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       }
     }
     return list.slice(0, 10);
-  }, [query, index, suggestions, engine, mode]);
+  }, [query, index, suggestions, engine, mode, activeId]);
 
   const selected = sel.query === query ? Math.min(sel.idx, Math.max(0, results.length - 1)) : 0;
   const setSelected = (fn: number | ((s: number) => number)): void =>
