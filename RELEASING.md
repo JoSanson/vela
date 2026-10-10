@@ -192,6 +192,15 @@ electron-updater reads `latest*.yml` from the **latest published** GitHub Releas
    Unsigned test builds can verify the *check* and *download* steps only; the install step
    needs the `CSC_*` secrets. Windows NSIS and Linux AppImage update unsigned.
 
+### Local proof without GitHub
+
+`node apps/desktop/scripts/prove-update.mjs` packages the current tree twice (as v0.1.0 and v0.1.1),
+serves the v0.1.1 directory (`latest*.yml` + installer) from a local HTTP server as a *generic*
+electron-updater feed, launches the v0.1.0 app with `VELA_UPDATE_URL` pointing at it, and records
+the updater state machine (`checking → available → downloading → downloaded`) into
+`UPDATE-PROOF.md`. Add `--install` to call `quitAndInstall()` at the end (works on Linux/Windows;
+macOS needs a signed build). `--skip-build` reuses `apps/desktop/release/update-proof/{a,b}`.
+
 Pre-releases: tag `v0.2.0-beta.1` publishes a release whose `latest*.yml` is picked up by
 clients with `allowPrerelease` only.
 

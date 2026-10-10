@@ -3,7 +3,7 @@
 //   2. serve B's directory (installer + latest*.yml) over HTTP as a generic electron-updater feed,
 //   3. launch A with VELA_UPDATE_URL pointing at that feed and watch the updater state machine.
 // Usage: node scripts/prove-update.mjs [--skip-build] [--install]
-import { _electron as electron } from 'playwright';
+import { _electron as electron } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import {

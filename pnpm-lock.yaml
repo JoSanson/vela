@@ -44,6 +44,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@ghostery/adblocker-electron-preload':
+        specifier: 2.20.1
+        version: 2.20.1(electron@44.7.0)
       '@vela/core':
         specifier: workspace:*
         version: link:../../packages/core

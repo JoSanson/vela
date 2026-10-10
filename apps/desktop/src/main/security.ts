@@ -47,7 +47,6 @@ export function hardenSession(ses: Session): void {
   });
   ses.setDevicePermissionHandler(() => false);
   ses.setBluetoothPairingHandler?.((_details, callback) => callback({ confirmed: false }));
-  ses.setPreloads?.([]);
 }
 
 const checkCache = new Map<string, boolean>();

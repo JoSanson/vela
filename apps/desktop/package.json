@@ -20,6 +20,7 @@
     "rebuild:native": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
+    "@ghostery/adblocker-electron-preload": "2.20.1",
     "@vela/core": "workspace:*",
     "@vela/shared": "workspace:*",
     "better-sqlite3": "13.0.3",

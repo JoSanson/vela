@@ -17,12 +17,16 @@ Why: `BrowserWindow` extends `BaseWindow` and exposes `contentView`; Playwright 
 `firstWindow()` resolves the shell page directly; native title-bar/traffic-light options are richer.
 Tab views are layered above the shell view and positioned to the content area.
 
-## D003 — Package manager layout
+## D003 — Package manager layout (revised)
 Context: pnpm + electron-builder + native module (`better-sqlite3`).
 Options: default isolated `node_modules` vs `node-linker=hoisted`.
-Choice: **`node-linker=hoisted`** in `.npmrc`.
-Why: electron-builder's file collection and `@electron/rebuild` are most reliable with a flat
-`node_modules`; avoids symlink edge cases in asar packaging. Still pnpm lockfile + workspaces.
+Choice: **default isolated layout** (initially hoisted, reverted in 7.7).
+Why: electron-builder 26 collects production dependencies through `pnpm list --prod --json`, whose
+paths point into `node_modules/.pnpm`; with `node-linker=hoisted` that store does not exist, the
+collector logs "cannot find path for dependency better-sqlite3@undefined" and ships an app.asar
+without `better-sqlite3`/`electron-updater` (the packaged app cannot start). The isolated layout
+packages correctly (verified by listing app.asar) and `@electron/rebuild` still rebuilds the
+native module from `postinstall`.
 
 ## D004 — TypeScript version
 Context: `npm view typescript version` returns 7.x (Go-based compiler). ESLint/typescript-eslint and

@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { _electron as electron } from 'playwright';
+import { _electron as electron } from '@playwright/test';
 
 export const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const MAIN_ENTRY = join(APP_ROOT, 'out/main/index.js');
