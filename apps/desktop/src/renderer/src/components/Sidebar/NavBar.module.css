@@ -1,0 +1,73 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 4px;
+}
+
+.bar[data-inset='mac'] {
+  padding-top: 8px;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bar[data-inset='mac'] .group {
+  padding-left: 68px;
+}
+
+.btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+}
+
+.url {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.url:hover {
+  background: var(--surface-active);
+}
+
+.urlText {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.lock {
+  color: var(--fg-muted);
+  flex: 0 0 auto;
+}

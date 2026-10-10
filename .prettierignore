@@ -1,0 +1,10 @@
+node_modules
+dist
+out
+release
+coverage
+test-results
+e2e-artifacts
+pnpm-lock.yaml
+*.md
+PERF.md

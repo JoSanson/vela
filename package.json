@@ -1,0 +1,41 @@
+{
+  "name": "vela-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vela — an Arc-inspired, Chromium-based desktop browser built on Electron",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @vela/desktop dev",
+    "build": "pnpm --filter @vela/desktop build",
+    "build:bundle": "pnpm --filter @vela/desktop build:bundle",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "e2e": "pnpm --filter @vela/desktop e2e",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "perf": "pnpm --filter @vela/desktop perf",
+    "rebuild:native": "pnpm --filter @vela/desktop rebuild:native",
+    "postinstall": "pnpm rebuild:native",
+    "ci:local": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm coverage && pnpm build && pnpm e2e && pnpm perf"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.6.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  }
+}

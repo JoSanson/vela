@@ -1,0 +1,158 @@
+:root {
+  --font:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', Roboto, Ubuntu,
+    sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --space-from: #5b6cff;
+  --space-to: #9a5bff;
+  --grain: 0.08;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+  --sidebar-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--space-from) 42%, white) 0%,
+    color-mix(in oklab, var(--space-to) 36%, white) 100%
+  );
+  --fg: rgba(18, 16, 30, 0.92);
+  --fg-muted: rgba(18, 16, 30, 0.58);
+  --fg-faint: rgba(18, 16, 30, 0.36);
+  --surface: rgba(255, 255, 255, 0.62);
+  --surface-hover: rgba(255, 255, 255, 0.38);
+  --surface-active: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --border: rgba(18, 16, 30, 0.08);
+  --shadow: 0 1px 2px rgba(18, 16, 30, 0.06), 0 8px 24px rgba(18, 16, 30, 0.1);
+  --shadow-lg: 0 2px 6px rgba(18, 16, 30, 0.1), 0 24px 64px rgba(18, 16, 30, 0.24);
+  --focus: color-mix(in oklab, var(--space-from) 70%, black);
+  --accent: color-mix(in oklab, var(--space-from) 80%, black);
+  --danger: #e5484d;
+  --panel-bg: rgba(252, 252, 255, 0.94);
+  --panel-fg: rgba(18, 16, 30, 0.92);
+}
+
+:root[data-mode='dark'] {
+  --sidebar-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--space-from) 34%, #15141c) 0%,
+    color-mix(in oklab, var(--space-to) 28%, #121118) 100%
+  );
+  --fg: rgba(255, 255, 255, 0.92);
+  --fg-muted: rgba(255, 255, 255, 0.6);
+  --fg-faint: rgba(255, 255, 255, 0.36);
+  --surface: rgba(255, 255, 255, 0.14);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.2);
+  --surface-strong: rgba(255, 255, 255, 0.26);
+  --border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.35), 0 24px 64px rgba(0, 0, 0, 0.5);
+  --focus: color-mix(in oklab, var(--space-from) 70%, white);
+  --accent: color-mix(in oklab, var(--space-from) 75%, white);
+  --panel-bg: rgba(28, 27, 36, 0.96);
+  --panel-fg: rgba(255, 255, 255, 0.92);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--fg);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+body[data-page='shell'] {
+  background: var(--sidebar-bg);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: default;
+  border-radius: var(--radius-sm);
+}
+
+button:focus-visible,
+[role='option']:focus-visible,
+[role='treeitem']:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+input {
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--space-from) 40%, transparent);
+}
+
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grain);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

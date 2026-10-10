@@ -1,0 +1,49 @@
+.root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.root[data-kind='none'] {
+  pointer-events: none;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 20, 0.18);
+  animation: fade var(--dur-fast) var(--ease-out);
+}
+
+.root[data-kind='sidebar'] .backdrop {
+  background: transparent;
+}
+
+.floatingSidebar {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  bottom: 8px;
+  display: flex;
+  animation: slideIn var(--dur) var(--ease-out);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

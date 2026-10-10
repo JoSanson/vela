@@ -1,0 +1,91 @@
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  transition: background-color var(--dur-fast) var(--ease-out);
+  will-change: transform;
+}
+
+.row:hover {
+  background: var(--surface-hover);
+}
+
+.active {
+  background: var(--surface-active);
+  box-shadow: 0 1px 2px rgba(18, 16, 30, 0.08);
+}
+
+.active:hover {
+  background: var(--surface-active);
+}
+
+.inSplit:not(.active) {
+  background: var(--surface-hover);
+}
+
+.sleeping .title {
+  color: var(--fg-muted);
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.close,
+.audio {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast);
+}
+
+.audio {
+  opacity: 1;
+}
+
+.row:hover .close,
+.row:focus-within .close {
+  opacity: 1;
+}
+
+.close:hover,
+.audio:hover {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.sleepIcon {
+  color: var(--fg-faint);
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fg-faint);
+  border-top-color: var(--fg);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

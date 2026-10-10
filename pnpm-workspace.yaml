@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+
+onlyBuiltDependencies:
+  - electron
+  - better-sqlite3
+  - esbuild
+  - '@swc/core'

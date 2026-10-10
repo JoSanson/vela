@@ -1,0 +1,45 @@
+{
+  "name": "@vela/desktop",
+  "productName": "Vela",
+  "version": "0.1.0",
+  "description": "Vela — an Arc-inspired, Chromium-based desktop browser",
+  "author": "Jordane Sanson",
+  "license": "MIT",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build:bundle": "electron-vite build",
+    "build": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
+    "build:ci": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "e2e": "node scripts/e2e.mjs",
+    "perf": "node scripts/perf.mjs",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3"
+  },
+  "dependencies": {
+    "@vela/core": "workspace:*",
+    "@vela/shared": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "4.2.1",
+    "@ghostery/adblocker-electron": "2.20.1",
+    "@mozilla/readability": "0.6.0",
+    "@playwright/test": "1.64.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "motion": "14.1.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "^7.0.0",
+    "zustand": "5.0.15"
+  }
+}

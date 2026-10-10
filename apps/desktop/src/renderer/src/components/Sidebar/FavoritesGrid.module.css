@@ -1,0 +1,31 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px 10px 2px;
+}
+
+.cell {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--surface-hover);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.cell:hover {
+  background: var(--surface);
+}
+
+.cell:active {
+  transform: scale(0.96);
+}
+
+.active {
+  background: var(--surface-active);
+  box-shadow: 0 1px 2px rgba(18, 16, 30, 0.08);
+}
