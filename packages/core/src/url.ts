@@ -33,12 +33,13 @@ export function resolveInput(raw: string, engine: SearchEngine): { url: string; 
   const input = raw.trim();
   if (!input) return { url: '', isSearch: false };
   if (input.startsWith('vela://')) return { url: input, isSearch: false };
+  // Host checks first: `localhost:3000` / `example.com:8080` would otherwise parse as a scheme.
+  if (!/\s/.test(input) && (LOCALHOST_RE.test(input) || IP_RE.test(input) || HOST_RE.test(input))) {
+    return { url: `http${LOCALHOST_RE.test(input) ? '' : 's'}://${input}`, isSearch: false };
+  }
   if (SCHEME_RE.test(input)) {
     if (/^(javascript|data|file):/i.test(input)) return { url: searchUrl(input, engine), isSearch: true };
     return { url: input, isSearch: false };
-  }
-  if (!/\s/.test(input) && (LOCALHOST_RE.test(input) || IP_RE.test(input) || HOST_RE.test(input))) {
-    return { url: `http${LOCALHOST_RE.test(input) ? '' : 's'}://${input}`, isSearch: false };
   }
   return { url: searchUrl(input, engine), isSearch: true };
 }

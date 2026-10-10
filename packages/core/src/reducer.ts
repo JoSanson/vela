@@ -95,7 +95,7 @@ function containerSpaceId(state: CoreState, c: Container): Id | null {
     case 'folder':
       return state.folders[c.folderId]?.spaceId ?? null;
     default:
-      return c.spaceId;
+      return state.spaces[c.spaceId] ? c.spaceId : null;
   }
 }
 
@@ -163,7 +163,8 @@ function deleteTab(state: CoreState, id: Id, now: number, reason: ArchiveReason 
   for (const sid of next.spaceOrder) {
     const s = next.spaces[sid];
     if (s?.activeTabId === id) {
-      const replacement = nextActiveTab(next, s, id);
+      // Use the pre-detach space so the closed tab's position in `today` still resolves neighbours.
+      const replacement = nextActiveTab(next, state.spaces[sid] ?? s, id);
       next = updateSpace(next, sid, (sp) => ({ ...sp, activeTabId: replacement }));
     }
   }
@@ -203,7 +204,7 @@ function moveTab(state: CoreState, id: Id, to: MoveTarget, now: number): CoreSta
     next = removeFromSplit(next, prevSpaceId, id);
     const prev = next.spaces[prevSpaceId];
     if (prev?.activeTabId === id) {
-      const replacement = nextActiveTab(next, prev, id);
+      const replacement = nextActiveTab(next, state.spaces[prevSpaceId] ?? prev, id);
       next = updateSpace(next, prevSpaceId, (sp) => ({ ...sp, activeTabId: replacement }));
     }
   }
@@ -465,7 +466,7 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
           return state;
         if (!layout.panes.every((id) => state.tabs[id])) return state;
         const sizes =
-          layout.sizes.length === layout.panes.length
+          layout.sizes.length === layout.panes.length && layout.sizes.every((n) => n > 0)
             ? normalize(layout.sizes)
             : equalSizes(layout.panes.length);
         return updateSpace(state, action.spaceId, (s) => ({
