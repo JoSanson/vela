@@ -1,5 +1,5 @@
 import { spaceTabs, type Id } from '@vela/core';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from '../components/Icon';
 import { dispatch, invoke, modKey } from '../lib/api';
 import { useHoverSelect } from '../lib/hoverSelect';
@@ -48,9 +48,13 @@ export function SpacesPalette() {
   const create = (): void =>
     void invoke('overlay/show', { kind: 'spaceEditor', payload: { spaceId: 'new' } });
 
-  useEffect(() => {
+  // The grid always opens at the top (no jump towards the current Space, which is still selected
+  // and ticked); only keyboard moves bring the selection into view, and without animation.
+  const navigated = useRef(false);
+  useLayoutEffect(() => {
+    if (!navigated.current) return;
     const el = gridRef.current?.querySelector<HTMLElement>('[data-selected="true"]');
-    el?.scrollIntoView({ block: 'nearest' });
+    el?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   }, [sel, list.length]);
 
   const onKey = (e: React.KeyboardEvent): void => {
@@ -58,6 +62,7 @@ export function SpacesPalette() {
     const step = (d: number): void => {
       if (n === 0) return;
       e.preventDefault();
+      navigated.current = true;
       setIndex((sel + d + n * 8) % n);
     };
     if (e.key === 'ArrowRight') step(1);
