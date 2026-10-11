@@ -7,27 +7,28 @@ import {
   unreservedOf,
 } from '@vela/shared';
 import { useCallback, useEffect, useRef } from 'react';
+import { Spring, SPRING_CRISP, type SpringParams } from '@vela/shared';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { connectStore, selectActiveTab, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { DownloadsPanel } from './DownloadsPanel';
+import { EdgeHint } from './EdgeHint';
 import { FindBar } from './FindBar';
 import { SiteControl } from './SiteControl';
 import { SplitHandles } from './SplitHandles';
 import { TopBar } from './TopBar';
 import styles from './App.module.css';
 
-const HIDE_DURATION = 0.22;
-
-/** cubic-bezier(0.22, 1, 0.36, 1) sampled by t — close enough for a 220 ms slide. */
-const easeOutQuint = (t: number): number => 1 - Math.pow(1 - t, 5);
-
-function tween(
+/**
+ * Slides with a spring instead of a fixed-duration curve (D033, measured on Arc): the motion
+ * decelerates like a physical object and the same parameters serve any distance.
+ */
+function animateSpring(
   from: number,
   to: number,
-  ms: number,
+  params: SpringParams,
   cb: { onUpdate: (v: number) => void; onComplete: () => void },
 ): void {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -35,12 +36,22 @@ function tween(
     cb.onComplete();
     return;
   }
-  const start = performance.now();
+  const spring = new Spring(from, params);
+  spring.target = to;
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  let last = performance.now();
   const frame = (now: number): void => {
-    const t = Math.min(1, (now - start) / ms);
-    cb.onUpdate(from + (to - from) * easeOutQuint(t));
-    if (t < 1) requestAnimationFrame(frame);
-    else cb.onComplete();
+    const dt = (now - last) / 1000;
+    last = now;
+    const v = spring.step(dt);
+    if (spring.settled(hi - lo)) {
+      cb.onUpdate(to);
+      cb.onComplete();
+      return;
+    }
+    cb.onUpdate(Math.max(lo, Math.min(hi, v)));
+    requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
 }
@@ -113,7 +124,7 @@ export function App() {
     if (show) setSidebarVisible(true);
     const from = show ? -width : 0;
     const to = show ? 0 : -width;
-    tween(from, to, HIDE_DURATION * 1000, {
+    animateSpring(from, to, SPRING_CRISP, {
       onUpdate: (x) => {
         const reveal = (width + x) / width;
         // The wrapper shrinks with the slide so the content column (empty state, find bar, the
@@ -294,6 +305,7 @@ export function App() {
           onMouseEnter={sidebarVisible ? undefined : () => void invoke('overlay/show', { kind: 'sidebar' })}
           data-testid="sidebar-edge"
         />
+        {!sidebarVisible && ready && <EdgeHint />}
         <main className={styles.content} data-testid="content" data-dnd-zone="content">
           <div className={`${styles.grip} drag`} data-testid="content-grip" />
           {findOpen && <FindBar onClose={closeFind} />}

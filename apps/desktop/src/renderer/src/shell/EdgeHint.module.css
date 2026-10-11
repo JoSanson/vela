@@ -1,0 +1,21 @@
+.hint {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--fg-muted);
+  background: var(--panel-bg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--border);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-35px, -50%, 0);
+  will-change: transform, opacity;
+}

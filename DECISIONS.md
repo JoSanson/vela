@@ -270,6 +270,18 @@ Spaces menu) shows every Space as a card: colour, emoji, name, profile, tab coun
 instant search over names and profiles and full keyboard navigation. Space management (rename,
 colour, profile, delete) stays in the Space editor, one right-click away from each card.
 
+## D033 — Sidebar motion follows a spring, with Arc's measured parameters
+
+Ghidra on Arc 1.167.0 (study of 2026-10-11, tools under `~/dev/tools`) shows the sidebar's
+collection-view transitions driven by a Motion spring with two regimes, response 0.3 s / damping
+ratio 0.99 (programmatic) and 0.55 s / 0.94 (gesture), settle epsilon 0.001, and an
+`EdgeFeedbackView` of 30 pt sliding from −35 px to +12 px as a spring-driven progress. Vela's
+sidebar slide used a 220 ms ease-out-quint; it now integrates a damped spring (`@vela/shared`
+`Spring`, SwiftUI parametrisation) with the crisp regime for both directions, clamped to the
+travel so no pixel ever shows past the edge, and an `EdgeHint` tab peeks out of the left edge as
+the pointer comes within 40 px while the sidebar is hidden. The gesture regime is exported for the
+floating sidebar once it moves off CSS keyframes. Animations stay on transform/opacity only.
+
 ## D032 — Pages see a Chromium browser, not an Electron shell
 
 Google's sign-in rejected Vela after the e-mail step ("this browser or app may not be secure").
