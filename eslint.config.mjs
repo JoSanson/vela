@@ -72,6 +72,15 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
   },
   {
+    // osascript JavaScript (JXA): ObjC bridge globals; `run` is the entry point osascript calls.
+    files: ['apps/desktop/perf/compare/jxa/*.js'],
+    languageOptions: { globals: { ObjC: 'readonly', $: 'readonly', delay: 'readonly' } },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^run$' }],
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+  {
     files: ['packages/core/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
