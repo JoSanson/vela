@@ -50,7 +50,7 @@ import { installInternalProtocol, registerInternalScheme } from './protocol';
 import { hardenSession, installAppSecurity } from './security';
 import { SessionManager } from './sessions';
 import { Store } from './store';
-import { errorPageUrl, TabManager } from './tabs/tabManager';
+import { TabManager } from './tabs/tabManager';
 import { WindowManager } from './windows/windowManager';
 
 import pkg from '../../package.json';
