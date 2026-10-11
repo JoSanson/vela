@@ -43,7 +43,12 @@
   left: 0;
   bottom: 0;
   display: flex;
-  animation: slideIn var(--dur) var(--ease-out);
+  will-change: transform, opacity;
+}
+
+/* Its exit is the spring, not the generic 90 ms fade. */
+.exiting[data-exit='sidebar'] > * {
+  animation: none !important;
 }
 
 .root[data-kind='toast'] {
@@ -84,17 +89,6 @@
     opacity: 0;
   }
   to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
     opacity: 1;
   }
 }

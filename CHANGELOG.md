@@ -21,7 +21,8 @@ All notable changes to Vela are documented here. The format follows
 - Spaces palette (⌘⇧S, the layers button next to the Space dots, Spaces menu): every Space as a
   card with its colour, emoji, name, profile and tab count, searchable and keyboard driven; the row
   of dots scrolls and keeps the active Space in view (D031).
-- Floating sidebar: its overlay now covers only the sidebar column, so the page underneath is
+- Floating sidebar: slides in and out on the same spring as the docked one, all the way to the
+  edge, and a re-hover mid-slide brings it back without restarting; its overlay now covers only the sidebar column, so the page underneath is
   never occluded and no longer flashes when the sidebar slides away.
 - Sidebar polish from hands-on feedback: no pale rail at the window edge when the sidebar is
   open, the floating sidebar spans the full height, the header puts back / forward / reload on

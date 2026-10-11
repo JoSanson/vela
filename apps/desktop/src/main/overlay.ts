@@ -7,6 +7,8 @@ import type { MainWindow } from './windows/mainWindow';
 import type { WindowManager } from './windows/windowManager';
 
 const EXIT_MS = 110;
+/** The floating sidebar slides fully out on a spring before its view is detached. */
+const SIDEBAR_EXIT_MS = 420;
 
 /**
  * A single transparent WebContentsView layered above the tab views of whichever window is being
@@ -126,15 +128,18 @@ export class OverlayManager {
     if (this.visible && host && !host.win.isDestroyed()) {
       // Detach a beat later so the renderer can play its 90 ms exit; a show() in between cancels it.
       const view = this.view;
-      this.detachTimer = setTimeout(() => {
-        this.detachTimer = null;
-        if (this.visible || host.win.isDestroyed()) return;
-        try {
-          host.win.contentView.removeChildView(view);
-        } catch {
-          /* already removed */
-        }
-      }, EXIT_MS);
+      this.detachTimer = setTimeout(
+        () => {
+          this.detachTimer = null;
+          if (this.visible || host.win.isDestroyed()) return;
+          try {
+            host.win.contentView.removeChildView(view);
+          } catch {
+            /* already removed */
+          }
+        },
+        wasKind === 'sidebar' ? SIDEBAR_EXIT_MS : EXIT_MS,
+      );
     }
     this.visible = false;
     if (wasVisible) {
