@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useRef } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { connectStore, selectActiveTab, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { DownloadsPanel } from './DownloadsPanel';
@@ -63,6 +64,7 @@ export function App() {
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const toast = useShell((s) => s.toast);
   const showToast = useShell((s) => s.showToast);
+  const t = useT();
   const asideRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
@@ -175,15 +177,19 @@ export function App() {
 
   useEffect(() => {
     return vela.on('zap/pick', ({ selector }) => {
-      showToast({ text: `Zapped ${selector.length > 40 ? `${selector.slice(0, 40)}…` : selector}` });
+      showToast({
+        text: t('shell.app.zapped', {
+          selector: selector.length > 40 ? `${selector.slice(0, 40)}…` : selector,
+        }),
+      });
     });
-  }, [showToast]);
+  }, [showToast, t]);
   useEffect(() => {
     if (!toast) return;
     // Sidebar hidden: the shell is fully covered by the page view, so the overlay shows the toast.
     if (!sidebarVisible) void invoke('overlay/show', { kind: 'toast', payload: { text: toast.text } });
-    const t = setTimeout(() => showToast(null), toast.action ? 5000 : 2600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => showToast(null), toast.action ? 5000 : 2600);
+    return () => clearTimeout(timer);
   }, [toast, showToast, sidebarVisible]);
 
   useEffect(() => {
@@ -229,6 +235,7 @@ export function App() {
 
   const space = core.spaces[core.activeSpaceId];
   const hasActive = !!space?.activeTabId;
+  const [hintBefore, hintAfter] = t('shell.app.emptyHint', { keys: '\u0000' }).split('\u0000');
 
   return (
     <div className={styles.app} data-ready={ready ? 'true' : 'false'} onDrop={onDrop} onDragOver={onDragOver}>
@@ -253,7 +260,7 @@ export function App() {
             onPointerDown={onResizeStart}
             role="separator"
             aria-orientation="vertical"
-            aria-label="Resize sidebar"
+            aria-label={t('shell.app.resizeSidebar')}
             aria-valuenow={sidebarWidth}
             aria-valuemin={SIDEBAR_MIN_WIDTH}
             aria-valuemax={SIDEBAR_MAX_WIDTH}
@@ -280,7 +287,9 @@ export function App() {
                   {space?.emoji} {space?.name}
                 </div>
                 <p className={styles.emptyHint}>
-                  Press <kbd>{modKey}</kbd> <kbd>T</kbd> to open a tab
+                  {hintBefore}
+                  <kbd>{modKey}</kbd> <kbd>T</kbd>
+                  {hintAfter}
                 </p>
               </div>
             </div>

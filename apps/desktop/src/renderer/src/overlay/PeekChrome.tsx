@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import styles from './PeekChrome.module.css';
 
 /** Toolbar and backdrop drawn around the native Peek view (the view itself sits above the overlay). */
 export function PeekChrome() {
   const [peek, setPeek] = useState<PeekState | null>(null);
+  const t = useT();
   useEffect(() => vela.on('peek/changed', setPeek), []);
   if (!peek) return null;
   const { rect } = peek;
@@ -20,10 +22,15 @@ export function PeekChrome() {
       style={{ left: rect.x, top: rect.y - 44, width: rect.width }}
       data-testid="peek-toolbar"
     >
-      <button className={styles.btn} onClick={() => act('back')} disabled={!peek.canGoBack} aria-label="Back">
+      <button
+        className={styles.btn}
+        onClick={() => act('back')}
+        disabled={!peek.canGoBack}
+        aria-label={t('common.back')}
+      >
         <Icon name="back" size={15} />
       </button>
-      <button className={styles.btn} onClick={() => act('reload')} aria-label="Reload">
+      <button className={styles.btn} onClick={() => act('reload')} aria-label={t('overlay.peek.reload')}>
         <Icon name="reload" size={14} />
       </button>
       <div className={styles.title}>
@@ -36,12 +43,12 @@ export function PeekChrome() {
       </div>
       <button className={styles.open} onClick={() => act('openAsTab')} data-testid="peek-open">
         <Icon name="external" size={14} />
-        Open as tab
+        {t('overlay.peek.openAsTab')}
       </button>
       <button
         className={styles.btn}
         onClick={() => act('close')}
-        aria-label="Close peek"
+        aria-label={t('overlay.peek.close')}
         data-testid="peek-close"
       >
         <Icon name="close" size={15} />

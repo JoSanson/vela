@@ -10,10 +10,11 @@ import {
   type Id,
   type SearchItem,
 } from '@vela/core';
-import { SHORTCUTS, type HistoryEntry } from '@vela/shared';
+import { SHORTCUTS, type HistoryEntry, type MessageKey } from '@vela/shared';
 import { isMac } from '../lib/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHoverSelect } from '../lib/hoverSelect';
+import { useT } from '../lib/i18n';
 import { Favicon } from '../components/Favicon';
 import { Icon, type IconName } from '../components/Icon';
 import { dispatch, invoke } from '../lib/api';
@@ -58,22 +59,23 @@ export interface CommandBarPayload {
   tabId?: Id | null;
 }
 
-const COMMANDS: { id: string; label: string; icon: IconName }[] = [
-  { id: 'newSpace', label: 'New space', icon: 'plus' },
-  { id: 'splitView', label: 'Split view', icon: 'split' },
-  { id: 'toggleSidebar', label: 'Toggle sidebar', icon: 'sidebar' },
-  { id: 'pinTab', label: 'Pin / unpin tab', icon: 'pin' },
-  { id: 'archiveView', label: 'Archived tabs', icon: 'archive' },
-  { id: 'history', label: 'History', icon: 'history' },
-  { id: 'downloads', label: 'Downloads', icon: 'download' },
-  { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'shortcuts', label: 'Keyboard shortcuts', icon: 'command' },
-  { id: 'readerMode', label: 'Reader mode', icon: 'book' },
-  { id: 'devtools', label: 'Developer tools', icon: 'zap' },
-  { id: 'littleWindow', label: 'New Little Vela window', icon: 'window' },
+const COMMANDS: { id: string; label: MessageKey; icon: IconName }[] = [
+  { id: 'newSpace', label: 'overlay.command.newSpace', icon: 'plus' },
+  { id: 'splitView', label: 'overlay.command.splitView', icon: 'split' },
+  { id: 'toggleSidebar', label: 'overlay.command.toggleSidebar', icon: 'sidebar' },
+  { id: 'pinTab', label: 'overlay.command.pinTab', icon: 'pin' },
+  { id: 'archiveView', label: 'overlay.command.archiveView', icon: 'archive' },
+  { id: 'history', label: 'overlay.command.history', icon: 'history' },
+  { id: 'downloads', label: 'overlay.command.downloads', icon: 'download' },
+  { id: 'settings', label: 'overlay.command.settings', icon: 'settings' },
+  { id: 'shortcuts', label: 'overlay.command.shortcuts', icon: 'command' },
+  { id: 'readerMode', label: 'overlay.command.readerMode', icon: 'book' },
+  { id: 'devtools', label: 'overlay.command.devtools', icon: 'zap' },
+  { id: 'littleWindow', label: 'overlay.command.littleWindow', icon: 'window' },
 ];
 
 export function CommandBar({ payload }: { payload: CommandBarPayload }) {
+  const t = useT();
   const core = useShell((s) => s.core);
   const prefs = useShell((s) => s.prefs);
   const mode = payload?.mode ?? 'new';
@@ -193,14 +195,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         makeSearchItem({
           id: `cmd:${c.id}`,
           kind: 'command',
-          title: c.label,
-          subtitle: def ? acceleratorLabel(def.accelerator) : 'Command',
+          title: t(c.label),
+          subtitle: def ? acceleratorLabel(def.accelerator) : t('overlay.commandBar.commandSubtitle'),
           boost: 0,
         }),
       );
     }
     return items;
-  }, [core.tabs, remoteItems]);
+  }, [core.tabs, remoteItems, t]);
 
   useEffect(() => {
     const q = query.trim();
@@ -232,7 +234,11 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         id: isSearch ? `search:${q}` : `url:${url}`,
         kind: isSearch ? 'search' : 'url',
         title: isSearch ? q : prettyUrl(url),
-        subtitle: isSearch ? `Search ${engine.name}` : hostOf(url) ? 'Open website' : 'Open',
+        subtitle: isSearch
+          ? t('overlay.commandBar.searchWith', { engine: engine.name })
+          : hostOf(url)
+            ? t('overlay.commandBar.openWebsite')
+            : t('common.open'),
         boost: 1,
       });
       // A strong (prefix) match on an open tab or command beats the generic search row.
@@ -246,14 +252,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
             id: `suggestion:${s}`,
             kind: 'suggestion',
             title: s,
-            subtitle: `Search ${engine.name}`,
+            subtitle: t('overlay.commandBar.searchWith', { engine: engine.name }),
             boost: 0,
           }),
         );
       }
     }
     return list.slice(0, 10);
-  }, [query, index, suggestions, engine, mode, activeId]);
+  }, [query, index, suggestions, engine, mode, activeId, t]);
 
   const selected = sel.query === query ? Math.min(sel.idx, Math.max(0, results.length - 1)) : 0;
   const setSelected = (fn: number | ((s: number) => number)): void =>
@@ -346,10 +352,16 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     }
   };
 
-  const placeholder = mode === 'split' ? 'Search or enter URL for the new pane' : 'Search or enter URL';
+  const placeholder =
+    mode === 'split' ? t('overlay.commandBar.placeholderSplit') : t('overlay.commandBar.placeholder');
 
   return (
-    <div className={styles.wrap} role="dialog" aria-label="Command bar" data-testid="command-bar">
+    <div
+      className={styles.wrap}
+      role="dialog"
+      aria-label={t('overlay.commandBar.ariaLabel')}
+      data-testid="command-bar"
+    >
       <div className={styles.box}>
         <div className={styles.inputRow}>
           <Icon name={mode === 'split' ? 'split' : 'search'} size={18} className={styles.icon} />
@@ -373,7 +385,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
             aria-autocomplete="list"
             data-testid="command-input"
           />
-          {mode === 'split' && <span className={styles.badge}>Split</span>}
+          {mode === 'split' && <span className={styles.badge}>{t('overlay.commandBar.badgeSplit')}</span>}
         </div>
         {results.length > 0 && (
           <ul className={styles.results} id="cmd-results" role="listbox">
@@ -398,9 +410,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
           </ul>
         )}
         {!query && results.length === 0 && (
-          <div className={styles.hint}>
-            Type to search, paste a link, or run a command. {SHORTCUTS.length} shortcuts available.
-          </div>
+          <div className={styles.hint}>{t('overlay.commandBar.hint', { n: SHORTCUTS.length })}</div>
         )}
       </div>
     </div>

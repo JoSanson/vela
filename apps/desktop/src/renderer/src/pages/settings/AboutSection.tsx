@@ -1,55 +1,97 @@
-import type { UpdateStatus } from '@vela/shared';
+import type { Translator, UpdateStatus } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { tryInvoke, useEvent, useSnapshot } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, Card } from '../ui';
 import styles from './Settings.module.css';
 
-function versionOf(token: string): string {
+function versionOf(token: string): string | null {
   const m = new RegExp(`${token}/(\\S+)`).exec(navigator.userAgent);
-  return m?.[1] ?? 'unknown';
+  return m?.[1] ?? null;
 }
 
 function describe(
+  t: Translator,
   s: UpdateStatus | null,
   auto: boolean,
 ): { title: string; sub: string; tone: 'neutral' | 'accent' | 'success' | 'warning' | 'danger' } {
   if (!s)
-    return { title: 'Updates unavailable', sub: 'This build cannot check for updates.', tone: 'neutral' };
+    return {
+      title: t('settings.about.status.unavailable.title'),
+      sub: t('settings.about.status.unavailable.sub'),
+      tone: 'neutral',
+    };
   switch (s.state) {
     case 'checking':
-      return { title: 'Checking for updates…', sub: 'Contacting the release server.', tone: 'accent' };
+      return {
+        title: t('settings.about.status.checking.title'),
+        sub: t('settings.about.status.checking.sub'),
+        tone: 'accent',
+      };
     case 'available':
       return {
-        title: `Version ${s.version ?? ''} available`,
-        sub: auto ? 'Downloading in the background.' : 'Ready to download.',
+        title: t('settings.about.status.available.title', { version: s.version ?? '' }),
+        sub: auto ? t('settings.about.status.available.auto') : t('settings.about.status.available.manual'),
         tone: 'accent',
       };
     case 'downloading':
       return {
-        title: `Downloading ${s.version ?? 'update'}…`,
-        sub: `${Math.round(s.progress)}% done`,
+        title: s.version
+          ? t('settings.about.status.downloading.title', { version: s.version })
+          : t('settings.about.status.downloading.titleNoVersion'),
+        sub: t('settings.about.status.downloading.sub', {
+          percent: new Intl.NumberFormat(t.locale).format(Math.round(s.progress)),
+        }),
         tone: 'accent',
       };
     case 'downloaded':
       return {
-        title: `Version ${s.version ?? ''} is ready`,
-        sub: 'Restart Vela to finish installing.',
+        title: t('settings.about.status.downloaded.title', { version: s.version ?? '' }),
+        sub: t('settings.about.status.downloaded.sub'),
         tone: 'success',
       };
     case 'error':
-      return { title: 'Update failed', sub: s.error ?? 'Unknown error.', tone: 'danger' };
+      return {
+        title: t('settings.about.status.error.title'),
+        sub: s.error ?? t('settings.about.status.error.sub'),
+        tone: 'danger',
+      };
     case 'up-to-date':
-      return { title: 'Vela is up to date', sub: 'You have the latest version.', tone: 'success' };
+      return {
+        title: t('settings.about.status.upToDate.title'),
+        sub: t('settings.about.status.upToDate.sub'),
+        tone: 'success',
+      };
     default:
-      return { title: 'Updates', sub: 'Check for a newer version of Vela.', tone: 'neutral' };
+      return {
+        title: t('settings.about.status.idle.title'),
+        sub: t('settings.about.status.idle.sub'),
+        tone: 'neutral',
+      };
+  }
+}
+
+function badgeLabel(t: Translator, state: UpdateStatus['state'] | undefined): string {
+  switch (state) {
+    case 'up-to-date':
+      return t('settings.about.badge.latest');
+    case 'checking':
+    case 'available':
+    case 'downloading':
+    case 'downloaded':
+    case 'error':
+      return t(`settings.about.badge.${state}`);
+    default:
+      return state ?? '';
   }
 }
 
 export function AboutSection() {
   const { snap } = useSnapshot();
   const { toast } = useToast();
+  const t = useT();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -75,17 +117,19 @@ export function AboutSection() {
     setChecking(true);
     const res = await tryInvoke('update/check', undefined);
     setChecking(false);
-    if (res === null) return toast("Couldn't check for updates", 'error');
+    if (res === null) return toast(t('settings.about.checkError'), 'error');
     setStatus(res);
   };
 
   const install = async (): Promise<void> => {
     const ok = await tryInvoke('update/install', undefined);
-    if (ok === null) toast("Couldn't restart to update", 'error');
+    if (ok === null) toast(t('settings.about.installError'), 'error');
   };
 
-  const info = describe(unavailable ? null : status, snap?.prefs.autoUpdate ?? true);
-  const version = snap?.version ?? versionOf('Vela');
+  const info = describe(t, unavailable ? null : status, snap?.prefs.autoUpdate ?? true);
+  const unknown = t('settings.about.unknown');
+  const version = snap?.version ?? versionOf('Vela') ?? unknown;
+  const electronVersion = versionOf('Electron');
   const platformLabel =
     snap?.platform === 'darwin' ? 'macOS' : snap?.platform === 'win32' ? 'Windows' : 'Linux';
 
@@ -100,43 +144,39 @@ export function AboutSection() {
             <div className={styles.brandName}>
               Vela <Badge>v{version}</Badge>
             </div>
-            <div className={styles.brandSub}>An Arc-inspired browser built on Chromium. MIT licensed.</div>
+            <div className={styles.brandSub}>{t('settings.about.tagline')}</div>
           </div>
         </div>
         <dl className={styles.aboutGrid} style={{ borderTop: '1px solid var(--p-border)' }}>
           <dt>Vela</dt>
           <dd data-testid="about-version">{version}</dd>
           <dt>Chromium</dt>
-          <dd>{versionOf('Chrome')}</dd>
-          {versionOf('Electron') !== 'unknown' && (
+          <dd>{versionOf('Chrome') ?? unknown}</dd>
+          {electronVersion !== null && (
             <>
               <dt>Electron</dt>
-              <dd>{versionOf('Electron')}</dd>
+              <dd>{electronVersion}</dd>
             </>
           )}
-          <dt>Platform</dt>
+          <dt>{t('settings.about.platform')}</dt>
           <dd>{platformLabel}</dd>
         </dl>
       </Card>
 
-      <p className={styles.h3}>Updates</p>
+      <p className={styles.h3}>{t('settings.about.updates')}</p>
       <Card testId="about-updates">
         <div className={styles.updateRow}>
           <div className={styles.updateText}>
             <span>
               {info.title}{' '}
-              {info.tone !== 'neutral' && (
-                <Badge tone={info.tone}>
-                  {status?.state === 'up-to-date' ? 'Latest' : (status?.state ?? '')}
-                </Badge>
-              )}
+              {info.tone !== 'neutral' && <Badge tone={info.tone}>{badgeLabel(t, status?.state)}</Badge>}
             </span>
             <span className={styles.updateSub}>{info.sub}</span>
           </div>
           <div className={styles.headActions}>
             {status?.state === 'downloaded' ? (
               <Button variant="primary" icon="reload" testId="update-install" onClick={() => void install()}>
-                Restart to update
+                {t('settings.about.restart')}
               </Button>
             ) : (
               <Button
@@ -148,7 +188,7 @@ export function AboutSection() {
                 }
                 onClick={() => void check()}
               >
-                {checking ? 'Checking…' : 'Check for updates'}
+                {checking ? t('settings.about.checking') : t('settings.about.check')}
               </Button>
             )}
           </div>

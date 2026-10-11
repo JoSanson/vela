@@ -168,6 +168,7 @@ export interface CoreStateLike {
     {
       id: string;
       name: string;
+      emoji: string | null;
       activeTabId: string | null;
       today: string[];
       pinned: string[];
@@ -192,7 +193,10 @@ export interface CoreStateLike {
       zoom: number;
     }
   >;
-  folders: Record<string, { id: string; name: string; children: string[]; collapsed: boolean }>;
+  folders: Record<
+    string,
+    { id: string; name: string; spaceId: string; children: string[]; collapsed: boolean }
+  >;
   favorites: string[];
   mru: string[];
   archive: { id: string; url: string; title: string; reason: string }[];

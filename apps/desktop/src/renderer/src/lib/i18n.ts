@@ -3,6 +3,7 @@ import {
   resolveLocale,
   type LanguagePref,
   type Locale,
+  type MessageKey,
   type Translator,
 } from '@vela/shared';
 import { useSyncExternalStore } from 'react';

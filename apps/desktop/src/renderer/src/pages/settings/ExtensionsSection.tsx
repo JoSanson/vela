@@ -1,6 +1,7 @@
 import type { ExtensionInfo } from '@vela/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { tryInvoke } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, ConfirmButton, EmptyState } from '../ui';
@@ -8,6 +9,7 @@ import styles from './Settings.module.css';
 
 export function ExtensionsSection() {
   const { toast } = useToast();
+  const t = useT();
   const [list, setList] = useState<ExtensionInfo[] | null>(null);
   const refresh = useCallback(
     (): Promise<void> => tryInvoke('extensions/list', undefined).then((r) => setList(r ?? [])),
@@ -19,8 +21,8 @@ export function ExtensionsSection() {
 
   const add = async (): Promise<void> => {
     const ext = await tryInvoke('extensions/load', {});
-    if (ext) toast(`Loaded ${ext.name} ${ext.version}`);
-    else toast('No extension loaded: pick a folder containing manifest.json', 'error');
+    if (ext) toast(t('settings.extensions.loaded', { name: ext.name, version: ext.version }));
+    else toast(t('settings.extensions.loadError'), 'error');
     await refresh();
   };
   const remove = async (id: string): Promise<void> => {
@@ -29,26 +31,25 @@ export function ExtensionsSection() {
   };
   const popup = async (id: string): Promise<void> => {
     const ok = await tryInvoke('extensions/popup', { id });
-    if (!ok) toast('This extension has no popup');
+    if (!ok) toast(t('settings.extensions.noPopup'));
   };
 
   return (
     <div className={styles.stack} data-testid="settings-extensions">
       <p className={styles.desc}>
-        Load unpacked Chrome extensions (Manifest V3). Content scripts, service workers, storage, popups and
-        most runtime APIs work; the exact subset is documented in <code>docs/EXTENSIONS.md</code>. Extensions
-        apply to every space and profile.
+        {t('settings.extensions.desc.before')} <code>docs/EXTENSIONS.md</code>
+        {t('settings.extensions.desc.after')}
       </p>
       <div className={styles.headActions}>
         <Button variant="primary" icon="plus" onClick={() => void add()} testId="extensions-add">
-          Load unpacked…
+          {t('settings.extensions.load')}
         </Button>
       </div>
       {list?.length === 0 && (
         <EmptyState
           icon="puzzle"
-          title="No extensions"
-          hint="Pick a folder that contains a manifest.json."
+          title={t('settings.extensions.empty.title')}
+          hint={t('settings.extensions.empty.hint')}
           testId="extensions-empty"
         />
       )}
@@ -56,9 +57,9 @@ export function ExtensionsSection() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Extension</th>
-              <th>Version</th>
-              <th>Folder</th>
+              <th>{t('settings.extensions.col.extension')}</th>
+              <th>{t('settings.extensions.col.version')}</th>
+              <th>{t('settings.extensions.col.folder')}</th>
               <th />
             </tr>
           </thead>
@@ -77,11 +78,11 @@ export function ExtensionsSection() {
                 <td>
                   <div className={styles.cellActions}>
                     <Button size="sm" onClick={() => void popup(ext.id)} testId="extension-popup">
-                      Popup
+                      {t('settings.extensions.popup')}
                     </Button>
                     <ConfirmButton
-                      label="Remove"
-                      confirmLabel="Remove"
+                      label={t('common.remove')}
+                      confirmLabel={t('common.remove')}
                       size="sm"
                       onConfirm={() => void remove(ext.id)}
                       testId="extension-remove"

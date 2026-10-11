@@ -1,10 +1,11 @@
-import { resolveShortcuts, SPACE_SHORTCUTS } from '@vela/shared';
+import { resolveShortcuts, shortcutLabel, SPACE_SHORTCUTS } from '@vela/shared';
 import { app, Menu, shell, type MenuItemConstructorOptions } from 'electron';
 import { runCommand } from './commands';
 import type { AppContext } from './context';
 
 export function installMenu(ctx: AppContext): void {
   const isMac = process.platform === 'darwin';
+  const t = ctx.i18n.t;
   const defs = resolveShortcuts(ctx.prefs.value.shortcutOverrides);
   const item = (
     id: string,
@@ -12,7 +13,7 @@ export function installMenu(ctx: AppContext): void {
   ): MenuItemConstructorOptions => {
     const def = defs.find((s) => s.id === id);
     return {
-      label: def?.label ?? id,
+      label: def ? shortcutLabel(t, def) : id,
       ...(def?.reserved ? { accelerator: def.accelerator } : {}),
       click: () => runCommand(ctx, id),
       ...overrides,
@@ -27,7 +28,7 @@ export function installMenu(ctx: AppContext): void {
             submenu: [
               { role: 'about' as const },
               { type: 'separator' as const },
-              item('settings', { label: 'Settings…' }),
+              item('settings', { label: t('menu.app.settings') }),
               { type: 'separator' as const },
               { role: 'services' as const },
               { type: 'separator' as const },
@@ -41,11 +42,11 @@ export function installMenu(ctx: AppContext): void {
         ]
       : []),
     {
-      label: 'File',
+      label: t('menu.file.label'),
       submenu: [
         item('newTab'),
         item('littleWindow'),
-        item('openFile', { label: 'Open File…' }),
+        item('openFile', { label: t('menu.file.openFile') }),
         { type: 'separator' },
         item('closeTab'),
         item('reopenTab'),
@@ -53,14 +54,14 @@ export function installMenu(ctx: AppContext): void {
         item('pinTab'),
         item('archiveView'),
         { type: 'separator' },
-        item('savePage', { label: 'Save Page As…' }),
-        item('print', { label: 'Print…' }),
+        item('savePage', { label: t('menu.file.savePageAs') }),
+        item('print', { label: t('menu.file.print') }),
         { type: 'separator' },
-        ...(isMac ? [] : [item('settings', { label: 'Settings…' }), { role: 'quit' as const }]),
+        ...(isMac ? [] : [item('settings', { label: t('menu.app.settings') }), { role: 'quit' as const }]),
       ],
     },
     {
-      label: 'Edit',
+      label: t('menu.edit.label'),
       submenu: [
         { role: 'undo' },
         { role: 'redo' },
@@ -76,7 +77,7 @@ export function installMenu(ctx: AppContext): void {
       ],
     },
     {
-      label: 'View',
+      label: t('menu.view.label'),
       submenu: [
         item('editUrl'),
         item('reload'),
@@ -97,24 +98,24 @@ export function installMenu(ctx: AppContext): void {
       ],
     },
     {
-      label: 'History',
+      label: t('menu.history.label'),
       submenu: [item('back'), item('forward'), { type: 'separator' }, item('history')],
     },
     {
-      label: 'Spaces',
+      label: t('menu.spaces.label'),
       submenu: [
         item('newSpace'),
         item('spaceNext'),
         item('spacePrev'),
         { type: 'separator' },
         ...SPACE_SHORTCUTS.map((s) => ({
-          label: s.label,
+          label: shortcutLabel(t, s),
           click: () => runCommand(ctx, s.id),
         })),
       ],
     },
     {
-      label: 'Tabs',
+      label: t('menu.tabs.label'),
       submenu: [
         item('nextTabMru'),
         item('prevTabMru'),
@@ -125,7 +126,7 @@ export function installMenu(ctx: AppContext): void {
       ],
     },
     {
-      label: 'Window',
+      label: t('menu.window.label'),
       submenu: [
         { role: 'minimize' },
         { role: 'zoom' },
@@ -137,8 +138,11 @@ export function installMenu(ctx: AppContext): void {
     {
       role: 'help',
       submenu: [
-        item('shortcuts', { label: 'Keyboard shortcuts' }),
-        { label: 'Vela on GitHub', click: () => void shell.openExternal('https://github.com/JoSanson/vela') },
+        item('shortcuts', { label: t('menu.help.shortcuts') }),
+        {
+          label: t('menu.help.github'),
+          click: () => void shell.openExternal('https://github.com/JoSanson/vela'),
+        },
       ],
     },
   ];

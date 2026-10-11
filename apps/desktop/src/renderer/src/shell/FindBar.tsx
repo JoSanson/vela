@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { selectActiveTab, useShell } from '../lib/store';
 import styles from './FindBar.module.css';
 
 export function FindBar({ onClose }: { onClose: () => void }) {
   const tab = useShell(selectActiveTab);
+  const t = useT();
   const [text, setText] = useState('');
   const [matchCase, setMatchCase] = useState(false);
   const [result, setResult] = useState<{ active: number; total: number; text: string } | null>(null);
@@ -41,13 +43,18 @@ export function FindBar({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className={styles.bar} role="search" aria-label="Find in page" data-testid="find-bar">
+    <div
+      className={styles.bar}
+      role="search"
+      aria-label={t('shell.findBar.findInPage')}
+      data-testid="find-bar"
+    >
       <Icon name="search" size={14} className={styles.icon} />
       <input
         ref={inputRef}
         className={styles.input}
         value={text}
-        placeholder="Find in page"
+        placeholder={t('shell.findBar.findInPage')}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
@@ -60,22 +67,26 @@ export function FindBar({ onClose }: { onClose: () => void }) {
         className={`${styles.btn} ${styles.toggle} ${matchCase ? styles.toggleOn : ''}`}
         onClick={() => setMatchCase((v) => !v)}
         aria-pressed={matchCase}
-        aria-label="Match case"
-        title="Match case"
+        aria-label={t('shell.findBar.matchCase')}
+        title={t('shell.findBar.matchCase')}
         data-testid="find-match-case"
       >
         Aa
       </button>
       <span className={styles.count} data-testid="find-count">
-        {text ? (result?.text === text ? `${result.active}/${result.total}` : '…') : ''}
+        {text
+          ? result?.text === text
+            ? t('shell.findBar.count', { active: result.active, total: result.total })
+            : '…'
+          : ''}
       </span>
-      <button className={styles.btn} onClick={() => step(false)} aria-label="Previous match">
+      <button className={styles.btn} onClick={() => step(false)} aria-label={t('shell.findBar.previous')}>
         <Icon name="back" size={14} style={{ transform: 'rotate(90deg)' }} />
       </button>
-      <button className={styles.btn} onClick={() => step(true)} aria-label="Next match">
+      <button className={styles.btn} onClick={() => step(true)} aria-label={t('shell.findBar.next')}>
         <Icon name="back" size={14} style={{ transform: 'rotate(-90deg)' }} />
       </button>
-      <button className={styles.btn} onClick={close} aria-label="Close find bar">
+      <button className={styles.btn} onClick={close} aria-label={t('shell.findBar.close')}>
         <Icon name="close" size={14} />
       </button>
     </div>

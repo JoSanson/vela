@@ -3,11 +3,13 @@ import {
   ALL_SHORTCUTS,
   findConflict,
   resolveShortcuts,
+  shortcutLabel,
   type ShortcutDef,
 } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from '../components/Icon';
 import { vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { useSnapshot } from './lib';
 import { PageShell } from './PageShell';
 import styles from './ShortcutsPage.module.css';
@@ -16,13 +18,13 @@ import { acceleratorKeys, Button, EmptyState, Keycaps, SearchBox } from './ui';
 
 type Group = ShortcutDef['group'];
 
-const GROUPS: { id: Group; label: string; icon: IconName }[] = [
-  { id: 'tabs', label: 'Tabs', icon: 'window' },
-  { id: 'navigation', label: 'Navigation', icon: 'globe' },
-  { id: 'spaces', label: 'Spaces', icon: 'layers' },
-  { id: 'view', label: 'View', icon: 'sidebar' },
-  { id: 'page', label: 'Page', icon: 'book' },
-  { id: 'window', label: 'Window', icon: 'expand' },
+const GROUPS: { id: Group; icon: IconName }[] = [
+  { id: 'tabs', icon: 'window' },
+  { id: 'navigation', icon: 'globe' },
+  { id: 'spaces', icon: 'layers' },
+  { id: 'view', icon: 'sidebar' },
+  { id: 'page', icon: 'book' },
+  { id: 'window', icon: 'expand' },
 ];
 
 function highlight(text: string, query: string): ReactNode {
@@ -39,10 +41,14 @@ function highlight(text: string, query: string): ReactNode {
 }
 
 export function ShortcutsPage() {
+  const t = useT();
   const { snap, setPrefs } = useSnapshot();
   const { toast } = useToast();
   const overrides = useMemo(() => snap?.prefs.shortcutOverrides ?? {}, [snap?.prefs.shortcutOverrides]);
-  const ALL = useMemo(() => resolveShortcuts(overrides), [overrides]);
+  const ALL = useMemo(
+    () => resolveShortcuts(overrides).map((s) => ({ ...s, label: shortcutLabel(t, s) })),
+    [overrides, t],
+  );
   const [query, setQuery] = useState('');
   const [recording, setRecording] = useState<string | null>(null);
   const [problem, setProblem] = useState<{ id: string; text: string } | null>(null);
@@ -56,10 +62,10 @@ export function ShortcutsPage() {
       if (accelerator === null || accelerator === def?.accelerator) delete next[id];
       else next[id] = accelerator;
       void setPrefs({ shortcutOverrides: next }).then((ok) => {
-        if (!ok) toast("Couldn't save the shortcut", 'error');
+        if (!ok) toast(t('pages.shortcuts.saveFailed'), 'error');
       });
     },
-    [overrides, setPrefs, toast],
+    [overrides, setPrefs, toast, t],
   );
 
   // While a row records, the next chord becomes its accelerator; Escape cancels, Backspace resets.
@@ -83,7 +89,10 @@ export function ShortcutsPage() {
       if (clash) {
         setProblem({
           id: recording,
-          text: `${acceleratorKeys(acc).join(' ')} is already used by “${clash.label}”`,
+          text: t('pages.shortcuts.conflict', {
+            keys: acceleratorKeys(acc, t).join(' '),
+            label: clash.label,
+          }),
         });
         return;
       }
@@ -93,32 +102,40 @@ export function ShortcutsPage() {
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [recording, ALL, save]);
+  }, [recording, ALL, save, t]);
 
   const groups = useMemo(() => {
-    return GROUPS.map((g) => ({
-      ...g,
-      items: ALL.filter((s) => {
-        if (s.group !== g.id) return false;
-        if (!q) return true;
-        const keys = acceleratorKeys(s.accelerator).join(' ').toLowerCase();
-        return (
-          s.label.toLowerCase().includes(q) ||
-          s.accelerator.toLowerCase().includes(q) ||
-          keys.includes(q) ||
-          g.label.toLowerCase().includes(q)
-        );
-      }),
-    })).filter((g) => g.items.length > 0);
-  }, [q, ALL]);
+    return GROUPS.map((g) => {
+      const label = t(`shortcut.group.${g.id}`);
+      return {
+        ...g,
+        label,
+        items: ALL.filter((s) => {
+          if (s.group !== g.id) return false;
+          if (!q) return true;
+          const keys = acceleratorKeys(s.accelerator, t).join(' ').toLowerCase();
+          return (
+            s.label.toLowerCase().includes(q) ||
+            s.accelerator.toLowerCase().includes(q) ||
+            keys.includes(q) ||
+            label.toLowerCase().includes(q)
+          );
+        }),
+      };
+    }).filter((g) => g.items.length > 0);
+  }, [q, ALL, t]);
 
   const total = groups.reduce((n, g) => n + g.items.length, 0);
 
   return (
     <PageShell
-      title="Keyboard shortcuts"
+      title={t('pages.shortcuts.title')}
       icon="keyboard"
-      subtitle={`${total} ${total === 1 ? 'shortcut' : 'shortcuts'}${customized ? `, ${customized} customized` : ''}. Click a shortcut to change it.`}
+      subtitle={
+        customized
+          ? t('pages.shortcuts.subtitleCustomized', { n: total, customized })
+          : t('pages.shortcuts.subtitle', { n: total })
+      }
       testId="page-shortcuts"
       maxWidth={960}
       toolbar={
@@ -127,7 +144,7 @@ export function ShortcutsPage() {
             <SearchBox
               value={query}
               onChange={setQuery}
-              placeholder="Filter by action or key"
+              placeholder={t('pages.shortcuts.searchPlaceholder')}
               testId="shortcuts-search"
               autoFocus
             />
@@ -138,14 +155,18 @@ export function ShortcutsPage() {
               testId="shortcuts-reset-all"
               onClick={() => void setPrefs({ shortcutOverrides: {} })}
             >
-              Reset all
+              {t('pages.shortcuts.resetAll')}
             </Button>
           )}
         </>
       }
     >
       {groups.length === 0 ? (
-        <EmptyState icon="keyboard" title="No shortcut matches" hint={`Nothing matches “${query.trim()}”.`} />
+        <EmptyState
+          icon="keyboard"
+          title={t('pages.shortcuts.noMatches')}
+          hint={t('pages.shortcuts.noMatchesHint', { query: query.trim() })}
+        />
       ) : (
         <div className={styles.groups}>
           {groups.map((g) => (
@@ -166,7 +187,7 @@ export function ShortcutsPage() {
                   >
                     <span className={styles.label}>
                       {highlight(s.label, q)}
-                      {changed && <span className={styles.custom}>custom</span>}
+                      {changed && <span className={styles.custom}>{t('pages.shortcuts.custom')}</span>}
                     </span>
                     {problem?.id === s.id && <span className={styles.problem}>{problem.text}</span>}
                     <button
@@ -175,12 +196,12 @@ export function ShortcutsPage() {
                         setProblem(null);
                         setRecording(isRecording ? null : s.id);
                       }}
-                      aria-label={`Change shortcut for ${s.label}`}
+                      aria-label={t('pages.shortcuts.change', { label: s.label })}
                       aria-pressed={isRecording}
                       data-testid="shortcut-keys"
                     >
                       {isRecording ? (
-                        <span className={styles.listening}>Press keys… (Esc cancels, ⌫ resets)</span>
+                        <span className={styles.listening}>{t('pages.shortcuts.recording')}</span>
                       ) : (
                         <Keycaps accelerator={s.accelerator} />
                       )}

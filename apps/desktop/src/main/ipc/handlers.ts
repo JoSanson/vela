@@ -315,7 +315,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
   handle('downloads/pickDir', 'internal', async () => {
     const win = windows.main?.win;
     const opts: Electron.OpenDialogOptions = {
-      title: 'Download folder',
+      title: ctx.i18n.t('menu.dialog.downloadFolder'),
       properties: ['openDirectory', 'createDirectory'],
     };
     const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
@@ -403,7 +403,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
   handle('extensions/load', 'internal', ({ path }, event) =>
     path && isTrustedShell(event.sender)
       ? ctx.extensions.load(path)
-      : ctx.extensions.pickAndLoad(windows.main?.win),
+      : ctx.extensions.pickAndLoad(windows.main?.win, ctx.i18n.t('menu.dialog.chooseExtension')),
   );
   handle('extensions/remove', 'internal', ({ id }) => {
     ctx.extensions.remove(id);
@@ -415,7 +415,12 @@ export function registerCoreHandlers(ctx: AppContext): void {
     ctx.peek.open(url, tabs.activeTabId() ?? undefined);
     return true;
   });
-  handle('theme/fromImage', 'shell', () => pickImageAndExtract(windows.main?.win));
+  handle('theme/fromImage', 'shell', () =>
+    pickImageAndExtract(windows.main?.win, {
+      title: ctx.i18n.t('menu.dialog.chooseImage'),
+      filterName: ctx.i18n.t('menu.dialog.filterImages'),
+    }),
+  );
   handle('theme/fromImagePath', 'shell', ({ path }) => paletteFromFile(path));
 
   handle('certificate/trust', 'internal', ({ fingerprint }) => {

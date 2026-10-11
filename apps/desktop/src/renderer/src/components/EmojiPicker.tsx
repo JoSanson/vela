@@ -1,15 +1,17 @@
+import type { MessageKey } from '@vela/shared';
 import { useEffect, useRef, useState } from 'react';
+import { useT } from '../lib/i18n';
 import styles from './EmojiPicker.module.css';
 
-const SETS: { name: string; emojis: string }[] = [
-  { name: 'Smileys', emojis: '😀😄😁😆🥹😊🙂😉😍🥰😘😎🤓🧐🤔🤩🥳😴🤯🫡🤠😇🥲😤' },
-  { name: 'Objects', emojis: '💼🧰🛠️🔧🔨⚙️🧪🔬🔭📡💡🔦📷🎥🎬🎧🎵🎹🎸🧭🗺️📍📌📎' },
-  { name: 'Work', emojis: '📝📚📖📰🗂️📁📂🗃️📊📈📉📋📅🗓️⏰⏳💰💳🧾✉️📬📦🏷️🔑' },
-  { name: 'Nature', emojis: '🌱🌿🍀🌸🌼🌻🌞🌙⭐️🌈🔥💧🌊🍃🌵🌲🪐☄️🦋🐝🐢🐬🦊🐧' },
-  { name: 'Food', emojis: '☕️🍵🥐🍞🥑🍎🍓🍋🍉🥗🍜🍣🍕🌮🍪🍩🎂🍫🍷🍺🧃🥤🍿🍯' },
-  { name: 'Symbols', emojis: '✦✨⚡️❤️🧡💛💚💙💜🖤🤍🔷🔶🔺🔻⭕️✅❌❗️❓♻️🔱⚜️🏁' },
-  { name: 'Travel', emojis: '🏠🏡🏢🏫🏥🏦🏛️🗼🗽⛩️🚀✈️🚁🚂🚗🚲⛵️🏕️🏝️🌋🗻🎢🎡🎠' },
-  { name: 'Activities', emojis: '⚽️🏀🏈🎾🏐🎱🏓🥊🎯🎮🎲🧩🎨🎭🎤🏆🥇🎖️🏅🎪🧗🏄🚴🧘' },
+const SETS: { name: MessageKey; emojis: string }[] = [
+  { name: 'shell.emojiPicker.set.smileys', emojis: '😀😄😁😆🥹😊🙂😉😍🥰😘😎🤓🧐🤔🤩🥳😴🤯🫡🤠😇🥲😤' },
+  { name: 'shell.emojiPicker.set.objects', emojis: '💼🧰🛠️🔧🔨⚙️🧪🔬🔭📡💡🔦📷🎥🎬🎧🎵🎹🎸🧭🗺️📍📌📎' },
+  { name: 'shell.emojiPicker.set.work', emojis: '📝📚📖📰🗂️📁📂🗃️📊📈📉📋📅🗓️⏰⏳💰💳🧾✉️📬📦🏷️🔑' },
+  { name: 'shell.emojiPicker.set.nature', emojis: '🌱🌿🍀🌸🌼🌻🌞🌙⭐️🌈🔥💧🌊🍃🌵🌲🪐☄️🦋🐝🐢🐬🦊🐧' },
+  { name: 'shell.emojiPicker.set.food', emojis: '☕️🍵🥐🍞🥑🍎🍓🍋🍉🥗🍜🍣🍕🌮🍪🍩🎂🍫🍷🍺🧃🥤🍿🍯' },
+  { name: 'shell.emojiPicker.set.symbols', emojis: '✦✨⚡️❤️🧡💛💚💙💜🖤🤍🔷🔶🔺🔻⭕️✅❌❗️❓♻️🔱⚜️🏁' },
+  { name: 'shell.emojiPicker.set.travel', emojis: '🏠🏡🏢🏫🏥🏦🏛️🗼🗽⛩️🚀✈️🚁🚂🚗🚲⛵️🏕️🏝️🌋🗻🎢🎡🎠' },
+  { name: 'shell.emojiPicker.set.activities', emojis: '⚽️🏀🏈🎾🏐🎱🏓🥊🎯🎮🎲🧩🎨🎭🎤🏆🥇🎖️🏅🎪🧗🏄🚴🧘' },
 ];
 
 interface Props {
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export function EmojiPicker({ value, onPick, onClose, allowClear = true }: Props) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -42,19 +45,20 @@ export function EmojiPicker({ value, onPick, onClose, allowClear = true }: Props
 
   const custom = query.trim();
   const isCustomEmoji = custom.length > 0 && custom.length <= 4;
+  const [useBefore, useAfter] = t('shell.emojiPicker.use', { emoji: '\u0000' }).split('\u0000');
 
   return (
     <div
       ref={ref}
       className={styles.picker}
       role="dialog"
-      aria-label="Choose an icon"
+      aria-label={t('shell.emojiPicker.title')}
       data-testid="emoji-picker"
     >
       <div className={styles.head}>
         <input
           className={styles.input}
-          placeholder="Type or paste an emoji…"
+          placeholder={t('shell.emojiPicker.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -64,19 +68,21 @@ export function EmojiPicker({ value, onPick, onClose, allowClear = true }: Props
         />
         {allowClear && (
           <button className={styles.clear} onClick={() => onPick(null)} disabled={!value}>
-            Reset
+            {t('shell.emojiPicker.reset')}
           </button>
         )}
       </div>
       {isCustomEmoji && (
         <button className={styles.customRow} onClick={() => onPick(custom)}>
-          Use <span className={styles.big}>{custom}</span>
+          {useBefore}
+          <span className={styles.big}>{custom}</span>
+          {useAfter}
         </button>
       )}
       <div className={styles.scroll}>
         {SETS.map((set) => (
           <div key={set.name} className={styles.set}>
-            <div className={styles.setName}>{set.name}</div>
+            <div className={styles.setName}>{t(set.name)}</div>
             <div className={styles.grid}>
               {[...set.emojis]
                 .filter((c) => c.trim())

@@ -1,4 +1,5 @@
 import { Icon, type IconName } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { useHash } from '../lib';
 import { PageShell } from '../PageShell';
 import { AboutSection } from './AboutSection';
@@ -15,16 +16,16 @@ import { SpacesSection } from './SpacesSection';
 export type SectionId =
   'general' | 'spaces' | 'atc' | 'permissions' | 'passwords' | 'boosts' | 'extensions' | 'import' | 'about';
 
-const SECTIONS: { id: SectionId; label: string; icon: IconName }[] = [
-  { id: 'general', label: 'General', icon: 'sliders' },
-  { id: 'spaces', label: 'Spaces & profiles', icon: 'layers' },
-  { id: 'atc', label: 'Air Traffic Control', icon: 'send' },
-  { id: 'permissions', label: 'Permissions', icon: 'shield' },
-  { id: 'passwords', label: 'Passwords', icon: 'key' },
-  { id: 'boosts', label: 'Boosts', icon: 'zap' },
-  { id: 'extensions', label: 'Extensions', icon: 'puzzle' },
-  { id: 'import', label: 'Import & export', icon: 'download' },
-  { id: 'about', label: 'About & updates', icon: 'info' },
+const SECTIONS: { id: SectionId; icon: IconName }[] = [
+  { id: 'general', icon: 'sliders' },
+  { id: 'spaces', icon: 'layers' },
+  { id: 'atc', icon: 'send' },
+  { id: 'permissions', icon: 'shield' },
+  { id: 'passwords', icon: 'key' },
+  { id: 'boosts', icon: 'zap' },
+  { id: 'extensions', icon: 'puzzle' },
+  { id: 'import', icon: 'download' },
+  { id: 'about', icon: 'info' },
 ];
 
 function sectionFromHash(hash: string): SectionId {
@@ -33,14 +34,15 @@ function sectionFromHash(hash: string): SectionId {
 }
 
 export function SettingsPage() {
+  const t = useT();
   const hash = useHash();
   const active = sectionFromHash(hash);
   const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
 
   return (
-    <PageShell title="Settings" icon="settings" testId="page-settings" maxWidth={1040}>
+    <PageShell title={t('settings.title')} icon="settings" testId="page-settings" maxWidth={1040}>
       <div className={styles.layout}>
-        <nav className={styles.nav} aria-label="Settings sections" data-testid="settings-nav">
+        <nav className={styles.nav} aria-label={t('settings.nav.label')} data-testid="settings-nav">
           {SECTIONS.map((s) => (
             <a
               key={s.id}
@@ -50,14 +52,14 @@ export function SettingsPage() {
               data-testid={`settings-nav-${s.id}`}
             >
               <Icon name={s.icon} size={15} />
-              {s.label}
+              {t(`settings.nav.${s.id}`)}
             </a>
           ))}
         </nav>
         <div key={active} className={styles.section} data-testid="settings-section">
           {current && (
             <div className={styles.sectionHead}>
-              <h2 className={styles.h2}>{current.label}</h2>
+              <h2 className={styles.h2}>{t(`settings.nav.${current.id}`)}</h2>
             </div>
           )}
           {active === 'general' && <GeneralSection />}

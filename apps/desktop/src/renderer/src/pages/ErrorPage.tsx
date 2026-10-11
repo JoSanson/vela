@@ -1,7 +1,9 @@
 import { hostOf } from '@vela/core';
-import { useMemo } from 'react';
+import type { Translator } from '@vela/shared';
+import { useMemo, type ReactNode } from 'react';
 import { Icon } from '../components/Icon';
 import { invoke } from '../lib/api';
+import { useT } from '../lib/i18n';
 import styles from './Pages.module.css';
 
 interface CertDetail {
@@ -13,7 +15,20 @@ interface CertDetail {
   fingerprint: string;
 }
 
+/** Splits a message left with a literal `{host}` placeholder so the host can be rendered in bold. */
+function withHost(message: string, host: string): ReactNode {
+  const [before = '', after = ''] = message.split('{host}');
+  return (
+    <>
+      {before}
+      <strong>{host}</strong>
+      {after}
+    </>
+  );
+}
+
 export function ErrorPage() {
+  const t = useT();
   const params = useMemo(() => new URLSearchParams(location.search), []);
   const kind = params.get('kind') ?? 'net';
   const url = params.get('url') ?? '';
@@ -50,19 +65,19 @@ export function ErrorPage() {
         {kind === 'unsafe' && (
           <>
             <h1 className={styles.h1}>
-              {detail === 'phishing' ? 'Deceptive site ahead' : 'Dangerous site ahead'}
+              {detail === 'phishing'
+                ? t('pages.error.unsafe.phishingTitle')
+                : t('pages.error.unsafe.malwareTitle')}
             </h1>
             <p className={styles.muted}>
-              <strong>{host}</strong>{' '}
-              {detail === 'phishing'
-                ? 'is on a list of sites that trick people into revealing passwords or card numbers.'
-                : 'is on a list of sites known to distribute malware.'}{' '}
-              Vela blocked it before anything loaded. The lists come from URLhaus and OpenPhish and are
-              checked locally.
+              {withHost(
+                detail === 'phishing' ? t('pages.error.unsafe.phishing') : t('pages.error.unsafe.malware'),
+                host,
+              )}
             </p>
             <div className={styles.actions}>
               <button className={styles.primary} onClick={() => history.back()} data-testid="unsafe-back">
-                Go back
+                {t('pages.error.goBack')}
               </button>
               <button
                 className={styles.secondary}
@@ -73,62 +88,59 @@ export function ErrorPage() {
                 }}
                 data-testid="unsafe-proceed"
               >
-                Visit anyway (unsafe)
+                {t('pages.error.unsafe.proceed')}
               </button>
             </div>
           </>
         )}
         {kind === 'cert' && (
           <>
-            <h1 className={styles.h1}>Your connection is not private</h1>
+            <h1 className={styles.h1}>{t('pages.error.cert.title')}</h1>
             <p className={styles.muted}>
-              The certificate for <strong>{host}</strong> could not be verified ({cert?.error ?? detail}).
-              Attackers might be trying to steal your information.
+              {withHost(t('pages.error.cert.body', { error: cert?.error ?? detail }), host)}
             </p>
             {cert && (
               <dl className={styles.dl}>
-                <dt>Issued to</dt>
+                <dt>{t('pages.error.cert.issuedTo')}</dt>
                 <dd>{cert.subject}</dd>
-                <dt>Issued by</dt>
+                <dt>{t('pages.error.cert.issuedBy')}</dt>
                 <dd>{cert.issuer}</dd>
-                <dt>Valid</dt>
+                <dt>{t('pages.error.cert.valid')}</dt>
                 <dd>
-                  {new Date(cert.validFrom).toLocaleDateString()} →{' '}
-                  {new Date(cert.validTo).toLocaleDateString()}
+                  {new Date(cert.validFrom).toLocaleDateString(t.locale)} →{' '}
+                  {new Date(cert.validTo).toLocaleDateString(t.locale)}
                 </dd>
               </dl>
             )}
             <div className={styles.actions}>
               <button className={styles.primary} onClick={() => history.back()}>
-                Go back
+                {t('pages.error.goBack')}
               </button>
               <button className={styles.secondary} onClick={proceed} data-testid="cert-proceed">
-                Proceed to {host} (unsafe)
+                {t('pages.error.cert.proceed', { host })}
               </button>
             </div>
           </>
         )}
         {kind === 'net' && (
           <>
-            <h1 className={styles.h1}>Can’t reach {host}</h1>
-            <p className={styles.muted}>{friendlyNetError(detail)}</p>
+            <h1 className={styles.h1}>{t('pages.error.net.title', { host })}</h1>
+            <p className={styles.muted}>{friendlyNetError(detail, t)}</p>
             <p className={styles.code}>{detail}</p>
             <div className={styles.actions}>
               <button className={styles.primary} onClick={retry} data-testid="retry">
-                Try again
+                {t('common.retry')}
               </button>
             </div>
           </>
         )}
         {kind === 'crash' && (
           <>
-            <h1 className={styles.h1}>This page crashed</h1>
-            <p className={styles.muted}>
-              {host} stopped responding ({detail}).
-            </p>
+            <h1 className={styles.h1}>{t('pages.error.crash.title')}</h1>
+            <p className={styles.muted}>{t('pages.error.crash.body', { host, detail })}</p>
             <div className={styles.actions}>
               <button className={styles.primary} onClick={retry}>
-                Reload
+                {t('pages.error.crash.reload')}
               </button>
             </div>
           </>
@@ -138,16 +150,16 @@ export function ErrorPage() {
   );
 }
 
-const NET_MESSAGES: [RegExp, string][] = [
-  [/NAME_NOT_RESOLVED/, 'The server address could not be found. Check the spelling or your DNS.'],
-  [/INTERNET_DISCONNECTED/, 'You appear to be offline.'],
-  [/CONNECTION_REFUSED/, 'The server refused the connection.'],
-  [/CONNECTION_TIMED_OUT|TIMED_OUT/, 'The server took too long to respond.'],
-  [/CONNECTION_RESET/, 'The connection was reset while loading.'],
-  [/SSL|CERT/, 'A secure connection could not be established.'],
-];
+const NET_MESSAGES = [
+  [/NAME_NOT_RESOLVED/, 'pages.error.net.nameNotResolved'],
+  [/INTERNET_DISCONNECTED/, 'pages.error.net.offline'],
+  [/CONNECTION_REFUSED/, 'pages.error.net.refused'],
+  [/CONNECTION_TIMED_OUT|TIMED_OUT/, 'pages.error.net.timeout'],
+  [/CONNECTION_RESET/, 'pages.error.net.reset'],
+  [/SSL|CERT/, 'pages.error.net.ssl'],
+] as const;
 
-function friendlyNetError(detail: string): string {
-  for (const [re, text] of NET_MESSAGES) if (re.test(detail)) return text;
-  return 'The page could not be loaded.';
+function friendlyNetError(detail: string, t: Translator): string {
+  for (const [re, key] of NET_MESSAGES) if (re.test(detail)) return t(key);
+  return t('pages.error.net.generic');
 }

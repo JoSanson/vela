@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon } from '../components/Icon';
 import { invoke } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './SiteControl.module.css';
 
 /** Per-site control center anchored under the URL pill: blocker, zoom, permissions, boosts, profile. */
 export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   const core = useShell((s) => s.core);
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<BlockerStats | null>(null);
   const [perms, setPerms] = useState<SitePermission[]>([]);
@@ -19,6 +21,7 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
   const secure = !tab.certWarning && (tab.url.startsWith('https://') || tab.url.startsWith('vela://'));
   const space = tab.spaceId ? core.spaces[tab.spaceId] : core.spaces[core.activeSpaceId];
   const profile = space?.profileId ? core.profiles[space.profileId] : null;
+  const percent = new Intl.NumberFormat(t.locale, { style: 'percent' });
 
   const load = useCallback(
     (): Promise<void> =>
@@ -71,7 +74,7 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
       ref={ref}
       className={styles.panel}
       role="dialog"
-      aria-label="Site controls"
+      aria-label={t('shell.siteControl.title')}
       data-testid="site-control"
     >
       <div className={styles.head}>
@@ -81,12 +84,12 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
           <div className={`${styles.secure} ${secure ? '' : styles.insecure}`}>
             <Icon name="shield" size={11} />
             {tab.url.startsWith('vela://')
-              ? 'Vela page'
+              ? t('shell.siteControl.velaPage')
               : tab.certWarning
-                ? 'Certificate not trusted'
+                ? t('shell.siteControl.certNotTrusted')
                 : secure
-                  ? 'Connection is secure'
-                  : 'Not secure'}
+                  ? t('shell.siteControl.secure')
+                  : t('shell.siteControl.notSecure')}
           </div>
         </div>
       </div>
@@ -94,10 +97,10 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
       <div className={styles.row}>
         <div className={styles.label}>
           <Icon name="shield" size={14} />
-          <span>Block ads and trackers</span>
+          <span>{t('shell.siteControl.blockAds')}</span>
           {stats && stats.blockedOnTab > 0 && (
             <span className={styles.count} data-testid="site-blocked-count">
-              {stats.blockedOnTab} blocked
+              {t('shell.siteControl.blockedCount', { n: stats.blockedOnTab })}
             </span>
           )}
         </div>
@@ -116,21 +119,21 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
       <div className={styles.row}>
         <div className={styles.label}>
           <Icon name="search" size={14} />
-          <span>Zoom</span>
+          <span>{t('shell.siteControl.zoom')}</span>
         </div>
         <div className={styles.zoom}>
-          <button onClick={() => void zoom(tab.zoom - 0.1)} aria-label="Zoom out">
+          <button onClick={() => void zoom(tab.zoom - 0.1)} aria-label={t('shortcut.zoomOut')}>
             −
           </button>
           <button
             className={styles.zoomValue}
             onClick={() => void zoom(1)}
-            title="Reset zoom"
+            title={t('shortcut.zoomReset')}
             data-testid="site-zoom"
           >
-            {Math.round(tab.zoom * 100)}%
+            {percent.format(tab.zoom)}
           </button>
-          <button onClick={() => void zoom(tab.zoom + 0.1)} aria-label="Zoom in">
+          <button onClick={() => void zoom(tab.zoom + 0.1)} aria-label={t('shortcut.zoomIn')}>
             +
           </button>
         </div>
@@ -139,16 +142,16 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
       {perms.length > 0 && (
         <div className={styles.section}>
           <div className={styles.sectionHead}>
-            <span>Permissions</span>
+            <span>{t('shell.siteControl.permissions')}</span>
             <button className={styles.link} onClick={() => openSettings('permissions')}>
-              Manage
+              {t('shell.siteControl.manage')}
             </button>
           </div>
           {perms.map((p) => (
             <div key={p.permission} className={styles.perm} data-testid="site-permission">
-              <span>{p.permission}</span>
+              <span>{t(`shell.siteControl.permission.${p.permission}`)}</span>
               <span className={`${styles.pill} ${p.decision === 'allow' ? styles.allow : styles.deny}`}>
-                {p.decision === 'allow' ? 'Allowed' : 'Blocked'}
+                {p.decision === 'allow' ? t('shell.siteControl.allowed') : t('shell.siteControl.blocked')}
               </span>
               <button
                 className={styles.link}
@@ -156,7 +159,7 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
                   void invoke('permissions/remove', { origin: p.origin, permission: p.permission }).then(load)
                 }
               >
-                Forget
+                {t('shell.siteControl.forget')}
               </button>
             </div>
           ))}
@@ -165,9 +168,9 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
 
       <div className={styles.section}>
         <div className={styles.sectionHead}>
-          <span>This page</span>
+          <span>{t('shell.siteControl.thisPage')}</span>
           <button className={styles.link} onClick={() => openSettings('boosts')}>
-            Boosts
+            {t('shell.siteControl.boosts')}
           </button>
         </div>
         <div className={styles.actions}>
@@ -178,31 +181,36 @@ export function SiteControl({ tab, onClose }: { tab: Tab; onClose: () => void })
             }
             data-testid="site-zap"
           >
-            <Icon name="zap" size={13} /> Zap element
+            <Icon name="zap" size={13} /> {t('shell.siteControl.zapElement')}
           </button>
           <button
             className={styles.action}
             onClick={() => void invoke('command/run', { id: 'readerMode' }).then(onClose)}
             data-testid="site-reader"
           >
-            <Icon name="book" size={13} /> Reader
+            <Icon name="book" size={13} /> {t('shell.siteControl.reader')}
           </button>
         </div>
         {boosts.length > 0 && (
           <p className={styles.muted}>
-            {boosts.length} boost{boosts.length > 1 ? 's' : ''} ·{' '}
-            {boosts.reduce((n, b) => n + b.zapped.length, 0)} zapped element(s)
+            {t('shell.siteControl.boostsSummary', {
+              boosts: boosts.length,
+              zapped: boosts.reduce((n, b) => n + b.zapped.length, 0),
+            })}
           </p>
         )}
       </div>
 
       <div className={styles.foot}>
         <span className={styles.muted}>
-          {space?.emoji} {space?.name} · {profile ? `Profile: ${profile.name}` : 'Default profile'}
+          {space?.emoji} {space?.name} ·{' '}
+          {profile
+            ? t('shell.siteControl.profile', { name: profile.name })
+            : t('shell.siteControl.defaultProfile')}
         </span>
         {perms.length === 0 && (
           <button className={styles.link} onClick={() => openSettings('permissions')}>
-            Permissions
+            {t('shell.siteControl.permissions')}
           </button>
         )}
       </div>

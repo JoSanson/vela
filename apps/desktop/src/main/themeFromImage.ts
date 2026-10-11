@@ -70,11 +70,14 @@ export function paletteFromFile(path: string): ThemePalette | null {
   return paletteFromBitmap(small.toBitmap(), width, height);
 }
 
-export async function pickImageAndExtract(win: BrowserWindow | undefined): Promise<ThemePalette | null> {
+export async function pickImageAndExtract(
+  win: BrowserWindow | undefined,
+  labels: { title: string; filterName: string },
+): Promise<ThemePalette | null> {
   const opts = {
-    title: 'Choose an image',
+    title: labels.title,
     properties: ['openFile' as const],
-    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
+    filters: [{ name: labels.filterName, extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
   };
   const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
   const file = res.filePaths[0];

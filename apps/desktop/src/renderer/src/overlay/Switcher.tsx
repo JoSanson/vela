@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { dispatch, invoke } from '../lib/api';
 import { useHoverSelect } from '../lib/hoverSelect';
+import { useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './Switcher.module.css';
 
@@ -13,6 +14,7 @@ export interface SwitcherPayload {
 
 /** Ctrl+Tab switcher: steps through MRU tabs while Control is held, commits on release. */
 export function Switcher({ payload }: { payload: SwitcherPayload }) {
+  const t = useT();
   const core = useShell((s) => s.core);
   const tabs = mruTabs(core, 10);
   const [sel, setSel] = useState<{ seq: number; index: number }>(() => ({
@@ -67,7 +69,12 @@ export function Switcher({ payload }: { payload: SwitcherPayload }) {
   if (tabs.length === 0) return null;
 
   return (
-    <div className={styles.wrap} role="dialog" aria-label="Tab switcher" data-testid="switcher">
+    <div
+      className={styles.wrap}
+      role="dialog"
+      aria-label={t('overlay.switcher.ariaLabel')}
+      data-testid="switcher"
+    >
       <div className={styles.strip}>
         {tabs.map((t, i) => (
           <button

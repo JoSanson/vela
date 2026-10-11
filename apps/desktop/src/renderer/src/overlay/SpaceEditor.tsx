@@ -6,16 +6,22 @@ import {
   type SpaceTheme,
   type ThemeMode,
 } from '@vela/core';
+import type { MessageKey } from '@vela/shared';
 import { type CSSProperties, useState } from 'react';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { Icon } from '../components/Icon';
 import { dispatch, invoke } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './SpaceEditor.module.css';
 
 const PRIVATE = '__private__';
 const MODES: ThemeMode[] = ['system', 'light', 'dark'];
-const MODE_LABEL: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
+const MODE_LABEL = {
+  system: 'overlay.spaceEditor.mode.system',
+  light: 'overlay.spaceEditor.mode.light',
+  dark: 'overlay.spaceEditor.mode.dark',
+} as const satisfies Record<ThemeMode, MessageKey>;
 
 export interface SpaceEditorPayload {
   /** A space id, or the literal 'new'. */
@@ -23,10 +29,13 @@ export interface SpaceEditorPayload {
 }
 
 export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
+  const t = useT();
   const core = useShell((s) => s.core);
   const isNew = payload.spaceId === 'new';
   const existing = isNew ? undefined : core.spaces[payload.spaceId];
-  const [name, setName] = useState(existing?.name ?? `Space ${core.spaceOrder.length + 1}`);
+  const [name, setName] = useState(
+    existing?.name ?? t('overlay.spaceEditor.defaultName', { n: core.spaceOrder.length + 1 }),
+  );
   const [emoji, setEmoji] = useState(existing?.emoji ?? '✦');
   const [theme, setTheme] = useState<SpaceTheme>(
     existing?.theme ??
@@ -45,11 +54,11 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
 
   const save = (): void => {
     const now = Date.now();
-    const n = name.trim() || 'Space';
+    const n = name.trim() || t('overlay.spaceEditor.fallbackName');
     let pid = profileId;
     if (pid === PRIVATE) {
       // One in-memory profile per private space: cookies and logins vanish with it.
-      const p = createProfile('Private', theme.from, undefined, true);
+      const p = createProfile(t('overlay.spaceEditor.privateProfile'), theme.from, undefined, true);
       dispatch({ type: 'profile/create', profile: p });
       pid = p.id;
     }
@@ -84,7 +93,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
     <div
       className={styles.wrap}
       role="dialog"
-      aria-label={isNew ? 'New space' : 'Edit space'}
+      aria-label={isNew ? t('overlay.spaceEditor.newTitle') : t('overlay.spaceEditor.editTitle')}
       data-testid="space-editor"
     >
       <div className={styles.box}>
@@ -92,7 +101,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
           <button
             className={styles.emojiBtn}
             onClick={() => setPickerOpen(true)}
-            aria-label="Change emoji"
+            aria-label={t('overlay.spaceEditor.changeEmoji')}
             data-testid="space-emoji"
           >
             {emoji}
@@ -113,7 +122,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
         </div>
         <div className={styles.body}>
           <label className={styles.label}>
-            Name
+            {t('overlay.spaceEditor.name')}
             <input
               className={styles.input}
               value={name}
@@ -125,7 +134,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
           </label>
 
           <div className={styles.label}>
-            Theme
+            {t('overlay.spaceEditor.theme')}
             <div className={styles.presets}>
               {SPACE_PRESET_THEMES.map((p) => (
                 <button
@@ -133,7 +142,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                   className={`${styles.swatch} ${p.from === theme.from && p.to === theme.to ? styles.swatchOn : ''}`}
                   style={{ background: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
                   onClick={() => setTheme({ ...theme, from: p.from, to: p.to })}
-                  aria-label={`Theme ${p.from} ${p.to}`}
+                  aria-label={t('overlay.spaceEditor.themeSwatch', { from: p.from, to: p.to })}
                 />
               ))}
               <button
@@ -143,23 +152,23 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                     (p) => p && setTheme({ ...theme, from: p.from, to: p.to }),
                   )
                 }
-                title="Extract a palette from an image"
+                title={t('overlay.spaceEditor.fromImageTitle')}
                 data-testid="theme-from-image"
               >
-                <Icon name="palette" size={14} /> From image
+                <Icon name="palette" size={14} /> {t('overlay.spaceEditor.fromImage')}
               </button>
-              <label className={styles.custom} title="Custom colors">
+              <label className={styles.custom} title={t('overlay.spaceEditor.customColors')}>
                 <input
                   type="color"
                   value={theme.from}
                   onChange={(e) => setTheme({ ...theme, from: e.target.value })}
-                  aria-label="Start color"
+                  aria-label={t('overlay.spaceEditor.startColor')}
                 />
                 <input
                   type="color"
                   value={theme.to}
                   onChange={(e) => setTheme({ ...theme, to: e.target.value })}
-                  aria-label="End color"
+                  aria-label={t('overlay.spaceEditor.endColor')}
                 />
               </label>
             </div>
@@ -167,7 +176,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
 
           <div className={styles.row}>
             <label className={styles.label} style={{ flex: 1 }}>
-              Grain
+              {t('overlay.spaceEditor.grain')}
               <input
                 type="range"
                 min={0}
@@ -175,15 +184,15 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                 step={0.01}
                 value={theme.grain}
                 onChange={(e) => setTheme({ ...theme, grain: Number(e.target.value) })}
-                aria-label="Grain intensity"
+                aria-label={t('overlay.spaceEditor.grainIntensity')}
               />
             </label>
             <div className={styles.label}>
-              Appearance
+              {t('overlay.spaceEditor.appearance')}
               <div
                 className={styles.segment}
                 role="radiogroup"
-                aria-label="Appearance"
+                aria-label={t('overlay.spaceEditor.appearance')}
                 style={{ '--i': MODES.indexOf(theme.mode) } as CSSProperties}
               >
                 <span className={styles.segThumb} aria-hidden="true" />
@@ -195,7 +204,7 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                     className={theme.mode === m ? styles.segOn : ''}
                     onClick={() => setTheme({ ...theme, mode: m })}
                   >
-                    {MODE_LABEL[m]}
+                    {t(MODE_LABEL[m])}
                   </button>
                 ))}
               </div>
@@ -203,30 +212,30 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
           </div>
 
           <div className={styles.label}>
-            Profile
+            {t('overlay.spaceEditor.profile')}
             <div className={styles.row}>
               <select
                 className={styles.select}
                 value={profileId ?? ''}
                 onChange={(e) => setProfileId(e.target.value || null)}
-                aria-label="Profile"
+                aria-label={t('overlay.spaceEditor.profile')}
                 data-testid="space-profile"
               >
-                <option value="">Default</option>
+                <option value="">{t('overlay.spaceEditor.profileDefault')}</option>
                 {Object.values(core.profiles)
                   .filter((p) => !p.ephemeral || p.id === existing?.profileId)
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.ephemeral ? 'Private (this space)' : p.name}
+                      {p.ephemeral ? t('overlay.spaceEditor.profilePrivateThisSpace') : p.name}
                     </option>
                   ))}
                 {!core.profiles[existing?.profileId ?? '']?.ephemeral && (
-                  <option value={PRIVATE}>Private: nothing is saved</option>
+                  <option value={PRIVATE}>{t('overlay.spaceEditor.profilePrivateOption')}</option>
                 )}
               </select>
               <input
                 className={styles.input}
-                placeholder="New profile name"
+                placeholder={t('overlay.spaceEditor.newProfilePlaceholder')}
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addProfile()}
@@ -243,8 +252,8 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
             </div>
             <p className={styles.hint}>
               {profileId === PRIVATE || core.profiles[profileId ?? '']?.ephemeral
-                ? 'Private: cookies live in memory, nothing is written to history, and the tabs are gone after a restart.'
-                : 'Profiles keep cookies and logins separate (for example work and personal).'}
+                ? t('overlay.spaceEditor.hintPrivate')
+                : t('overlay.spaceEditor.hintProfiles')}
             </p>
           </div>
 
@@ -256,15 +265,15 @@ export function SpaceEditor({ payload }: { payload: SpaceEditorPayload }) {
                 disabled={core.spaceOrder.length <= 1}
                 data-testid="space-delete"
               >
-                Delete space
+                {t('overlay.spaceEditor.deleteSpace')}
               </button>
             )}
             <span style={{ flex: 1 }} />
             <button className={styles.secondary} onClick={close}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button className={styles.primary} onClick={save} data-testid="space-save">
-              {isNew ? 'Create' : 'Done'}
+              {isNew ? t('overlay.spaceEditor.create') : t('common.done')}
             </button>
           </div>
         </div>

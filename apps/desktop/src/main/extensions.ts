@@ -75,8 +75,11 @@ export class ExtensionManager {
     return { id: first.id, name: first.name, version: first.version, path, enabled: true };
   }
 
-  async pickAndLoad(parent: Electron.BrowserWindow | undefined): Promise<ExtensionInfo | null> {
-    const opts = { title: 'Choose an unpacked extension folder', properties: ['openDirectory' as const] };
+  async pickAndLoad(
+    parent: Electron.BrowserWindow | undefined,
+    title: string,
+  ): Promise<ExtensionInfo | null> {
+    const opts = { title, properties: ['openDirectory' as const] };
     const res = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
     const dir = res.filePaths[0];
     if (res.canceled || !dir) return null;

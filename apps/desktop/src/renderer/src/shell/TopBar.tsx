@@ -1,5 +1,6 @@
 import { topBarHeight } from '@vela/shared';
 import { invoke, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './TopBar.module.css';
 
@@ -10,6 +11,7 @@ import styles from './TopBar.module.css';
  */
 export function TopBar() {
   const core = useShell((s) => s.core);
+  const t = useT();
   const height = topBarHeight(vela.platform);
   if (height === 0) return null;
   const space = core.spaces[core.activeSpaceId];
@@ -21,7 +23,7 @@ export function TopBar() {
       <button
         className={`${styles.btn} no-drag`}
         onClick={() => void invoke('tab/openUrl', { input: 'vela://shortcuts', noAtc: true })}
-        aria-label="Keyboard shortcuts"
+        aria-label={t('shell.topBar.shortcuts')}
       >
         ?
       </button>

@@ -1,18 +1,21 @@
 import { createId } from '@vela/core';
-import type { Boost } from '@vela/shared';
+import type { Boost, Translator } from '@vela/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { downloadText, now, timeAgo, tryInvoke } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, Card, ConfirmButton, EmptyState, Select, TextArea, TextInput, Toggle } from '../ui';
 import styles from './Settings.module.css';
 
-const FONT_PRESETS: { value: string; label: string }[] = [
-  { value: '', label: 'Site default' },
-  { value: 'Inter-like system', label: 'Inter-like system' },
-  { value: 'Serif', label: 'Serif' },
-  { value: 'Mono', label: 'Mono' },
-];
+function fontPresets(t: Translator): { value: string; label: string }[] {
+  return [
+    { value: '', label: t('settings.boosts.font.siteDefault') },
+    { value: 'Inter-like system', label: t('settings.boosts.font.interLike') },
+    { value: 'Serif', label: t('settings.boosts.font.serif') },
+    { value: 'Mono', label: t('settings.boosts.font.mono') },
+  ];
+}
 
 function newBoost(host: string): Boost {
   return {
@@ -29,6 +32,7 @@ function newBoost(host: string): Boost {
 
 export function BoostsSection() {
   const { toast } = useToast();
+  const t = useT();
   const [items, setItems] = useState<Boost[] | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [editing, setEditing] = useState<Boost | null>(null);
@@ -60,7 +64,7 @@ export function BoostsSection() {
     const ok = await tryInvoke('boosts/save', next);
     setSaving(false);
     if (ok === null) {
-      toast("Couldn't save this boost", 'error');
+      toast(t('settings.boosts.saveError'), 'error');
       return false;
     }
     setItems((prev) => {
@@ -75,10 +79,10 @@ export function BoostsSection() {
 
   const remove = async (b: Boost): Promise<void> => {
     const ok = await tryInvoke('boosts/delete', { id: b.id });
-    if (ok === null) return toast("Couldn't delete this boost", 'error');
+    if (ok === null) return toast(t('settings.boosts.deleteError'), 'error');
     setItems((prev) => prev?.filter((x) => x.id !== b.id) ?? prev);
     if (editing?.id === b.id) setEditing(null);
-    toast(`Boost for ${b.host} deleted`);
+    toast(t('settings.boosts.deleted', { host: b.host }));
   };
 
   const create = (): void => {
@@ -96,16 +100,16 @@ export function BoostsSection() {
 
   const exportAll = async (): Promise<void> => {
     const json = await tryInvoke('boosts/export', undefined);
-    if (json === null) return toast("Couldn't export boosts", 'error');
+    if (json === null) return toast(t('settings.boosts.exportError'), 'error');
     downloadText('vela-boosts.json', json);
-    toast('Boosts exported');
+    toast(t('settings.boosts.exported'));
   };
 
   const importFile = async (file: File): Promise<void> => {
     const json = await file.text();
     const n = await tryInvoke('boosts/import', { json });
-    if (n === null) return toast("Couldn't import this file", 'error');
-    toast(`Imported ${n} ${n === 1 ? 'boost' : 'boosts'}`);
+    if (n === null) return toast(t('settings.boosts.importError'), 'error');
+    toast(t('settings.boosts.imported', { n }));
     await load();
   };
 
@@ -114,10 +118,7 @@ export function BoostsSection() {
   return (
     <div className={styles.stack} data-testid="settings-boosts">
       <div className={styles.sectionHead}>
-        <p className={styles.desc}>
-          Boosts customise a site: inject CSS or JavaScript, swap the font, or hide elements you zapped. They
-          run on every page of the host.
-        </p>
+        <p className={styles.desc}>{t('settings.boosts.desc')}</p>
         <div className={styles.headActions}>
           <Button
             variant="secondary"
@@ -127,7 +128,7 @@ export function BoostsSection() {
             disabled={list.length === 0}
             onClick={() => void exportAll()}
           >
-            Export
+            {t('settings.boosts.export')}
           </Button>
           <Button
             variant="secondary"
@@ -136,7 +137,7 @@ export function BoostsSection() {
             testId="boosts-import-button"
             onClick={() => fileInput.current?.click()}
           >
-            Import
+            {t('settings.boosts.import')}
           </Button>
           <input
             ref={fileInput}
@@ -156,19 +157,19 @@ export function BoostsSection() {
       {unavailable && (
         <div className={styles.hintBox}>
           <Icon name="warning" size={14} />
-          Boosts aren’t available in this build yet.
+          {t('settings.boosts.unavailable')}
         </div>
       )}
 
       <Card className={styles.section}>
         <div className={styles.previewRow}>
-          <span className={styles.fieldLabel}>New boost</span>
+          <span className={styles.fieldLabel}>{t('settings.boosts.new')}</span>
           <div className={styles.inlineForm}>
             <TextInput
               value={newHost}
               onChange={setNewHost}
-              placeholder="Host, e.g. news.ycombinator.com"
-              aria-label="Host"
+              placeholder={t('settings.boosts.host.placeholder')}
+              aria-label={t('settings.boosts.host')}
               testId="boost-host"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') create();
@@ -181,17 +182,17 @@ export function BoostsSection() {
               testId="boost-create"
               onClick={create}
             >
-              Create
+              {t('settings.boosts.create')}
             </Button>
           </div>
         </div>
         {items === null ? (
-          <EmptyState icon="zap" title="Loading…" />
+          <EmptyState icon="zap" title={t('common.loading')} />
         ) : list.length === 0 ? (
           <EmptyState
             icon="zap"
-            title="No boosts yet"
-            hint="Enter a host above to start one, or use Zap from the site menu to hide elements on any page."
+            title={t('settings.boosts.empty.title')}
+            hint={t('settings.boosts.empty.hint')}
             testId="boosts-empty"
           />
         ) : (
@@ -215,18 +216,18 @@ export function BoostsSection() {
                     {[
                       b.css.trim() ? 'CSS' : null,
                       b.js.trim() ? 'JS' : null,
-                      b.zapped.length ? `${b.zapped.length} zapped` : null,
+                      b.zapped.length ? t('settings.boosts.meta.zapped', { n: b.zapped.length }) : null,
                       b.font ? b.font : null,
                     ]
                       .filter(Boolean)
-                      .join(' · ') || 'Empty'}{' '}
+                      .join(' · ') || t('settings.boosts.meta.empty')}{' '}
                     · {timeAgo(b.updatedAt)}
                   </span>
                 </span>
-                {!b.enabled && <Badge>Off</Badge>}
+                {!b.enabled && <Badge>{t('settings.boosts.off')}</Badge>}
                 <span onClick={(e) => e.stopPropagation()}>
                   <Toggle
-                    label={`Enable boost for ${b.host}`}
+                    label={t('settings.boosts.enableFor', { host: b.host })}
                     checked={b.enabled}
                     onChange={(v) => void save({ ...b, enabled: v })}
                     testId="boost-toggle"
@@ -244,19 +245,19 @@ export function BoostsSection() {
             <div className={styles.editorHead}>
               <div>
                 <span className={styles.fieldLabel} style={{ marginBottom: 2 }}>
-                  Editing
+                  {t('settings.boosts.editing')}
                 </span>
                 <strong className={styles.mono}>{editing.host}</strong>
               </div>
               <div className={styles.headActions}>
                 <Toggle
-                  label="Enabled"
+                  label={t('settings.boosts.enabled')}
                   checked={editing.enabled}
                   onChange={(v) => setEditing({ ...editing, enabled: v })}
                   testId="boost-editor-enabled"
                 />
                 <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
-                  Close
+                  {t('common.close')}
                 </Button>
                 <Button
                   variant="primary"
@@ -264,20 +265,22 @@ export function BoostsSection() {
                   disabled={saving}
                   testId="boost-save"
                   onClick={() =>
-                    void save(editing, `Boost for ${editing.host} saved`).then((ok) => ok && setEditing(null))
+                    void save(editing, t('settings.boosts.saved', { host: editing.host })).then(
+                      (ok) => ok && setEditing(null),
+                    )
                   }
                 >
-                  Save
+                  {t('common.save')}
                 </Button>
               </div>
             </div>
             <div>
-              <label className={styles.fieldLabel}>Font</label>
+              <label className={styles.fieldLabel}>{t('settings.boosts.font')}</label>
               <Select
                 value={editing.font ?? ''}
-                options={FONT_PRESETS}
+                options={fontPresets(t)}
                 onChange={(v) => setEditing({ ...editing, font: v || null })}
-                aria-label="Font preset"
+                aria-label={t('settings.boosts.font.preset')}
                 testId="boost-font"
               />
             </div>
@@ -302,11 +305,9 @@ export function BoostsSection() {
               />
             </div>
             <div>
-              <label className={styles.fieldLabel}>Zapped elements</label>
+              <label className={styles.fieldLabel}>{t('settings.boosts.zapped')}</label>
               {editing.zapped.length === 0 ? (
-                <span className={styles.soon}>
-                  Nothing zapped. Use Zap from the site menu to pick elements to hide.
-                </span>
+                <span className={styles.soon}>{t('settings.boosts.zapped.empty')}</span>
               ) : (
                 <div className={styles.chips} data-testid="boost-zapped">
                   {editing.zapped.map((sel) => (
@@ -314,7 +315,7 @@ export function BoostsSection() {
                       <span>{sel}</span>
                       <button
                         type="button"
-                        aria-label={`Remove ${sel}`}
+                        aria-label={t('settings.boosts.zapped.remove', { selector: sel })}
                         onClick={() =>
                           setEditing({ ...editing, zapped: editing.zapped.filter((s) => s !== sel) })
                         }
@@ -329,10 +330,10 @@ export function BoostsSection() {
             {items?.some((b) => b.id === editing.id) && (
               <div>
                 <ConfirmButton
-                  label="Delete boost"
+                  label={t('settings.boosts.delete')}
                   icon="trash"
-                  question={`Delete the boost for ${editing.host}?`}
-                  confirmLabel="Delete"
+                  question={t('settings.boosts.deleteQuestion', { host: editing.host })}
+                  confirmLabel={t('common.delete')}
                   testId="boost-delete"
                   onConfirm={() => void remove(editing)}
                 />

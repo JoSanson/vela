@@ -6,8 +6,10 @@ import type {
   SelectHTMLAttributes,
 } from 'react';
 import { useState } from 'react';
+import type { Translator } from '@vela/shared';
 import { Icon, type IconName } from '../components/Icon';
 import { isMac } from '../lib/api';
+import { useT } from '../lib/i18n';
 import styles from './ui.module.css';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent';
@@ -145,6 +147,7 @@ interface SearchBoxProps {
 }
 
 export function SearchBox({ value, onChange, placeholder, testId, autoFocus, onKeyDown }: SearchBoxProps) {
+  const t = useT();
   return (
     <div className={styles.search}>
       <Icon name="search" size={15} />
@@ -152,7 +155,7 @@ export function SearchBox({ value, onChange, placeholder, testId, autoFocus, onK
         className={styles.input}
         type="search"
         value={value}
-        placeholder={placeholder ?? 'Search'}
+        placeholder={placeholder ?? t('common.search')}
         autoFocus={autoFocus}
         spellCheck={false}
         data-testid={testId}
@@ -160,7 +163,12 @@ export function SearchBox({ value, onChange, placeholder, testId, autoFocus, onK
         onKeyDown={onKeyDown}
       />
       {value && (
-        <button type="button" className={styles.searchClear} aria-label="Clear" onClick={() => onChange('')}>
+        <button
+          type="button"
+          className={styles.searchClear}
+          aria-label={t('pages.ui.clear')}
+          onClick={() => onChange('')}
+        >
           <Icon name="close" size={13} />
         </button>
       )}
@@ -255,8 +263,8 @@ interface ConfirmButtonProps {
 /** Two-step destructive action rendered inline, no modal. */
 export function ConfirmButton({
   label,
-  confirmLabel = 'Confirm',
-  question = 'Are you sure?',
+  confirmLabel,
+  question,
   onConfirm,
   variant = 'ghost',
   icon,
@@ -264,6 +272,7 @@ export function ConfirmButton({
   disabled,
   size = 'md',
 }: ConfirmButtonProps) {
+  const t = useT();
   const [arming, setArming] = useState(false);
   if (!arming) {
     return (
@@ -281,7 +290,7 @@ export function ConfirmButton({
   }
   return (
     <span className={styles.confirm} data-testid={testId ? `${testId}-confirm` : undefined}>
-      <span>{question}</span>
+      <span>{question ?? t('pages.ui.areYouSure')}</span>
       <Button
         variant="danger"
         size={size}
@@ -295,65 +304,69 @@ export function ConfirmButton({
           if (e.key === 'Escape') setArming(false);
         }}
       >
-        {confirmLabel}
+        {confirmLabel ?? t('pages.ui.confirm')}
       </Button>
       <Button variant="ghost" size={size} onClick={() => setArming(false)}>
-        Cancel
+        {t('common.cancel')}
       </Button>
     </span>
   );
 }
 
-const KEY_LABELS: Record<string, string> = isMac
-  ? {
-      CmdOrCtrl: '⌘',
-      Cmd: '⌘',
-      Command: '⌘',
-      Ctrl: '⌃',
-      Control: '⌃',
-      Alt: '⌥',
-      Option: '⌥',
-      Shift: '⇧',
-      Up: '↑',
-      Down: '↓',
-      Left: '←',
-      Right: '→',
-      Tab: '⇥',
-      Enter: '↩',
-      Return: '↩',
-      Escape: 'Esc',
-      Backspace: '⌫',
-      Space: 'Space',
-    }
-  : {
-      CmdOrCtrl: 'Ctrl',
-      Cmd: 'Win',
-      Command: 'Win',
-      Ctrl: 'Ctrl',
-      Control: 'Ctrl',
-      Alt: 'Alt',
-      Option: 'Alt',
-      Shift: 'Shift',
-      Up: '↑',
-      Down: '↓',
-      Left: '←',
-      Right: '→',
-      Tab: 'Tab',
-      Enter: 'Enter',
-      Return: 'Enter',
-      Escape: 'Esc',
-      Backspace: 'Backspace',
-      Space: 'Space',
-    };
+function keyLabels(t: Translator): Record<string, string> {
+  return isMac
+    ? {
+        CmdOrCtrl: '⌘',
+        Cmd: '⌘',
+        Command: '⌘',
+        Ctrl: '⌃',
+        Control: '⌃',
+        Alt: '⌥',
+        Option: '⌥',
+        Shift: '⇧',
+        Up: '↑',
+        Down: '↓',
+        Left: '←',
+        Right: '→',
+        Tab: '⇥',
+        Enter: '↩',
+        Return: '↩',
+        Escape: t('pages.keys.escape'),
+        Backspace: '⌫',
+        Space: t('pages.keys.space'),
+      }
+    : {
+        CmdOrCtrl: t('pages.keys.ctrl'),
+        Cmd: t('pages.keys.win'),
+        Command: t('pages.keys.win'),
+        Ctrl: t('pages.keys.ctrl'),
+        Control: t('pages.keys.ctrl'),
+        Alt: t('pages.keys.alt'),
+        Option: t('pages.keys.alt'),
+        Shift: t('pages.keys.shift'),
+        Up: '↑',
+        Down: '↓',
+        Left: '←',
+        Right: '→',
+        Tab: t('pages.keys.tab'),
+        Enter: t('pages.keys.enter'),
+        Return: t('pages.keys.enter'),
+        Escape: t('pages.keys.escape'),
+        Backspace: t('pages.keys.backspace'),
+        Space: t('pages.keys.space'),
+      };
+}
 
-export function acceleratorKeys(accelerator: string): string[] {
-  return accelerator.split('+').map((part) => KEY_LABELS[part] ?? part);
+export function acceleratorKeys(accelerator: string, t: Translator): string[] {
+  const labels = keyLabels(t);
+  return accelerator.split('+').map((part) => labels[part] ?? part);
 }
 
 export function Keycaps({ accelerator }: { accelerator: string }) {
+  const t = useT();
   return (
     <span className={styles.kbdGroup} aria-label={accelerator}>
-      {acceleratorKeys(accelerator).map((k, i) => (
+      {acceleratorKeys(accelerator, t).map((k, i) => (
         <kbd key={`${k}-${i}`} className={styles.kbd}>
           {k}
         </kbd>
@@ -398,5 +411,6 @@ export function Row({ label, hint, children, testId }: RowProps) {
 }
 
 export function Spinner() {
-  return <span className={styles.spinner} aria-label="Loading" role="status" />;
+  const t = useT();
+  return <span className={styles.spinner} aria-label={t('pages.ui.loading')} role="status" />;
 }

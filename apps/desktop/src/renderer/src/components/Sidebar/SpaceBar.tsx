@@ -1,6 +1,7 @@
 import type { DownloadItemState } from '@vela/shared';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { dispatch, invoke, modKey, vela } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import styles from './SpaceBar.module.css';
@@ -9,6 +10,7 @@ export function SpaceBar() {
   const core = useShell((s) => s.core);
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
+  const t = useT();
   const active = core.spaces[core.activeSpaceId];
   const isPrivate = !!core.profiles[active?.profileId ?? '']?.ephemeral;
   // Live download progress on the sidebar button: a ring fills while anything is in flight.
@@ -27,6 +29,7 @@ export function SpaceBar() {
         inFlight.length;
   const editSpace = (id: string): void =>
     void invoke('overlay/show', { kind: 'spaceEditor', payload: { spaceId: id } });
+  const spaceName = active?.name ?? '';
   return (
     <div className={styles.bar}>
       <button
@@ -36,15 +39,19 @@ export function SpaceBar() {
           e.preventDefault();
           void invoke('menu/show', { kind: 'space', id: core.activeSpaceId });
         }}
-        aria-label={`Edit space ${active?.name ?? ''}${isPrivate ? ' (private)' : ''}`}
-        title={isPrivate ? 'Private space: nothing is saved' : undefined}
+        aria-label={
+          isPrivate
+            ? t('shell.spaceBar.editSpacePrivate', { name: spaceName })
+            : t('shell.spaceBar.editSpace', { name: spaceName })
+        }
+        title={isPrivate ? t('shell.spaceBar.privateHint') : undefined}
         data-testid="space-name"
         data-private={isPrivate ? 'true' : undefined}
       >
         <span className={styles.label}>{active?.name}</span>
         {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
       </button>
-      <div className={styles.dots} role="group" aria-label="Spaces">
+      <div className={styles.dots} role="group" aria-label={t('shortcut.group.spaces')}>
         {core.spaceOrder.map((id, i) => {
           const sp = core.spaces[id];
           if (!sp) return null;
@@ -53,7 +60,7 @@ export function SpaceBar() {
             <button
               key={id}
               aria-pressed={isActive}
-              aria-label={`${sp.name} (Ctrl+${i + 1})`}
+              aria-label={t('shell.spaceBar.spaceShortcut', { name: sp.name, n: i + 1 })}
               title={sp.name}
               className={`${styles.dot} ${isActive ? styles.dotActive : ''}`}
               style={{ '--dot-color': sp.theme.from } as React.CSSProperties}
@@ -71,8 +78,8 @@ export function SpaceBar() {
         })}
         <button
           className={styles.add}
-          aria-label="New space"
-          title={`New space (${modKey}⇧N)`}
+          aria-label={t('shortcut.newSpace')}
+          title={t('shell.spaceBar.newSpaceTitle', { shortcut: `${modKey}⇧N` })}
           onClick={() => editSpace('new')}
           data-testid="new-space"
         >
@@ -82,8 +89,14 @@ export function SpaceBar() {
       <div className={styles.actions}>
         <button
           className={`${styles.action} ${downloadsOpen ? styles.actionOn : ''} ${progress !== null ? styles.busy : ''}`}
-          aria-label={progress !== null ? `Downloads, ${Math.round(progress * 100)}% done` : 'Downloads'}
-          title={`Downloads (${modKey}⇧J)`}
+          aria-label={
+            progress !== null
+              ? t('shell.spaceBar.downloadsProgress', {
+                  pct: new Intl.NumberFormat(t.locale, { style: 'percent' }).format(progress),
+                })
+              : t('shortcut.downloads')
+          }
+          title={t('shell.spaceBar.downloadsTitle', { shortcut: `${modKey}⇧J` })}
           onClick={() => setDownloadsOpen(!downloadsOpen)}
           style={{ '--p': `${Math.round((progress ?? 0) * 360)}deg` } as CSSProperties}
           data-testid="downloads-toggle"
@@ -92,8 +105,8 @@ export function SpaceBar() {
         </button>
         <button
           className={styles.action}
-          aria-label="Settings"
-          title="Settings"
+          aria-label={t('shortcut.settings')}
+          title={t('shortcut.settings')}
           onClick={() => void invoke('tab/openUrl', { input: 'vela://settings', noAtc: true })}
         >
           <Icon name="settings" size={15} />

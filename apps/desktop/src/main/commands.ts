@@ -185,16 +185,17 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
 
 export async function openLocalFile(ctx: AppContext): Promise<Id | null> {
   const win = ctx.windows.main?.win;
+  const t = ctx.i18n.t;
   const opts: Electron.OpenDialogOptions = {
-    title: 'Open file',
+    title: t('menu.dialog.openFile'),
     properties: ['openFile'],
     filters: [
       {
-        name: 'Web pages and documents',
+        name: t('menu.dialog.filterWebPages'),
         extensions: ['html', 'htm', 'pdf', 'svg', 'txt', 'md', 'json', 'xml'],
       },
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'] },
-      { name: 'All files', extensions: ['*'] },
+      { name: t('menu.dialog.filterImages'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'] },
+      { name: t('menu.dialog.filterAll'), extensions: ['*'] },
     ],
   };
   const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
@@ -212,10 +213,11 @@ export async function savePageAs(ctx: AppContext, tabId: Id): Promise<boolean> {
       .replace(/[\\/:*?"<>|]+/g, ' ')
       .trim()
       .slice(0, 80) || 'page';
+  const t = ctx.i18n.t;
   const res = await dialog.showSaveDialog(win, {
-    title: 'Save page',
+    title: t('menu.dialog.savePage'),
     defaultPath: `${base}.html`,
-    filters: [{ name: 'Web page, complete', extensions: ['html'] }],
+    filters: [{ name: t('menu.dialog.filterWebPageComplete'), extensions: ['html'] }],
   });
   if (res.canceled || !res.filePath) return false;
   return ctx.tabs.savePage(tabId, res.filePath);

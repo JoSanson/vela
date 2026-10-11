@@ -1,57 +1,52 @@
-import { SHORTCUTS } from '@vela/shared';
+import { SHORTCUTS, shortcutLabel } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon';
 import { modKey } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { ImportPanel } from './ImportPanel';
 import styles from './OnboardingPage.module.css';
 import { useSnapshot } from './lib';
 import { useToast } from './Toast';
 import { Button, Keycaps } from './ui';
 
-const ZONES: { id: 'spaces' | 'pinned' | 'today'; icon: IconName; title: string; text: string }[] = [
-  {
-    id: 'spaces',
-    icon: 'layers',
-    title: 'Spaces',
-    text: 'Work, personal, a project: each with its own tabs, theme and profile. Switch at the bottom.',
-  },
-  {
-    id: 'pinned',
-    icon: 'pin',
-    title: 'Pinned',
-    text: 'Tabs you keep. They stay at the top and always return to their home page.',
-  },
-  {
-    id: 'today',
-    icon: 'sleep',
-    title: 'Today',
-    text: 'Everything else. Untouched tabs are archived for you, so the list stays short.',
-  },
+type ZoneId = 'spaces' | 'pinned' | 'today';
+
+const ZONES: { id: ZoneId; icon: IconName }[] = [
+  { id: 'spaces', icon: 'layers' },
+  { id: 'pinned', icon: 'pin' },
+  { id: 'today', icon: 'sleep' },
 ];
 
-const ESSENTIAL: { id: string; hint: string }[] = [
-  { id: 'newTab', hint: 'Search, open a URL or run a command' },
-  { id: 'editUrl', hint: 'Change the current page’s address' },
-  { id: 'toggleSidebar', hint: 'Give the page the whole window' },
-  { id: 'nextTabMru', hint: 'Jump between your last two tabs' },
-  { id: 'spaceNext', hint: 'Move to the next space' },
-  { id: 'archiveView', hint: 'Find tabs that were archived' },
-];
+const ZONE_TEXT = {
+  spaces: { title: 'pages.onboarding.zones.spaces.title', text: 'pages.onboarding.zones.spaces.text' },
+  pinned: { title: 'pages.onboarding.zones.pinned.title', text: 'pages.onboarding.zones.pinned.text' },
+  today: { title: 'pages.onboarding.zones.today.title', text: 'pages.onboarding.zones.today.text' },
+} as const satisfies Record<ZoneId, { title: string; text: string }>;
+
+const ESSENTIAL = [
+  { id: 'newTab', hint: 'pages.onboarding.essential.newTab' },
+  { id: 'editUrl', hint: 'pages.onboarding.essential.editUrl' },
+  { id: 'toggleSidebar', hint: 'pages.onboarding.essential.toggleSidebar' },
+  { id: 'nextTabMru', hint: 'pages.onboarding.essential.nextTabMru' },
+  { id: 'spaceNext', hint: 'pages.onboarding.essential.spaceNext' },
+  { id: 'archiveView', hint: 'pages.onboarding.essential.archiveView' },
+] as const;
 
 const STEPS = 3;
 
 export function OnboardingPage() {
+  const t = useT();
   const { setPrefs } = useSnapshot();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState<'next' | 'back'>('next');
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [zone, setZone] = useState<(typeof ZONES)[number]['id']>('spaces');
+  const [zone, setZone] = useState<ZoneId>('spaces');
 
   useEffect(() => {
-    document.title = 'Welcome';
-  }, []);
+    document.title = t('pages.onboarding.docTitle');
+  }, [t]);
 
   const go = (n: number): void => {
     setDir(n > step ? 'next' : 'back');
@@ -62,14 +57,14 @@ export function OnboardingPage() {
     setSaving(true);
     const ok = await setPrefs({ onboardingDone: true });
     setSaving(false);
-    if (!ok) toast("Couldn't save your preferences. You can finish setup later from Settings.", 'error');
+    if (!ok) toast(t('pages.onboarding.saveFailed'), 'error');
     setDir('next');
     setDone(true);
   };
 
   const essentials = ESSENTIAL.flatMap((e) => {
     const def = SHORTCUTS.find((s) => s.id === e.id);
-    return def ? [{ ...def, hint: e.hint }] : [];
+    return def ? [{ ...def, label: shortcutLabel(t, def), hint: t(e.hint) }] : [];
   });
 
   return (
@@ -85,10 +80,10 @@ export function OnboardingPage() {
             <div className={styles.check}>
               <Icon name="check" size={30} />
             </div>
-            <h1 className={styles.h1}>You’re all set</h1>
-            <p className={styles.lead}>Vela is ready. Open the command bar to start browsing.</p>
+            <h1 className={styles.h1}>{t('pages.onboarding.done.title')}</h1>
+            <p className={styles.lead}>{t('pages.onboarding.done.lead')}</p>
             <div className={styles.doneKbd}>
-              Press
+              {t('pages.onboarding.done.press')}
               <span className={styles.bigKbd}>{modKey}</span>
               <span className={styles.bigKbd}>T</span>
             </div>
@@ -99,12 +94,10 @@ export function OnboardingPage() {
               <Icon name="command" size={26} />
             </div>
             <div>
-              <p className={styles.eyebrow}>Welcome to Vela</p>
-              <h1 className={styles.h1}>A calmer way to browse</h1>
+              <p className={styles.eyebrow}>{t('pages.onboarding.welcome.eyebrow')}</p>
+              <h1 className={styles.h1}>{t('pages.onboarding.welcome.title')}</h1>
             </div>
-            <p className={styles.lead}>
-              Vela keeps your tabs organised for you. Three ideas are enough to get going.
-            </p>
+            <p className={styles.lead}>{t('pages.onboarding.welcome.lead')}</p>
             <div className={styles.tour} data-zone={zone}>
               <div className={styles.mini} aria-hidden="true">
                 <div className={styles.miniNav}>
@@ -145,8 +138,8 @@ export function OnboardingPage() {
                         <Icon name={z.icon} size={14} />
                       </span>
                       <span className={styles.zoneText}>
-                        <span className={styles.zoneTitle}>{z.title}</span>
-                        <span className={styles.zoneHint}>{z.text}</span>
+                        <span className={styles.zoneTitle}>{t(ZONE_TEXT[z.id].title)}</span>
+                        <span className={styles.zoneHint}>{t(ZONE_TEXT[z.id].text)}</span>
                       </span>
                     </button>
                   </li>
@@ -157,14 +150,10 @@ export function OnboardingPage() {
         ) : step === 1 ? (
           <div key="s1" className={styles.step} data-dir={dir} data-testid="onboarding-step-import">
             <div>
-              <p className={styles.eyebrow}>Step 2 of 3</p>
-              <h1 className={styles.h1}>Bring your bookmarks along</h1>
+              <p className={styles.eyebrow}>{t('pages.onboarding.stepOf', { n: 2, total: STEPS })}</p>
+              <h1 className={styles.h1}>{t('pages.onboarding.import.title')}</h1>
             </div>
-            <p className={styles.lead}>
-              Import bookmarks and history from another browser. Bookmarks become pinned tabs in your first
-              space; from Arc, your Spaces, pinned tabs and favorites come along as they are. You can skip
-              this and do it later from Settings.
-            </p>
+            <p className={styles.lead}>{t('pages.onboarding.import.lead')}</p>
             <div className={styles.importBox}>
               <ImportPanel />
             </div>
@@ -172,12 +161,10 @@ export function OnboardingPage() {
         ) : (
           <div key="s2" className={styles.step} data-dir={dir} data-testid="onboarding-step-shortcuts">
             <div>
-              <p className={styles.eyebrow}>Step 3 of 3</p>
-              <h1 className={styles.h1}>Six shortcuts worth learning</h1>
+              <p className={styles.eyebrow}>{t('pages.onboarding.stepOf', { n: 3, total: STEPS })}</p>
+              <h1 className={styles.h1}>{t('pages.onboarding.shortcuts.title')}</h1>
             </div>
-            <p className={styles.lead}>
-              Everything in Vela is reachable from the keyboard. The full list lives at vela://shortcuts.
-            </p>
+            <p className={styles.lead}>{t('pages.onboarding.shortcuts.lead')}</p>
             <div className={styles.shortcuts}>
               {essentials.map((s) => (
                 <div key={s.id} className={styles.shortcut}>
@@ -194,13 +181,13 @@ export function OnboardingPage() {
 
         {!done && (
           <div className={styles.footer}>
-            <div className={styles.dots} role="tablist" aria-label="Setup steps">
+            <div className={styles.dots} role="tablist" aria-label={t('pages.onboarding.stepsLabel')}>
               {Array.from({ length: STEPS }, (_, i) => (
                 <button
                   key={i}
                   type="button"
                   role="tab"
-                  aria-label={`Step ${i + 1}`}
+                  aria-label={t('pages.onboarding.stepLabel', { n: i + 1 })}
                   aria-current={i === step ? 'step' : undefined}
                   aria-selected={i === step}
                   className={styles.dot}
@@ -211,17 +198,17 @@ export function OnboardingPage() {
             <div className={styles.nav}>
               {step > 0 && (
                 <Button variant="ghost" testId="onboarding-back" onClick={() => go(step - 1)}>
-                  Back
+                  {t('common.back')}
                 </Button>
               )}
               {step === 1 && (
                 <Button variant="ghost" testId="onboarding-skip" onClick={() => go(2)}>
-                  Skip
+                  {t('pages.onboarding.skip')}
                 </Button>
               )}
               {step < STEPS - 1 ? (
                 <Button variant="primary" testId="onboarding-next" onClick={() => go(step + 1)}>
-                  {step === 1 ? 'Continue' : 'Next'}
+                  {step === 1 ? t('pages.onboarding.continue') : t('pages.onboarding.next')}
                 </Button>
               ) : (
                 <Button
@@ -230,7 +217,7 @@ export function OnboardingPage() {
                   disabled={saving}
                   onClick={() => void finish()}
                 >
-                  Start browsing
+                  {t('pages.onboarding.start')}
                 </Button>
               )}
             </div>

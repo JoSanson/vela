@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
 import { useHoverSelect } from '../lib/hoverSelect';
+import { useT } from '../lib/i18n';
+import { emphasize } from './emphasize';
 import styles from './Autofill.module.css';
 
 function hostOf(origin: string): string {
@@ -17,6 +19,7 @@ function hostOf(origin: string): string {
 export function AutofillPopover({ initial }: { initial: AutofillPrompt | null }) {
   const [prompt, setPrompt] = useState<AutofillPrompt | null>(initial);
   const [index, setIndex] = useState(0);
+  const t = useT();
   useEffect(() => vela.on('credentials/autofill', (p) => setPrompt(p)), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -34,7 +37,12 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
   const hover = useHoverSelect(setIndex);
   if (!prompt) return null;
   return (
-    <div className={styles.popover} role="listbox" aria-label="Saved logins" data-testid="autofill-popover">
+    <div
+      className={styles.popover}
+      role="listbox"
+      aria-label={t('overlay.autofill.savedLogins')}
+      data-testid="autofill-popover"
+    >
       {prompt.accounts.map((a, i) => (
         <button
           key={a.id}
@@ -50,7 +58,7 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
             <Icon name="key" size={14} />
           </span>
           <span className={styles.text}>
-            <span className={styles.user}>{a.username || 'No username'}</span>
+            <span className={styles.user}>{a.username || t('overlay.autofill.noUsername')}</span>
             <span className={styles.site}>{hostOf(a.origin)}</span>
           </span>
           <span className={styles.hint}>{i === index ? '↵' : ''}</span>
@@ -62,8 +70,10 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
 
 export function SavePasswordView({ initial }: { initial: SavePasswordPrompt | null }) {
   const [prompt, setPrompt] = useState<SavePasswordPrompt | null>(initial);
+  const t = useT();
   useEffect(() => vela.on('credentials/savePrompt', setPrompt), []);
   if (!prompt) return null;
+  const host = hostOf(prompt.origin);
   const respond = (action: 'save' | 'never' | 'dismiss'): void => {
     void invoke('credentials/respond', { id: prompt.id, action });
     setPrompt(null);
@@ -75,17 +85,21 @@ export function SavePasswordView({ initial }: { initial: SavePasswordPrompt | nu
       </span>
       <div className={styles.saveText}>
         <div id="save-pw-title" className={styles.saveTitle}>
-          {prompt.update ? 'Update password for ' : 'Save password for '}
-          <strong>{hostOf(prompt.origin)}</strong>?
+          {emphasize(
+            t(prompt.update ? 'overlay.savePassword.updateTitle' : 'overlay.savePassword.saveTitle', {
+              host,
+            }),
+            host,
+          )}
         </div>
         {prompt.username && <div className={styles.site}>{prompt.username}</div>}
       </div>
       <div className={styles.saveActions}>
         <button className={styles.ghost} onClick={() => respond('never')} data-testid="save-password-never">
-          Never
+          {t('overlay.savePassword.never')}
         </button>
         <button className={styles.ghost} onClick={() => respond('dismiss')} data-testid="save-password-later">
-          Not now
+          {t('overlay.savePassword.notNow')}
         </button>
         <button
           className={styles.primary}
@@ -93,7 +107,7 @@ export function SavePasswordView({ initial }: { initial: SavePasswordPrompt | nu
           data-testid="save-password-save"
           autoFocus
         >
-          {prompt.update ? 'Update' : 'Save'}
+          {prompt.update ? t('overlay.savePassword.update') : t('common.save')}
         </button>
       </div>
     </div>

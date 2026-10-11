@@ -1,6 +1,7 @@
 import { pinnedTree, type Container, type Folder, type Id } from '@vela/core';
 import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import { InlineEdit } from '../InlineEdit';
@@ -84,6 +85,7 @@ interface Props {
 
 export function PinnedList({ onDragStart }: Props) {
   const core = useShell((s) => s.core);
+  const t = useT();
   const space = core.spaces[core.activeSpaceId];
   const items = space ? pinnedTree(core, space.id) : [];
   const listRef = useFlip<HTMLDivElement>(
@@ -115,7 +117,7 @@ export function PinnedList({ onDragStart }: Props) {
   return (
     <div
       role="group"
-      aria-label="Pinned tabs"
+      aria-label={t('shell.pinnedList.label')}
       ref={listRef}
       className={`${styles.list} ${items.length === 0 ? styles.empty : ''}`}
       data-testid="pinned"

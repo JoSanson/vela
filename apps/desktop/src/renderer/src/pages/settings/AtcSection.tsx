@@ -1,6 +1,7 @@
 import { compileAtcPattern, createId, matchAtc, type AtcRule } from '@vela/core';
 import { useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { useSnapshot } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, Card, EmptyState, Select, TextInput, Toggle } from '../ui';
@@ -15,18 +16,19 @@ interface Draft {
 export function AtcSection() {
   const { snap, dispatch } = useSnapshot();
   const { toast } = useToast();
+  const t = useT();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [testUrl, setTestUrl] = useState('');
 
   const state = snap?.state;
   const rules = state?.atcRules ?? [];
   const spaces = state ? state.spaceOrder.flatMap((id) => (state.spaces[id] ? [state.spaces[id]] : [])) : [];
-  const spaceName = (id: string): string => state?.spaces[id]?.name ?? 'Unknown space';
+  const spaceName = (id: string): string => state?.spaces[id]?.name ?? t('settings.atc.unknownSpace');
   const spaceOptions = spaces.map((s) => ({ value: s.id, label: `${s.emoji} ${s.name}` }));
 
   const persist = async (next: AtcRule[]): Promise<boolean> => {
     const ok = await dispatch({ type: 'atc/set', rules: next });
-    if (!ok) toast("Couldn't save the rules", 'error');
+    if (!ok) toast(t('settings.atc.saveError'), 'error');
     return ok;
   };
 
@@ -74,14 +76,14 @@ export function AtcSection() {
   return (
     <div className={styles.stack} data-testid="settings-atc">
       <p className={styles.desc}>
-        Air Traffic Control routes links to the right space. Rules are checked top to bottom; the first
-        enabled match wins. Patterns: <code className={styles.mono}>github.com</code> (host and subdomains),{' '}
-        <code className={styles.mono}>*.google.com/*</code>, or a full URL with{' '}
+        {t('settings.atc.desc.intro')} {t('settings.atc.desc.patterns')}{' '}
+        <code className={styles.mono}>github.com</code> {t('settings.atc.desc.hostHint')},{' '}
+        <code className={styles.mono}>*.google.com/*</code>, {t('settings.atc.desc.orFullUrl')}{' '}
         <code className={styles.mono}>*</code>.
       </p>
 
       <div className={styles.sectionHead}>
-        <p className={styles.h3}>Rules</p>
+        <p className={styles.h3}>{t('settings.atc.rules')}</p>
         <div className={styles.headActions}>
           <Button
             variant="primary"
@@ -91,7 +93,7 @@ export function AtcSection() {
             disabled={spaces.length === 0}
             onClick={startAdd}
           >
-            Add rule
+            {t('settings.atc.add')}
           </Button>
         </div>
       </div>
@@ -101,15 +103,15 @@ export function AtcSection() {
           <div className={styles.editor} data-testid="atc-editor">
             <div className={styles.editorHead}>
               <span className={styles.fieldLabel} style={{ margin: 0 }}>
-                {draft.id ? 'Edit rule' : 'New rule'}
+                {draft.id ? t('settings.atc.editRule') : t('settings.atc.newRule')}
               </span>
             </div>
             <div className={styles.inlineForm}>
               <TextInput
                 value={draft.pattern}
                 onChange={(v) => setDraft({ ...draft, pattern: v })}
-                placeholder="Pattern, e.g. *.notion.so"
-                aria-label="Pattern"
+                placeholder={t('settings.atc.pattern.placeholder')}
+                aria-label={t('settings.atc.pattern')}
                 autoFocus
                 testId="atc-pattern"
                 onKeyDown={(e) => {
@@ -122,7 +124,7 @@ export function AtcSection() {
                 value={draft.spaceId}
                 options={spaceOptions}
                 onChange={(v) => setDraft({ ...draft, spaceId: v })}
-                aria-label="Target space"
+                aria-label={t('settings.atc.targetSpace')}
                 testId="atc-space"
               />
               <Button
@@ -132,10 +134,10 @@ export function AtcSection() {
                 testId="atc-save"
                 onClick={() => void saveDraft()}
               >
-                {draft.id ? 'Save' : 'Add'}
+                {draft.id ? t('common.save') : t('settings.atc.addShort')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setDraft(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </div>
@@ -143,17 +145,17 @@ export function AtcSection() {
         {rules.length === 0 ? (
           <EmptyState
             icon="send"
-            title="No rules yet"
-            hint="Add a rule to send, for example, every github.com link to your Work space."
+            title={t('settings.atc.empty.title')}
+            hint={t('settings.atc.empty.hint')}
             testId="atc-empty"
           />
         ) : (
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ width: 40 }}>On</th>
-                <th>Pattern</th>
-                <th>Opens in</th>
+                <th style={{ width: 40 }}>{t('settings.atc.col.on')}</th>
+                <th>{t('settings.atc.pattern')}</th>
+                <th>{t('settings.atc.opensIn')}</th>
                 <th />
               </tr>
             </thead>
@@ -168,7 +170,7 @@ export function AtcSection() {
                 >
                   <td>
                     <Toggle
-                      label={`Enable ${r.pattern}`}
+                      label={t('settings.atc.enable', { pattern: r.pattern })}
                       checked={r.enabled}
                       onChange={(v) => toggle(r, v)}
                       testId="atc-toggle"
@@ -186,8 +188,8 @@ export function AtcSection() {
                         variant="ghost"
                         size="sm"
                         icon="arrowUp"
-                        aria-label="Move up"
-                        title="Move up"
+                        aria-label={t('settings.atc.moveUp')}
+                        title={t('settings.atc.moveUp')}
                         disabled={i === 0}
                         testId="atc-up"
                         onClick={() => move(i, -1)}
@@ -196,8 +198,8 @@ export function AtcSection() {
                         variant="ghost"
                         size="sm"
                         icon="arrowDown"
-                        aria-label="Move down"
-                        title="Move down"
+                        aria-label={t('settings.atc.moveDown')}
+                        title={t('settings.atc.moveDown')}
                         disabled={i === rules.length - 1}
                         testId="atc-down"
                         onClick={() => move(i, 1)}
@@ -206,8 +208,8 @@ export function AtcSection() {
                         variant="ghost"
                         size="sm"
                         icon="edit"
-                        aria-label="Edit"
-                        title="Edit"
+                        aria-label={t('settings.atc.edit')}
+                        title={t('settings.atc.edit')}
                         testId="atc-edit"
                         onClick={() => startEdit(r)}
                       />
@@ -215,8 +217,8 @@ export function AtcSection() {
                         variant="ghost"
                         size="sm"
                         icon="trash"
-                        aria-label="Delete"
-                        title="Delete"
+                        aria-label={t('common.delete')}
+                        title={t('common.delete')}
                         testId="atc-delete"
                         onClick={() => remove(r)}
                       />
@@ -229,31 +231,31 @@ export function AtcSection() {
         )}
       </Card>
 
-      <p className={styles.h3}>Test a URL</p>
+      <p className={styles.h3}>{t('settings.atc.test.title')}</p>
       <Card>
         <div className={styles.previewRow}>
           <TextInput
             value={testUrl}
             onChange={setTestUrl}
-            placeholder="Paste a URL to see which rule catches it"
-            aria-label="Test URL"
+            placeholder={t('settings.atc.test.placeholder')}
+            aria-label={t('settings.atc.test.label')}
             testId="atc-test"
           />
           <div className={styles.match} data-testid="atc-test-result" aria-live="polite">
             {!probe ? (
-              <span className={styles.soon}>Type a URL above.</span>
+              <span className={styles.soon}>{t('settings.atc.test.empty')}</span>
             ) : matchedSpace && matchedRule ? (
               <>
                 <Icon name="check" size={14} style={{ color: 'var(--p-success)' }} />
-                Opens in <Badge tone="accent">{spaceName(matchedSpace)}</Badge>
+                {t('settings.atc.opensIn')} <Badge tone="accent">{spaceName(matchedSpace)}</Badge>
                 <span className={styles.soon}>
-                  via <code className={styles.mono}>{matchedRule.pattern}</code>
+                  {t('settings.atc.test.via')} <code className={styles.mono}>{matchedRule.pattern}</code>
                 </span>
               </>
             ) : (
               <>
                 <Icon name="globe" size={14} style={{ color: 'var(--p-faint)' }} />
-                No rule matches: opens in the current space.
+                {t('settings.atc.test.noMatch')}
               </>
             )}
           </div>

@@ -1,6 +1,7 @@
-import type { BrowserImportSource, BrowserImportSourceId, ImportResult } from '@vela/shared';
+import type { BrowserImportSource, BrowserImportSourceId, ImportResult, Translator } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
+import { useT } from '../lib/i18n';
 import styles from './ImportPanel.module.css';
 import { tryInvoke } from './lib';
 import { useToast } from './Toast';
@@ -25,24 +26,31 @@ interface Props {
   onImported?: (source: BrowserImportSource, result: ImportResult) => void;
 }
 
-function subtitle(src: BrowserImportSource): string {
+function subtitle(src: BrowserImportSource, t: Translator): string {
   if (src.error) return src.error;
-  if (!src.available) return 'Not installed';
+  if (!src.available) return t('pages.import.notInstalled');
   if (src.id === 'arc') {
-    return src.history ? 'Sidebar and history found' : 'Sidebar found, no history database';
+    return src.history ? t('pages.import.arcFound') : t('pages.import.arcNoHistory');
   }
-  if (src.id === 'safari') return 'Bookmarks and history found';
-  return 'Profile found';
+  if (src.id === 'safari') return t('pages.import.safariFound');
+  return t('pages.import.profileFound');
 }
 
-function summary(src: BrowserImportSource, r: ImportResult): string {
+function summary(src: BrowserImportSource, r: ImportResult, t: Translator): string {
   if (src.id === 'arc') {
-    return `${r.spaces ?? 0} spaces · ${r.bookmarks} pinned · ${r.todayTabs ?? 0} tabs · ${r.favorites ?? 0} favorites · ${r.history} history`;
+    return t('pages.import.arcSummary', {
+      spaces: r.spaces ?? 0,
+      pinned: r.bookmarks,
+      tabs: r.todayTabs ?? 0,
+      favorites: r.favorites ?? 0,
+      history: r.history,
+    });
   }
-  return `${r.bookmarks} bookmarks · ${r.history} history`;
+  return t('pages.import.summary', { bookmarks: r.bookmarks, history: r.history });
 }
 
 export function ImportPanel({ onImported }: Props) {
+  const t = useT();
   const { toast } = useToast();
   const [sources, setSources] = useState<BrowserImportSource[] | null>(null);
   const [choices, setChoices] = useState<Record<string, Choice>>({});
@@ -75,7 +83,7 @@ export function ImportPanel({ onImported }: Props) {
     });
     setRunning(null);
     if (!res) {
-      toast(`Couldn't import from ${src.name}`, 'error');
+      toast(t('pages.import.failed', { name: src.name }), 'error');
       return;
     }
     if (res.error) {
@@ -85,8 +93,12 @@ export function ImportPanel({ onImported }: Props) {
     setResults((prev) => ({ ...prev, [src.id]: res }));
     toast(
       src.id === 'arc'
-        ? `Recreated ${res.spaces ?? 0} spaces with ${res.bookmarks} pinned tabs and ${res.favorites ?? 0} favorites from Arc`
-        : `Imported ${res.bookmarks} bookmarks and ${res.history} history entries from ${src.name}`,
+        ? t('pages.import.arcDone', {
+            spaces: res.spaces ?? 0,
+            pinned: res.bookmarks,
+            favorites: res.favorites ?? 0,
+          })
+        : t('pages.import.done', { bookmarks: res.bookmarks, history: res.history, name: src.name }),
     );
     onImported?.(src, res);
   };
@@ -94,15 +106,14 @@ export function ImportPanel({ onImported }: Props) {
   if (sources === null) {
     return (
       <div className={styles.emptyNote} data-testid="import-loading">
-        Looking for installed browsers…
+        {t('pages.import.looking')}
       </div>
     );
   }
   if (sources.length === 0) {
     return (
       <div className={styles.emptyNote} data-testid="import-none">
-        No Arc, Chrome, Brave, Edge, Safari or Firefox data was found on this Mac. You can still import a Vela
-        export from a file.
+        {t('pages.import.none')}
       </div>
     );
   }
@@ -129,19 +140,14 @@ export function ImportPanel({ onImported }: Props) {
             <span className={styles.name}>
               {src.name}
               <span className={styles.sub} data-tone={src.error ? 'warning' : undefined}>
-                {subtitle(src)}
+                {subtitle(src, t)}
               </span>
-              {src.structure ? (
-                <span className={styles.hint}>
-                  Imports the whole sidebar: every Space with its name, emoji and colour, pinned tabs and
-                  folders in order, open tabs, and favorites.
-                </span>
-              ) : null}
+              {src.structure ? <span className={styles.hint}>{t('pages.import.structureHint')}</span> : null}
             </span>
             {done ? (
               <span className={styles.result} data-testid="import-result">
                 <Icon name="check" size={14} />
-                {summary(src, done)}
+                {summary(src, done, t)}
               </span>
             ) : (
               <>
@@ -155,7 +161,7 @@ export function ImportPanel({ onImported }: Props) {
                         onChange={(e) => setChoice(src.id, { structure: e.target.checked })}
                         data-testid={`import-structure-${src.id}`}
                       />
-                      Recreate Spaces, pinned tabs and favorites
+                      {t('pages.import.structure')}
                     </label>
                   ) : (
                     <label className={styles.check}>
@@ -165,12 +171,12 @@ export function ImportPanel({ onImported }: Props) {
                         disabled={!src.available || !src.bookmarks || busy}
                         onChange={(e) => setChoice(src.id, { bookmarks: e.target.checked })}
                       />
-                      Bookmarks
+                      {t('pages.import.bookmarks')}
                     </label>
                   )}
                   <label
                     className={styles.check}
-                    title={src.available && !src.history ? 'No history database found' : undefined}
+                    title={src.available && !src.history ? t('pages.import.noHistoryDb') : undefined}
                   >
                     <input
                       type="checkbox"
@@ -178,7 +184,9 @@ export function ImportPanel({ onImported }: Props) {
                       disabled={!src.available || !src.history || busy}
                       onChange={(e) => setChoice(src.id, { history: e.target.checked })}
                     />
-                    {src.available && !src.history ? 'History (none found)' : 'History'}
+                    {src.available && !src.history
+                      ? t('pages.import.historyNone')
+                      : t('pages.import.history')}
                   </label>
                 </span>
                 <Button
@@ -189,7 +197,7 @@ export function ImportPanel({ onImported }: Props) {
                   onClick={() => void run(src)}
                 >
                   {busy ? <Spinner /> : null}
-                  {busy ? 'Importing…' : 'Import'}
+                  {busy ? t('pages.import.importing') : t('pages.import.import')}
                 </Button>
               </>
             )}

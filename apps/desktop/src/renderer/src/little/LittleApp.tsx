@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon } from '../components/Icon';
 import { invoke, isMac, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { connectStore, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
 import styles from './LittleApp.module.css';
 
 export function LittleApp() {
   const core = useShell((s) => s.core);
+  const t = useT();
   const [little, setLittle] = useState<LittleState | null>(null);
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState('');
@@ -47,7 +49,7 @@ export function LittleApp() {
           className={styles.btn}
           onClick={() => act('back')}
           disabled={!little?.canGoBack}
-          aria-label="Back"
+          aria-label={t('shortcut.back')}
         >
           <Icon name="back" size={15} />
         </button>
@@ -55,14 +57,14 @@ export function LittleApp() {
           className={styles.btn}
           onClick={() => act('forward')}
           disabled={!little?.canGoForward}
-          aria-label="Forward"
+          aria-label={t('shortcut.forward')}
         >
           <Icon name="forward" size={15} />
         </button>
         <button
           className={styles.btn}
           onClick={() => act(little?.loading ? 'stop' : 'reload')}
-          aria-label={little?.loading ? 'Stop' : 'Reload'}
+          aria-label={little?.loading ? t('shell.little.stop') : t('shortcut.reload')}
         >
           <Icon name={little?.loading ? 'close' : 'reload'} size={14} />
         </button>
@@ -108,12 +110,12 @@ export function LittleApp() {
       <div className={`${styles.send} no-drag`}>
         <button className={styles.sendBtn} onClick={() => send(null)} data-testid="little-send">
           <Icon name="send" size={13} />
-          <span>Send to {core.spaces[core.activeSpaceId]?.name ?? 'Vela'}</span>
+          <span>{t('shell.little.sendTo', { name: core.spaces[core.activeSpaceId]?.name ?? 'Vela' })}</span>
         </button>
         <button
           className={styles.sendMore}
           onClick={() => setSendOpen((v) => !v)}
-          aria-label="Choose space"
+          aria-label={t('shell.little.chooseSpace')}
           aria-expanded={sendOpen}
         >
           <Icon name="chevron" size={12} style={{ transform: 'rotate(90deg)' }} />

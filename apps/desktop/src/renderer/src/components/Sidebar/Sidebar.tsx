@@ -1,6 +1,7 @@
 import { createFolder, type Id } from '@vela/core';
 import { useCallback, useEffect, useRef, useState, type WheelEvent } from 'react';
 import { dispatch, vela } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { EmojiPicker } from '../EmojiPicker';
 import { useSidebarDnd } from './dnd';
@@ -27,6 +28,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
   const iconPickerFor = useShell((s) => s.iconPickerFor);
   const setIconPickerFor = useShell((s) => s.setIconPickerFor);
   const setEditing = useShell((s) => s.setEditingItem);
+  const t = useT();
   const [slide, setSlide] = useState<'left' | 'right' | null>(null);
   const prevSpaceIdx = useRef(core.spaceOrder.indexOf(core.activeSpaceId));
   const swipe = useRef({ acc: 0, at: 0 });
@@ -36,9 +38,9 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
     const prev = prevSpaceIdx.current;
     if (prev !== spaceIdx && prev >= 0) {
       setSlide(spaceIdx > prev ? 'right' : 'left');
-      const t = setTimeout(() => setSlide(null), 260);
+      const timer = setTimeout(() => setSlide(null), 260);
       prevSpaceIdx.current = spaceIdx;
-      return () => clearTimeout(t);
+      return () => clearTimeout(timer);
     }
     prevSpaceIdx.current = spaceIdx;
     return undefined;
@@ -51,7 +53,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
       if (id === 'pickIcon' && p.id) setIconPickerFor(p.id);
       if (id === 'newFolder') {
         const st = useShell.getState().core;
-        const folder = createFolder({ spaceId: st.activeSpaceId, name: 'New folder' });
+        const folder = createFolder({ spaceId: st.activeSpaceId, name: t('shell.sidebar.newFolder') });
         dispatch({
           type: 'folder/create',
           folder,
@@ -60,7 +62,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
         setEditing(folder.id);
       }
     });
-  }, [setEditing, setIconPickerFor]);
+  }, [setEditing, setIconPickerFor, t]);
 
   const onWheel = useCallback((e: WheelEvent) => {
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
@@ -127,7 +129,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
       ref={rootRef}
       className={`${styles.sidebar} ${floating ? styles.floating : ''} grain`}
       style={{ width }}
-      aria-label="Sidebar"
+      aria-label={t('shell.sidebar.label')}
       data-testid="sidebar"
       data-floating={floating ? 'true' : 'false'}
     >
@@ -136,7 +138,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
       <div
         className={`${styles.scroll} ${slide === 'right' ? styles.slideRight : ''} ${slide === 'left' ? styles.slideLeft : ''}`}
         role="tree"
-        aria-label="Tabs"
+        aria-label={t('shortcut.group.tabs')}
         onWheel={onWheel}
         onKeyDown={onTreeKeyDown}
         key={core.activeSpaceId}

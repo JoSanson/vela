@@ -1,5 +1,6 @@
 import { hostOf, type Tab } from '@vela/core';
 import { useState, type ReactNode } from 'react';
+import { useT } from '../lib/i18n';
 import { Icon, type IconName } from './Icon';
 import styles from './Favicon.module.css';
 
@@ -41,6 +42,7 @@ export function faviconSrc(url: string): string {
 
 export function Favicon({ tab, size = 16 }: Props) {
   const [broken, setBroken] = useState(false);
+  const t = useT();
   const style = { width: size, height: size, fontSize: size * 0.75 };
   let inner: ReactNode;
   if (tab.emoji) {
@@ -81,7 +83,11 @@ export function Favicon({ tab, size = 16 }: Props) {
   if (!tab.loading) return inner;
   // Loading lives on the icon itself (a ring around a dimmed favicon): the row never shifts.
   return (
-    <span className={styles.loadingWrap} style={{ width: size, height: size }} aria-label="Loading">
+    <span
+      className={styles.loadingWrap}
+      style={{ width: size, height: size }}
+      aria-label={t('shell.favicon.loading')}
+    >
       {inner}
       <span className={styles.ring} />
     </span>

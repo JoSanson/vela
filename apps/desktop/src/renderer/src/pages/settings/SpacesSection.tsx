@@ -1,6 +1,7 @@
 import { createProfile, type Profile } from '@vela/core';
 import { useState, type CSSProperties } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { useSnapshot } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, Card, ConfirmButton, EmptyState, Select, TextInput } from '../ui';
@@ -11,6 +12,7 @@ const COLORS = ['#5b6cff', '#ff7a59', '#1fb58b', '#f25c78', '#2f80ed', '#9a5bff'
 export function SpacesSection() {
   const { snap, dispatch } = useSnapshot();
   const { toast } = useToast();
+  const t = useT();
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(COLORS[0] ?? '#5b6cff');
   const [editing, setEditing] = useState<{ id: string; name: string; color: string } | null>(null);
@@ -18,16 +20,15 @@ export function SpacesSection() {
   const state = snap?.state;
   const spaces = state ? state.spaceOrder.flatMap((id) => (state.spaces[id] ? [state.spaces[id]] : [])) : [];
   const profiles: Profile[] = state ? Object.values(state.profiles) : [];
-
-  const fail = (what: string): void => toast(`Couldn't ${what}`, 'error');
+  const numberFormat = new Intl.NumberFormat(t.locale);
 
   const createNew = async (): Promise<void> => {
     const name = newName.trim();
     if (!name) return;
     const ok = await dispatch({ type: 'profile/create', profile: createProfile(name, newColor) });
-    if (!ok) return fail('create the profile');
+    if (!ok) return toast(t('settings.spaces.error.create'), 'error');
     setNewName('');
-    toast(`Profile “${name}” created`);
+    toast(t('settings.spaces.created', { name }));
   };
 
   const saveEdit = async (): Promise<void> => {
@@ -39,14 +40,14 @@ export function SpacesSection() {
       id: editing.id,
       patch: { name, color: editing.color },
     });
-    if (!ok) return fail('rename the profile');
+    if (!ok) return toast(t('settings.spaces.error.rename'), 'error');
     setEditing(null);
   };
 
   const remove = async (p: Profile): Promise<void> => {
     const ok = await dispatch({ type: 'profile/delete', id: p.id });
-    if (!ok) return fail('delete the profile');
-    toast(`Profile “${p.name}” deleted; its spaces now use the default profile`);
+    if (!ok) return toast(t('settings.spaces.error.delete'), 'error');
+    toast(t('settings.spaces.deleted', { name: p.name }));
   };
 
   const assign = async (spaceId: string, profileId: string): Promise<void> => {
@@ -55,32 +56,33 @@ export function SpacesSection() {
       id: spaceId,
       patch: { profileId: profileId === '' ? null : profileId },
     });
-    if (!ok) fail('change the space profile');
+    if (!ok) toast(t('settings.spaces.error.assign'), 'error');
   };
 
   const profileOptions = [
-    { value: '', label: 'Default profile' },
+    { value: '', label: t('settings.spaces.defaultProfile') },
     ...profiles.map((p) => ({ value: p.id, label: p.name })),
   ];
 
   return (
     <div className={styles.stack} data-testid="settings-spaces">
-      <p className={styles.desc}>
-        Each space can run in its own profile: separate cookies, logins and storage. Spaces without a profile
-        share the default one.
-      </p>
+      <p className={styles.desc}>{t('settings.spaces.desc')}</p>
 
-      <p className={styles.h3}>Spaces</p>
+      <p className={styles.h3}>{t('settings.spaces.title')}</p>
       <Card testId="settings-spaces-table">
         {spaces.length === 0 ? (
-          <EmptyState icon="layers" title="No spaces" hint="Create a space from the sidebar." />
+          <EmptyState
+            icon="layers"
+            title={t('settings.spaces.empty.title')}
+            hint={t('settings.spaces.empty.hint')}
+          />
         ) : (
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Space</th>
-                <th>Profile</th>
-                <th style={{ textAlign: 'right' }}>Tabs</th>
+                <th>{t('settings.spaces.col.space')}</th>
+                <th>{t('settings.spaces.col.profile')}</th>
+                <th style={{ textAlign: 'right' }}>{t('settings.spaces.col.tabs')}</th>
               </tr>
             </thead>
             <tbody>
@@ -95,7 +97,9 @@ export function SpacesSection() {
                           {s.emoji}
                         </span>
                         {s.name}
-                        {s.id === state?.activeSpaceId && <Badge tone="accent">Active</Badge>}
+                        {s.id === state?.activeSpaceId && (
+                          <Badge tone="accent">{t('settings.spaces.active')}</Badge>
+                        )}
                       </span>
                     </td>
                     <td>
@@ -103,12 +107,12 @@ export function SpacesSection() {
                         value={s.profileId ?? ''}
                         options={profileOptions}
                         onChange={(v) => void assign(s.id, v)}
-                        aria-label={`Profile for ${s.name}`}
+                        aria-label={t('settings.spaces.profileFor', { name: s.name })}
                         data-testid="settings-space-profile"
                       />
                     </td>
                     <td style={{ textAlign: 'right' }} className={styles.mono}>
-                      {tabCount}
+                      {numberFormat.format(tabCount)}
                     </td>
                   </tr>
                 );
@@ -118,12 +122,12 @@ export function SpacesSection() {
         )}
       </Card>
 
-      <p className={styles.h3}>Profiles</p>
+      <p className={styles.h3}>{t('settings.spaces.profiles')}</p>
       <Card testId="settings-profiles">
         {profiles.length === 0 ? (
           <div className={styles.hintBox}>
             <Icon name="users" size={14} />
-            No custom profiles yet. Create one below to keep a work account separate from a personal one.
+            {t('settings.spaces.profiles.empty')}
           </div>
         ) : (
           <table className={styles.table}>
@@ -145,7 +149,7 @@ export function SpacesSection() {
                           <TextInput
                             value={editing.name}
                             onChange={(v) => setEditing({ ...editing, name: v })}
-                            aria-label="Profile name"
+                            aria-label={t('settings.spaces.profileName')}
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') void saveEdit();
@@ -159,7 +163,7 @@ export function SpacesSection() {
                                 type="button"
                                 className={styles.swatch}
                                 style={{ background: c, color: c }}
-                                aria-label={`Color ${c}`}
+                                aria-label={t('settings.spaces.color', { color: c })}
                                 aria-pressed={editing.color === c}
                                 onClick={() => setEditing({ ...editing, color: c })}
                               />
@@ -170,7 +174,7 @@ export function SpacesSection() {
                         <>
                           {p.name}{' '}
                           <span className={styles.boostMeta}>
-                            · {used} {used === 1 ? 'space' : 'spaces'}
+                            · {t('settings.spaces.spacesCount', { n: used })}
                           </span>
                         </>
                       )}
@@ -180,10 +184,10 @@ export function SpacesSection() {
                         {isEditing ? (
                           <>
                             <Button variant="primary" size="sm" onClick={() => void saveEdit()}>
-                              Save
+                              {t('common.save')}
                             </Button>
                             <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           </>
                         ) : (
@@ -192,8 +196,8 @@ export function SpacesSection() {
                               variant="ghost"
                               size="sm"
                               icon="edit"
-                              aria-label="Rename"
-                              title="Rename"
+                              aria-label={t('settings.spaces.rename')}
+                              title={t('settings.spaces.rename')}
                               testId="profile-edit"
                               onClick={() => setEditing({ id: p.id, name: p.name, color: p.color })}
                             />
@@ -203,10 +207,10 @@ export function SpacesSection() {
                               size="sm"
                               question={
                                 used > 0
-                                  ? `Detach ${used} ${used === 1 ? 'space' : 'spaces'} and delete?`
-                                  : 'Delete?'
+                                  ? t('settings.spaces.detachQuestion', { n: used })
+                                  : t('settings.spaces.deleteQuestion')
                               }
-                              confirmLabel="Delete"
+                              confirmLabel={t('common.delete')}
                               testId="profile-delete"
                               onConfirm={() => void remove(p)}
                             />
@@ -224,13 +228,13 @@ export function SpacesSection() {
           className={styles.previewRow}
           style={{ borderTop: profiles.length ? '1px solid var(--p-border)' : undefined }}
         >
-          <span className={styles.fieldLabel}>New profile</span>
+          <span className={styles.fieldLabel}>{t('settings.spaces.newProfile')}</span>
           <div className={styles.inlineForm}>
             <TextInput
               value={newName}
               onChange={setNewName}
-              placeholder="Profile name, e.g. Work"
-              aria-label="New profile name"
+              placeholder={t('settings.spaces.newProfile.placeholder')}
+              aria-label={t('settings.spaces.newProfile.label')}
               testId="profile-name"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void createNew();
@@ -243,7 +247,7 @@ export function SpacesSection() {
                   type="button"
                   className={styles.swatch}
                   style={{ background: c, color: c }}
-                  aria-label={`Color ${c}`}
+                  aria-label={t('settings.spaces.color', { color: c })}
                   aria-pressed={newColor === c}
                   onClick={() => setNewColor(c)}
                 />
@@ -256,7 +260,7 @@ export function SpacesSection() {
               testId="profile-create"
               onClick={() => void createNew()}
             >
-              Create
+              {t('settings.spaces.create')}
             </Button>
           </div>
         </div>

@@ -141,7 +141,7 @@ function persistLoop(ctx: AppContext): () => void {
       if (failures === 3 && target)
         emit(target, 'ui/command', {
           id: 'toast',
-          payload: { text: "Vela can't save your tabs (disk full?)." },
+          payload: { text: ctx.i18n.t('menu.toast.saveFailed') },
         });
       setTimeout(flush, Math.min(30_000, 500 * 2 ** failures));
     }
@@ -173,6 +173,7 @@ async function boot(): Promise<void> {
   const store = new Store(repo.load());
   const sessions = new SessionManager();
   const windows = new WindowManager(prefs);
+  const i18n = new I18n(prefs);
   const tabs = new TabManager({ store, sessions, prefs, history, windows });
   const overlay = new OverlayManager(windows, tabs);
   const favicons = new FaviconCache(new FaviconsRepo(db));
@@ -187,7 +188,10 @@ async function boot(): Promise<void> {
     const target = shellWcNow();
     if (target) {
       emit(target, 'ui/command', { id: 'showDownloads' });
-      emit(target, 'ui/command', { id: 'toast', payload: { text: `Downloading ${filename}` } });
+      emit(target, 'ui/command', {
+        id: 'toast',
+        payload: { text: i18n.t('menu.toast.downloading', { filename }) },
+      });
     }
   };
   downloads.retry = (url) => {
@@ -200,8 +204,12 @@ async function boot(): Promise<void> {
       emit(target, 'ui/command', {
         id: 'toast',
         payload: {
-          text: `${filename} can run programs on your computer.`,
-          action: { label: 'Keep', invoke: 'downloads/action', req: { id, action: 'keep' } },
+          text: i18n.t('menu.toast.dangerous', { filename }),
+          action: {
+            label: i18n.t('menu.toast.keep'),
+            invoke: 'downloads/action',
+            req: { id, action: 'keep' },
+          },
         },
       });
   };
@@ -219,7 +227,6 @@ async function boot(): Promise<void> {
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
   const safeBrowsing = new SafeBrowsing(prefs, userData);
-  const i18n = new I18n(prefs);
   void safeBrowsing.init();
   blocker.mainFrameGuard = (url, wc) => {
     const threat = safeBrowsing.check(url);
@@ -484,10 +491,7 @@ async function boot(): Promise<void> {
       emit(mw.win.webContents, 'ui/command', {
         id: 'toast',
         payload: {
-          text:
-            opened.recovered === 'backup'
-              ? 'Your tab database was damaged; the last backup was restored.'
-              : 'Your tab database was damaged and could not be recovered; starting fresh.',
+          text: i18n.t(opened.recovered === 'backup' ? 'menu.toast.dbBackup' : 'menu.toast.dbFresh'),
         },
       }),
     );
@@ -498,7 +502,7 @@ async function boot(): Promise<void> {
     mw.win.webContents.once('did-finish-load', () =>
       emit(mw.win.webContents, 'ui/command', {
         id: 'toast',
-        payload: { text: 'Vela did not shut down cleanly. Your tabs were restored.' },
+        payload: { text: i18n.t('menu.toast.crashRestored') },
       }),
     );
   }
@@ -526,7 +530,8 @@ async function boot(): Promise<void> {
     // Chromium restarts the GPU process; views must be re-laid out to repaint.
     setTimeout(() => tabs.layout(), 300);
     const target = shellWcNow();
-    if (target) emit(target, 'ui/command', { id: 'toast', payload: { text: 'Graphics process restarted.' } });
+    if (target)
+      emit(target, 'ui/command', { id: 'toast', payload: { text: i18n.t('menu.toast.gpuRestarted') } });
   });
   const reviveShell = (wc: Electron.WebContents, what: string): void => {
     wc.on('render-process-gone', (_e, d) => {

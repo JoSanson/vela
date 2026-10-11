@@ -1,6 +1,7 @@
 import { todayTabs } from '@vela/core';
 import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke, modKey } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import { useFlip } from '../useFlip';
@@ -14,6 +15,7 @@ interface Props {
 
 export function TodayList({ onDragStart }: Props) {
   const core = useShell((s) => s.core);
+  const t = useT();
   const space = core.spaces[core.activeSpaceId];
   const listRef = useFlip<HTMLDivElement>(space?.today.join(',') ?? '');
   const spaceId = space?.id ?? '';
@@ -22,31 +24,32 @@ export function TodayList({ onDragStart }: Props) {
   const tabs = todayTabs(core, space.id);
   const hasPinned = space.pinned.length > 0;
   const clearAll = (): void => {
-    const closed = tabs.map((t) => ({
-      ...t,
+    const closed = tabs.map((tab) => ({
+      ...tab,
       loaded: false,
       loading: false,
       audible: false,
       sleeping: false,
     }));
     const wasActive = space.activeTabId;
-    for (const t of tabs) void invoke('tab/close', { tabId: t.id });
+    for (const tab of tabs) void invoke('tab/close', { tabId: tab.id });
     useShell.getState().showToast({
-      text: `Closed ${closed.length} tab${closed.length > 1 ? 's' : ''}`,
+      text: t('shell.today.closedTabs', { n: closed.length }),
       action: {
-        label: 'Undo',
+        label: t('shell.today.undo'),
         run: () => {
           // Re-open the very same tabs (internal pages included), in their original order.
-          for (const t of [...closed].reverse()) dispatch({ type: 'tab/open', tab: t, activate: false });
+          for (const tab of [...closed].reverse()) dispatch({ type: 'tab/open', tab, activate: false });
           if (wasActive) dispatch({ type: 'tab/activate', id: wasActive, now: Date.now() });
         },
       },
     });
   };
+  const [hintBefore, hintAfter] = t('shell.today.emptyHint', { hours: '\u0000' }).split('\u0000');
   return (
     <div
       role="group"
-      aria-label="Today"
+      aria-label={t('shell.today.label')}
       className={styles.wrap}
       data-testid="today"
       data-dnd-zone="today"
@@ -64,7 +67,7 @@ export function TodayList({ onDragStart }: Props) {
           <span className={styles.line} />
           {tabs.length > 0 && (
             <button className={styles.clear} onClick={clearAll} data-testid="clear-today">
-              Clear
+              {t('shell.today.clear')}
             </button>
           )}
         </div>
@@ -75,16 +78,16 @@ export function TodayList({ onDragStart }: Props) {
         data-testid="new-tab"
       >
         <Icon name="plus" size={15} />
-        <span>New tab</span>
+        <span>{t('shell.today.newTab')}</span>
         <kbd className={styles.kbd}>{modKey}T</kbd>
       </button>
       <div className={styles.list} ref={listRef}>
-        {tabs.map((t, i) => (
+        {tabs.map((tab, i) => (
           <TabRow
-            key={t.id}
-            tab={t}
-            active={space.activeTabId === t.id}
-            inSplit={!!space.split?.panes.includes(t.id)}
+            key={tab.id}
+            tab={tab}
+            active={space.activeTabId === tab.id}
+            inSplit={!!space.split?.panes.includes(tab.id)}
             container={container}
             index={i}
             onDragStart={onDragStart}
@@ -93,8 +96,11 @@ export function TodayList({ onDragStart }: Props) {
       </div>
       {tabs.length === 0 && !hasPinned && core.favorites.length === 0 && (
         <p className={styles.emptyHint}>
-          Tabs you open land here. They are archived after{' '}
-          <span className={styles.nowrap}>{useShell.getState().prefs.autoArchiveHours}h</span> of inactivity.
+          {hintBefore}
+          <span className={styles.nowrap}>
+            {t('shell.today.hours', { n: useShell.getState().prefs.autoArchiveHours })}
+          </span>
+          {hintAfter}
         </p>
       )}
     </div>

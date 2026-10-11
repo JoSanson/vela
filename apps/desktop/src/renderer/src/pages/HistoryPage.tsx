@@ -3,6 +3,7 @@ import type { HistoryEntry } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Favicon } from '../components/Favicon';
 import { isMac, modKey } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { dayKey, dayLabel, formatTime, openUrl, tryInvoke } from './lib';
 import { PageShell } from './PageShell';
 import rows from './rows.module.css';
@@ -14,7 +15,7 @@ const PAGE = 200;
 const DAY_H = 40;
 const ROW_H = 52;
 
-type Row = { kind: 'day'; key: string; label: string } | { kind: 'entry'; entry: HistoryEntry };
+type Row = { kind: 'day'; key: string; day: number } | { kind: 'entry'; entry: HistoryEntry };
 
 function rowHeight(row: Row): number {
   return row.kind === 'day' ? DAY_H : ROW_H;
@@ -25,6 +26,7 @@ function rowKey(row: Row): string {
 }
 
 export function HistoryPage() {
+  const t = useT();
   const { toast } = useToast();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -60,7 +62,7 @@ export function HistoryPage() {
       const day = dayKey(e.visitedAt);
       if (day !== currentDay) {
         currentDay = day;
-        out.push({ kind: 'day', key: `d${day}`, label: dayLabel(day) });
+        out.push({ kind: 'day', key: `d${day}`, day });
       }
       out.push({ kind: 'entry', entry: e });
     }
@@ -83,23 +85,23 @@ export function HistoryPage() {
     async (entry: HistoryEntry): Promise<void> => {
       const ok = await tryInvoke('history/delete', { ids: [entry.id] });
       if (ok === null) {
-        toast("Couldn't delete this entry", 'error');
+        toast(t('pages.history.deleteFailed'), 'error');
         return;
       }
       setEntries((prev) => prev?.filter((e) => e.id !== entry.id) ?? prev);
     },
-    [toast],
+    [toast, t],
   );
 
   const clearAll = async (): Promise<void> => {
     const ok = await tryInvoke('history/delete', { all: true });
     if (ok === null) {
-      toast("Couldn't clear history", 'error');
+      toast(t('pages.history.clearFailed'), 'error');
       return;
     }
     setEntries([]);
     setExhausted(true);
-    toast('History cleared');
+    toast(t('pages.history.cleared'));
   };
 
   const open = (entry: HistoryEntry): void => openUrl(entry.url);
@@ -135,22 +137,25 @@ export function HistoryPage() {
   };
 
   const count = entries?.length ?? 0;
+  const shown = `${count}${exhausted ? '' : '+'}`;
   const subtitle = entries
-    ? `${count}${exhausted ? '' : '+'} ${count === 1 ? 'visit' : 'visits'}${debounced ? ' matching' : ''}`
-    : 'Loading…';
+    ? debounced
+      ? t('pages.history.countMatching', { n: count, shown })
+      : t('pages.history.count', { n: count, shown })
+    : t('common.loading');
 
   return (
     <PageShell
-      title="History"
+      title={t('pages.history.title')}
       icon="history"
       subtitle={subtitle}
       testId="page-history"
       fill
       actions={
         <ConfirmButton
-          label="Clear all history"
-          question="Delete everything?"
-          confirmLabel="Clear"
+          label={t('pages.history.clear')}
+          question={t('pages.history.clearQuestion')}
+          confirmLabel={t('pages.history.clearConfirm')}
           icon="trash"
           testId="history-clear"
           disabled={!entries || entries.length === 0}
@@ -162,7 +167,7 @@ export function HistoryPage() {
           <SearchBox
             value={query}
             onChange={setQuery}
-            placeholder="Search titles and URLs"
+            placeholder={t('pages.history.searchPlaceholder')}
             testId="history-search"
             autoFocus
           />
@@ -170,15 +175,15 @@ export function HistoryPage() {
       }
     >
       {entries === null ? (
-        <EmptyState icon="history" title="Loading history…" />
+        <EmptyState icon="history" title={t('pages.history.loading')} />
       ) : list.length === 0 ? (
         <EmptyState
           icon="history"
-          title={debounced ? 'No matches' : 'No history yet'}
+          title={debounced ? t('pages.history.noMatches') : t('pages.history.empty')}
           hint={
             debounced
-              ? `Nothing in your history matches “${debounced}”.`
-              : `Pages you visit will show up here. Press ${modKey} T to open a page.`
+              ? t('pages.history.noMatchesHint', { query: debounced })
+              : t('pages.history.emptyHint', { mod: modKey })
           }
           testId="history-empty"
         />
@@ -186,13 +191,13 @@ export function HistoryPage() {
         <>
           <div className={rows.hintBar}>
             <span>
-              <kbd>↑</kbd> <kbd>↓</kbd> navigate
+              <kbd>↑</kbd> <kbd>↓</kbd> {t('pages.hintBar.navigate')}
             </span>
             <span>
-              <kbd>↩</kbd> open
+              <kbd>↩</kbd> {t('pages.hintBar.open')}
             </span>
             <span>
-              <kbd>{modKey}</kbd> <kbd>⌫</kbd> delete
+              <kbd>{modKey}</kbd> <kbd>⌫</kbd> {t('pages.hintBar.delete')}
             </span>
           </div>
           <VirtualList
@@ -201,11 +206,11 @@ export function HistoryPage() {
             rowKey={rowKey}
             scrollToIndex={selected}
             testId="history-list"
-            ariaLabel="History"
+            ariaLabel={t('pages.history.listLabel')}
             onKeyDown={onKeyDown}
             footer={
               exhausted ? (
-                <span className={rows.count}>End of history</span>
+                <span className={rows.count}>{t('pages.history.end')}</span>
               ) : (
                 <Button
                   variant="secondary"
@@ -214,13 +219,13 @@ export function HistoryPage() {
                   onClick={() => void loadMore()}
                 >
                   {loadingMore ? <Spinner /> : null}
-                  Load more
+                  {t('pages.history.loadMore')}
                 </Button>
               )
             }
             renderRow={(row, i) =>
               row.kind === 'day' ? (
-                <div className={rows.dayHeader}>{row.label}</div>
+                <div className={rows.dayHeader}>{dayLabel(row.day)}</div>
               ) : (
                 <div
                   className={rows.row}
@@ -250,7 +255,7 @@ export function HistoryPage() {
                       {row.entry.visitCount > 1 && (
                         <>
                           <span className={rows.dot} />
-                          <span>{row.entry.visitCount} visits</span>
+                          <span>{t('pages.history.visitCount', { n: row.entry.visitCount })}</span>
                         </>
                       )}
                     </span>
@@ -260,8 +265,8 @@ export function HistoryPage() {
                       variant="ghost"
                       size="sm"
                       icon="trash"
-                      aria-label="Delete from history"
-                      title="Delete from history"
+                      aria-label={t('pages.history.delete')}
+                      title={t('pages.history.delete')}
                       testId="history-delete"
                       onClick={(e) => {
                         e.stopPropagation();

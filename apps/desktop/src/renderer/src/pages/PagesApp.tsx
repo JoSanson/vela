@@ -2,7 +2,7 @@ import type { CoreAction } from '@vela/core';
 import type { Prefs, ShellSnapshot } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setFaviconToken } from '../components/Favicon';
-import { setUiLocale } from '../lib/i18n';
+import { setUiLocale, useT } from '../lib/i18n';
 import { applyDelta } from '@vela/core';
 import { resolveMode } from '../lib/theme';
 import { ArchivePage } from './ArchivePage';
@@ -37,6 +37,7 @@ function pageFromLocation(): InternalPage {
 }
 
 export function PagesApp() {
+  const t = useT();
   const [page, setPage] = useState<InternalPage>(pageFromLocation);
   useEffect(() => {
     const onPop = (): void => setPage(pageFromLocation());
@@ -45,8 +46,8 @@ export function PagesApp() {
   }, []);
   useEffect(() => {
     if (page === 'home') document.title = 'Vela';
-    if (page === 'error') document.title = 'Error';
-  }, [page]);
+    if (page === 'error') document.title = t('pages.error.docTitle');
+  }, [page, t]);
 
   const [snap, setSnap] = useState<ShellSnapshot | null>(null);
   useEffect(() => {
@@ -139,7 +140,7 @@ export function PagesApp() {
           {page === 'onboarding' && <OnboardingPage />}
           {page === 'home' && (
             <div className={styles.center}>
-              <EmptyState icon="command" title="Vela" hint="Press ⌘T to open a tab." />
+              <EmptyState icon="command" title="Vela" hint={t('pages.home.hint')} />
             </div>
           )}
         </div>

@@ -1,9 +1,11 @@
+import { useT } from '../../lib/i18n';
 import { Favicon } from '../Favicon';
 import { Icon } from '../Icon';
 import type { DndState } from './dnd';
 import styles from './DndLayer.module.css';
 
 export function DndLayer({ dnd }: { dnd: DndState | null }) {
+  const tr = useT();
   if (!dnd) return null;
   const t = dnd.target;
   return (
@@ -74,7 +76,7 @@ export function DndLayer({ dnd }: { dnd: DndState | null }) {
             height: t.rect.height,
           }}
         >
-          <span>Open in split view</span>
+          <span>{tr('shell.dnd.openInSplit')}</span>
         </div>
       )}
     </>

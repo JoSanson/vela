@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon';
+import { useT } from '../lib/i18n';
 import { tryInvoke } from './lib';
 import styles from './ReaderPage.module.css';
 
@@ -99,6 +100,7 @@ export function sanitizeArticle(html: string): string {
 }
 
 export function ReaderPage() {
+  const t = useT();
   const tabId = useMemo(() => new URLSearchParams(location.search).get('tab') ?? '', []);
   const [state, setState] = useState<'loading' | 'ready' | 'empty'>(() => (tabId ? 'loading' : 'empty'));
   const [article, setArticle] = useState<{
@@ -122,19 +124,22 @@ export function ReaderPage() {
         html: sanitizeArticle(r.content),
         minutes: Math.max(1, Math.round(r.length / 1100)),
       });
-      document.title = `${r.title} · Reader`;
       setState('ready');
     });
   }, [tabId]);
+
+  useEffect(() => {
+    if (article) document.title = t('pages.reader.docTitle', { title: article.title });
+  }, [article, t]);
 
   return (
     <div className={styles.page} data-size={size} data-testid="page-reader">
       <div className={styles.toolbar}>
         <span className={styles.brand}>
-          <Icon name="book" size={14} /> Reader
+          <Icon name="book" size={14} /> {t('pages.reader.brand')}
         </span>
         <span style={{ flex: 1 }} />
-        <div className={styles.sizes} role="radiogroup" aria-label="Text size">
+        <div className={styles.sizes} role="radiogroup" aria-label={t('pages.reader.textSize')}>
           {(['s', 'm', 'l'] as const).map((s) => (
             <button
               key={s}
@@ -149,19 +154,20 @@ export function ReaderPage() {
           ))}
         </div>
       </div>
-      {state === 'loading' && <p className={styles.muted}>Extracting article…</p>}
+      {state === 'loading' && <p className={styles.muted}>{t('pages.reader.extracting')}</p>}
       {state === 'empty' && (
         <div className={styles.empty} data-testid="reader-empty">
           <Icon name="book" size={28} />
-          <p>This page doesn’t look like an article.</p>
+          <p>{t('pages.reader.notArticle')}</p>
         </div>
       )}
       {state === 'ready' && article && (
         <article className={styles.article}>
           <h1 className={styles.title}>{article.title}</h1>
           <p className={styles.meta}>
-            {article.byline ? `${article.byline} · ` : ''}
-            {article.minutes} min read
+            {article.byline
+              ? t('pages.reader.meta', { byline: article.byline, n: article.minutes })
+              : t('pages.reader.minRead', { n: article.minutes })}
           </p>
           <div
             className={styles.body}

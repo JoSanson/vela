@@ -2,6 +2,7 @@ import { createId, displayTitle, hostOf, type ArchivedTab } from '@vela/core';
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Favicon } from '../components/Favicon';
 import { isMac, modKey } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { now as nowMs, timeAgo, tryInvoke, useNow, useSnapshot } from './lib';
 import { PageShell } from './PageShell';
 import rows from './rows.module.css';
@@ -12,13 +13,14 @@ import { VirtualList } from './VirtualList';
 const ROW_H = 56;
 const LIMIT = 5000;
 
-const REASON_LABEL: Record<ArchivedTab['reason'], string> = {
-  auto: 'auto-archived',
-  manual: 'archived',
-  closed: 'closed',
-};
+const REASON_KEY = {
+  auto: 'pages.archive.reason.auto',
+  manual: 'pages.archive.reason.manual',
+  closed: 'pages.archive.reason.closed',
+} as const satisfies Record<ArchivedTab['reason'], string>;
 
 export function ArchivePage() {
+  const t = useT();
   const { toast } = useToast();
   const { snap, dispatch } = useSnapshot();
   const [query, setQuery] = useState('');
@@ -54,17 +56,21 @@ export function ArchivePage() {
   const restore = async (tab: ArchivedTab): Promise<void> => {
     const ok = await dispatch({ type: 'archive/restore', id: tab.id, newTabId: createId(), now: nowMs() });
     if (!ok) {
-      toast("Couldn't restore this tab", 'error');
+      toast(t('pages.archive.restoreFailed'), 'error');
       return;
     }
     setItems((prev) => prev?.filter((t) => t.id !== tab.id) ?? prev);
-    toast(`Restored “${displayTitle({ customTitle: null, title: tab.title, url: tab.url })}”`);
+    toast(
+      t('pages.archive.restored', {
+        title: displayTitle({ customTitle: null, title: tab.title, url: tab.url }),
+      }),
+    );
   };
 
   const remove = async (tab: ArchivedTab): Promise<void> => {
     const ok = await dispatch({ type: 'archive/remove', id: tab.id });
     if (!ok) {
-      toast("Couldn't remove this tab", 'error');
+      toast(t('pages.archive.removeFailed'), 'error');
       return;
     }
     setItems((prev) => prev?.filter((t) => t.id !== tab.id) ?? prev);
@@ -73,12 +79,12 @@ export function ArchivePage() {
   const clear = async (): Promise<void> => {
     const ok = await dispatch({ type: 'archive/clear' });
     if (!ok) {
-      toast("Couldn't clear the archive", 'error');
+      toast(t('pages.archive.clearFailed'), 'error');
       return;
     }
     setItems([]);
     setReload((n) => n + 1);
-    toast('Archive cleared');
+    toast(t('pages.archive.cleared'));
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -111,21 +117,23 @@ export function ArchivePage() {
   };
 
   const subtitle = items
-    ? `${list.length} ${list.length === 1 ? 'tab' : 'tabs'}${debounced ? ' matching' : ''}`
-    : 'Loading…';
+    ? debounced
+      ? t('pages.archive.countMatching', { n: list.length })
+      : t('common.tabs.count', { n: list.length })
+    : t('common.loading');
 
   return (
     <PageShell
-      title="Archive"
+      title={t('pages.archive.title')}
       icon="archive"
       subtitle={subtitle}
       testId="page-archive"
       fill
       actions={
         <ConfirmButton
-          label="Clear archive"
-          question="Remove every archived tab?"
-          confirmLabel="Clear"
+          label={t('pages.archive.clear')}
+          question={t('pages.archive.clearQuestion')}
+          confirmLabel={t('pages.archive.clearConfirm')}
           icon="trash"
           testId="archive-clear"
           disabled={list.length === 0}
@@ -137,7 +145,7 @@ export function ArchivePage() {
           <SearchBox
             value={query}
             onChange={setQuery}
-            placeholder="Search archived tabs"
+            placeholder={t('pages.archive.searchPlaceholder')}
             testId="archive-search"
             autoFocus
           />
@@ -145,15 +153,13 @@ export function ArchivePage() {
       }
     >
       {items === null ? (
-        <EmptyState icon="archive" title="Loading archive…" />
+        <EmptyState icon="archive" title={t('pages.archive.loading')} />
       ) : list.length === 0 ? (
         <EmptyState
           icon="archive"
-          title={debounced ? 'No matches' : 'Nothing archived'}
+          title={debounced ? t('pages.archive.noMatches') : t('pages.archive.empty')}
           hint={
-            debounced
-              ? `No archived tab matches “${debounced}”.`
-              : 'Closed tabs and tabs that have been idle for a while land here so you can bring them back.'
+            debounced ? t('pages.archive.noMatchesHint', { query: debounced }) : t('pages.archive.emptyHint')
           }
           testId="archive-empty"
         />
@@ -161,13 +167,13 @@ export function ArchivePage() {
         <>
           <div className={rows.hintBar}>
             <span>
-              <kbd>↑</kbd> <kbd>↓</kbd> navigate
+              <kbd>↑</kbd> <kbd>↓</kbd> {t('pages.hintBar.navigate')}
             </span>
             <span>
-              <kbd>↩</kbd> restore
+              <kbd>↩</kbd> {t('pages.hintBar.restore')}
             </span>
             <span>
-              <kbd>{modKey}</kbd> <kbd>⌫</kbd> remove
+              <kbd>{modKey}</kbd> <kbd>⌫</kbd> {t('pages.hintBar.remove')}
             </span>
           </div>
           <VirtualList
@@ -176,7 +182,7 @@ export function ArchivePage() {
             rowKey={rowKey}
             scrollToIndex={selected}
             testId="archive-list"
-            ariaLabel="Archived tabs"
+            ariaLabel={t('pages.archive.listLabel')}
             onKeyDown={onKeyDown}
             renderRow={(tab, i) => (
               <div
@@ -199,7 +205,7 @@ export function ArchivePage() {
                   <span className={rows.meta}>
                     <span>{hostOf(tab.url) || tab.url}</span>
                     <span className={rows.dot} />
-                    <span>{REASON_LABEL[tab.reason]}</span>
+                    <span>{t(REASON_KEY[tab.reason])}</span>
                     <span className={rows.dot} />
                     <span>{timeAgo(tab.archivedAt, now)}</span>
                   </span>
@@ -213,14 +219,14 @@ export function ArchivePage() {
                     testId="archive-restore"
                     onClick={() => void restore(tab)}
                   >
-                    Restore
+                    {t('pages.archive.restore')}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     icon="trash"
-                    aria-label="Remove from archive"
-                    title="Remove from archive"
+                    aria-label={t('pages.archive.remove')}
+                    title={t('pages.archive.remove')}
                     testId="archive-remove"
                     onClick={() => void remove(tab)}
                   />

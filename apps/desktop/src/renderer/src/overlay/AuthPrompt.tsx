@@ -2,6 +2,8 @@ import type { AuthPrompt as Prompt } from '@vela/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
+import { emphasize } from './emphasize';
 import styles from './AuthPrompt.module.css';
 
 export function AuthPromptView({ initial }: { initial: Prompt | null }) {
@@ -9,6 +11,7 @@ export function AuthPromptView({ initial }: { initial: Prompt | null }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const userRef = useRef<HTMLInputElement>(null);
+  const t = useT();
   useEffect(() => vela.on('auth/prompt', setPrompt), []);
   useEffect(() => {
     userRef.current?.focus();
@@ -40,13 +43,16 @@ export function AuthPromptView({ initial }: { initial: Prompt | null }) {
       </div>
       <div className={styles.body}>
         <div id="auth-title" className={styles.title}>
-          <strong>{prompt.host}</strong> {prompt.isProxy ? 'proxy ' : ''}asks for a username and password
+          {emphasize(
+            t(prompt.isProxy ? 'overlay.auth.titleProxy' : 'overlay.auth.title', { host: prompt.host }),
+            prompt.host,
+          )}
         </div>
         {prompt.realm && <div className={styles.realm}>{prompt.realm}</div>}
         <input
           ref={userRef}
           className={styles.input}
-          placeholder="Username"
+          placeholder={t('overlay.auth.username')}
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -55,7 +61,7 @@ export function AuthPromptView({ initial }: { initial: Prompt | null }) {
         <input
           className={styles.input}
           type="password"
-          placeholder="Password"
+          placeholder={t('overlay.auth.password')}
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -63,10 +69,10 @@ export function AuthPromptView({ initial }: { initial: Prompt | null }) {
         />
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={cancel} data-testid="auth-cancel">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="submit" className={styles.primary} data-testid="auth-submit">
-            Sign in
+            {t('overlay.auth.signIn')}
           </button>
         </div>
       </div>

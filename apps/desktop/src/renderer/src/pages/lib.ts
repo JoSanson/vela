@@ -9,6 +9,7 @@ import type {
 } from '@vela/shared';
 import { createContext, useContext, useEffect, useRef, useSyncExternalStore } from 'react';
 import { invoke, vela } from '../lib/api';
+import { t } from '../lib/i18n';
 
 /** Invokes a channel and swallows failures (handler not registered yet, bridge missing). */
 export async function tryInvoke<K extends IpcInvokeChannel>(
@@ -116,15 +117,15 @@ const DAY = 24 * HOUR;
 
 export function timeAgo(ts: number, now: number = Date.now()): string {
   const diff = Math.max(0, now - ts);
-  if (diff < MINUTE) return 'just now';
-  if (diff < HOUR) return `${Math.floor(diff / MINUTE)} min ago`;
-  if (diff < DAY) return `${Math.floor(diff / HOUR)} h ago`;
-  if (diff < 7 * DAY) return `${Math.floor(diff / DAY)} d ago`;
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (diff < MINUTE) return t('pages.time.justNow');
+  if (diff < HOUR) return t('pages.time.minutesAgo', { n: Math.floor(diff / MINUTE) });
+  if (diff < DAY) return t('pages.time.hoursAgo', { n: Math.floor(diff / HOUR) });
+  if (diff < 7 * DAY) return t('pages.time.daysAgo', { n: Math.floor(diff / DAY) });
+  return new Date(ts).toLocaleDateString(t.locale, { month: 'short', day: 'numeric' });
 }
 
 export function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return new Date(ts).toLocaleTimeString(t.locale, { hour: '2-digit', minute: '2-digit' });
 }
 
 function startOfDay(ts: number): number {
@@ -139,36 +140,44 @@ export function dayKey(ts: number): number {
 
 export function dayLabel(dayStart: number, now: number = Date.now()): string {
   const today = startOfDay(now);
-  if (dayStart === today) return 'Today';
-  if (dayStart === today - DAY) return 'Yesterday';
+  if (dayStart === today) return t('pages.time.today');
+  if (dayStart === today - DAY) return t('pages.time.yesterday');
   const d = new Date(dayStart);
   const opts: Intl.DateTimeFormatOptions =
     today - dayStart < 7 * DAY
       ? { weekday: 'long' }
       : { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' };
-  return d.toLocaleDateString(undefined, opts);
+  return d.toLocaleDateString(t.locale, opts);
 }
+
+const SIZE_UNITS = ['pages.size.kb', 'pages.size.mb', 'pages.size.gb', 'pages.size.tb'] as const;
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '–';
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
+  if (bytes < 1024)
+    return t('pages.size.b', { n: new Intl.NumberFormat(t.locale, { useGrouping: false }).format(bytes) });
   let v = bytes / 1024;
   let i = 0;
-  while (v >= 1024 && i < units.length - 1) {
+  while (v >= 1024 && i < SIZE_UNITS.length - 1) {
     v /= 1024;
     i += 1;
   }
-  return `${v < 10 ? v.toFixed(1) : Math.round(v)} ${units[i] ?? 'TB'}`;
+  const digits = v < 10 ? 1 : 0;
+  const n = new Intl.NumberFormat(t.locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: false,
+  }).format(v);
+  return t(SIZE_UNITS[i] ?? 'pages.size.tb', { n });
 }
 
 export function formatDuration(ms: number): string {
   if (!Number.isFinite(ms) || ms <= 0) return '';
   const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
+  if (s < 60) return t('pages.duration.seconds', { s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min ${s % 60}s`;
-  return `${Math.floor(m / 60)} h ${m % 60} min`;
+  if (m < 60) return t('pages.duration.minutes', { m, s: s % 60 });
+  return t('pages.duration.hours', { h: Math.floor(m / 60), m: m % 60 });
 }
 
 /** Triggers a browser download of a text blob. */

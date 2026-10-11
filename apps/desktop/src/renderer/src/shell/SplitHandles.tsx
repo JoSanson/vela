@@ -1,6 +1,7 @@
 import { contentBounds, paneRects, SPLIT_GUTTER } from '@vela/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { dispatch, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './SplitHandles.module.css';
 
@@ -11,6 +12,7 @@ export function SplitHandles() {
   const sidebarWidth = useShell((s) => s.sidebarWidth);
   const fullscreen = useShell((s) => s.fullscreen);
   const topStrip = useShell((s) => s.topStrip);
+  const t = useT();
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   const dragging = useRef<{ index: number; startX: number; sizes: number[]; total: number } | null>(null);
 
@@ -106,7 +108,7 @@ export function SplitHandles() {
           }
           role="separator"
           aria-orientation="vertical"
-          aria-label={`Resize pane ${i + 1}`}
+          aria-label={t('shell.splitHandles.resizePane', { n: i + 1 })}
           data-testid="split-handle"
         />
       ))}

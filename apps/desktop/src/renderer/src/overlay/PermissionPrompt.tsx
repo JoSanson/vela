@@ -1,27 +1,30 @@
-import type { PermissionKind, PermissionPrompt as Prompt } from '@vela/shared';
+import type { MessageKey, PermissionKind, PermissionPrompt as Prompt } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
+import { useT } from '../lib/i18n';
+import { emphasize } from './emphasize';
 import styles from './PermissionPrompt.module.css';
 
-const LABELS: Record<PermissionKind, { label: string; icon: IconName }> = {
-  notifications: { label: 'show notifications', icon: 'warning' },
-  geolocation: { label: 'know your location', icon: 'globe' },
-  media: { label: 'use your camera and microphone', icon: 'eye' },
-  camera: { label: 'use your camera', icon: 'eye' },
-  microphone: { label: 'use your microphone', icon: 'audio' },
-  'clipboard-read': { label: 'read your clipboard', icon: 'edit' },
-  midi: { label: 'access MIDI devices', icon: 'audio' },
-  pointerLock: { label: 'lock your pointer', icon: 'expand' },
-  fullscreen: { label: 'go full screen', icon: 'expand' },
-  'display-capture': { label: 'share your screen', icon: 'window' },
-  'idle-detection': { label: 'detect when you are idle', icon: 'sleep' },
-  other: { label: 'access a device capability', icon: 'shield' },
+const LABELS: Record<PermissionKind, { label: MessageKey; icon: IconName }> = {
+  notifications: { label: 'overlay.permission.kind.notifications', icon: 'warning' },
+  geolocation: { label: 'overlay.permission.kind.geolocation', icon: 'globe' },
+  media: { label: 'overlay.permission.kind.media', icon: 'eye' },
+  camera: { label: 'overlay.permission.kind.camera', icon: 'eye' },
+  microphone: { label: 'overlay.permission.kind.microphone', icon: 'audio' },
+  'clipboard-read': { label: 'overlay.permission.kind.clipboardRead', icon: 'edit' },
+  midi: { label: 'overlay.permission.kind.midi', icon: 'audio' },
+  pointerLock: { label: 'overlay.permission.kind.pointerLock', icon: 'expand' },
+  fullscreen: { label: 'overlay.permission.kind.fullscreen', icon: 'expand' },
+  'display-capture': { label: 'overlay.permission.kind.displayCapture', icon: 'window' },
+  'idle-detection': { label: 'overlay.permission.kind.idleDetection', icon: 'sleep' },
+  other: { label: 'overlay.permission.kind.other', icon: 'shield' },
 };
 
 export function PermissionPromptView({ initial }: { initial: Prompt | null }) {
   const [prompt, setPrompt] = useState<Prompt | null>(initial);
   const [remember, setRemember] = useState(true);
+  const t = useT();
   useEffect(() => vela.on('permissions/prompt', setPrompt), []);
   if (!prompt) return null;
   const meta = LABELS[prompt.permission];
@@ -47,11 +50,11 @@ export function PermissionPromptView({ initial }: { initial: Prompt | null }) {
       </div>
       <div className={styles.body}>
         <div id="perm-title" className={styles.title}>
-          <strong>{host}</strong> wants to {meta.label}
+          {emphasize(t('overlay.permission.title', { host, capability: t(meta.label) }), host)}
         </div>
         <label className={styles.remember}>
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          Remember for this site
+          {t('overlay.permission.remember')}
         </label>
         <div className={styles.actions}>
           <button
@@ -60,10 +63,10 @@ export function PermissionPromptView({ initial }: { initial: Prompt | null }) {
             data-testid="permission-deny"
             autoFocus
           >
-            Block
+            {t('overlay.permission.block')}
           </button>
           <button className={styles.allow} onClick={() => respond('allow')} data-testid="permission-allow">
-            Allow
+            {t('overlay.permission.allow')}
           </button>
         </div>
       </div>

@@ -1,28 +1,30 @@
-import type { PermissionKind, SitePermission } from '@vela/shared';
+import type { MessageKey, PermissionKind, SitePermission } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { now, tryInvoke } from '../lib';
 import { useToast } from '../Toast';
 import { Badge, Button, Card, EmptyState, Segmented } from '../ui';
 import styles from './Settings.module.css';
 
-const LABEL: Record<PermissionKind, string> = {
-  notifications: 'Notifications',
-  geolocation: 'Location',
-  media: 'Camera & microphone',
-  camera: 'Camera',
-  microphone: 'Microphone',
-  'clipboard-read': 'Read clipboard',
-  midi: 'MIDI devices',
-  pointerLock: 'Pointer lock',
-  fullscreen: 'Full screen',
-  'display-capture': 'Screen sharing',
-  'idle-detection': 'Idle detection',
-  other: 'Other',
+const LABEL_KEY: Record<PermissionKind, MessageKey> = {
+  notifications: 'settings.permissions.kind.notifications',
+  geolocation: 'settings.permissions.kind.geolocation',
+  media: 'settings.permissions.kind.media',
+  camera: 'settings.permissions.kind.camera',
+  microphone: 'settings.permissions.kind.microphone',
+  'clipboard-read': 'settings.permissions.kind.clipboardRead',
+  midi: 'settings.permissions.kind.midi',
+  pointerLock: 'settings.permissions.kind.pointerLock',
+  fullscreen: 'settings.permissions.kind.fullscreen',
+  'display-capture': 'settings.permissions.kind.displayCapture',
+  'idle-detection': 'settings.permissions.kind.idleDetection',
+  other: 'settings.permissions.kind.other',
 };
 
 export function PermissionsSection() {
   const { toast } = useToast();
+  const t = useT();
   const [items, setItems] = useState<SitePermission[] | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -38,11 +40,16 @@ export function PermissionsSection() {
     };
   }, []);
 
+  const label = (kind: PermissionKind): string => {
+    const key = LABEL_KEY[kind] as MessageKey | undefined;
+    return key ? t(key) : kind;
+  };
+
   const change = async (p: SitePermission, decision: 'allow' | 'deny'): Promise<void> => {
     if (decision === p.decision) return;
     const next = { ...p, decision, updatedAt: now() };
     const ok = await tryInvoke('permissions/set', next);
-    if (ok === null) return toast("Couldn't update this permission", 'error');
+    if (ok === null) return toast(t('settings.permissions.updateError'), 'error');
     setItems(
       (prev) => prev?.map((x) => (x.origin === p.origin && x.permission === p.permission ? next : x)) ?? prev,
     );
@@ -50,11 +57,16 @@ export function PermissionsSection() {
 
   const remove = async (p: SitePermission): Promise<void> => {
     const ok = await tryInvoke('permissions/remove', { origin: p.origin, permission: p.permission });
-    if (ok === null) return toast("Couldn't remove this permission", 'error');
+    if (ok === null) return toast(t('settings.permissions.removeError'), 'error');
     setItems(
       (prev) => prev?.filter((x) => !(x.origin === p.origin && x.permission === p.permission)) ?? prev,
     );
-    toast(`${p.origin} will ask again for ${LABEL[p.permission].toLowerCase()}`);
+    toast(
+      t('settings.permissions.askAgain', {
+        origin: p.origin,
+        permission: label(p.permission).toLocaleLowerCase(t.locale),
+      }),
+    );
   };
 
   const list = [...(items ?? [])].sort(
@@ -63,32 +75,30 @@ export function PermissionsSection() {
 
   return (
     <div className={styles.stack} data-testid="settings-permissions">
-      <p className={styles.desc}>
-        Decisions you asked Vela to remember. Remove one and the site will ask again next time.
-      </p>
+      <p className={styles.desc}>{t('settings.permissions.desc')}</p>
       {unavailable && (
         <div className={styles.hintBox}>
           <Icon name="warning" size={14} />
-          Permission management isn’t available in this build yet.
+          {t('settings.permissions.unavailable')}
         </div>
       )}
       <Card className={styles.section} testId="permissions-table">
         {items === null ? (
-          <EmptyState icon="shield" title="Loading…" />
+          <EmptyState icon="shield" title={t('common.loading')} />
         ) : list.length === 0 ? (
           <EmptyState
             icon="shield"
-            title="No saved permissions"
-            hint="When a site asks for your camera, location or notifications and you choose to remember the answer, it shows up here."
+            title={t('settings.permissions.empty.title')}
+            hint={t('settings.permissions.empty.hint')}
             testId="permissions-empty"
           />
         ) : (
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Site</th>
-                <th>Permission</th>
-                <th>Decision</th>
+                <th>{t('settings.permissions.col.site')}</th>
+                <th>{t('settings.permissions.col.permission')}</th>
+                <th>{t('settings.permissions.col.decision')}</th>
                 <th />
               </tr>
             </thead>
@@ -97,15 +107,15 @@ export function PermissionsSection() {
                 <tr key={`${p.origin}|${p.permission}`} data-testid="permission-row">
                   <td className={styles.mono}>{p.origin}</td>
                   <td>
-                    <Badge>{LABEL[p.permission] ?? p.permission}</Badge>
+                    <Badge>{label(p.permission)}</Badge>
                   </td>
                   <td>
                     <Segmented
-                      label={`Decision for ${p.origin}`}
+                      label={t('settings.permissions.decisionFor', { origin: p.origin })}
                       value={p.decision}
                       options={[
-                        { value: 'allow', label: 'Allow' },
-                        { value: 'deny', label: 'Block' },
+                        { value: 'allow', label: t('settings.permissions.allow') },
+                        { value: 'deny', label: t('settings.permissions.block') },
                       ]}
                       onChange={(v) => void change(p, v)}
                       testId="permission-decision"
@@ -117,8 +127,8 @@ export function PermissionsSection() {
                         variant="ghost"
                         size="sm"
                         icon="trash"
-                        aria-label="Forget"
-                        title="Forget this decision"
+                        aria-label={t('settings.permissions.forget')}
+                        title={t('settings.permissions.forgetTitle')}
                         testId="permission-remove"
                         onClick={() => void remove(p)}
                       />

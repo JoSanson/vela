@@ -1,6 +1,7 @@
 import { displayTitle, type Container, type Tab } from '@vela/core';
 import { memo, useCallback, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Favicon } from '../Favicon';
 import { Icon } from '../Icon';
@@ -28,6 +29,7 @@ export const TabRow = memo(function TabRow({
   onDragStart,
 }: Props) {
   const title = displayTitle(tab);
+  const t = useT();
   const editing = useShell((s) => s.editingItemId === tab.id);
   const setEditing = useShell((s) => s.setEditingItem);
   const activate = useCallback(
@@ -99,11 +101,16 @@ export const TabRow = memo(function TabRow({
     },
     [tab.id, tab.title, setEditing],
   );
+  const states = [
+    tab.loading ? t('shell.tabRow.loading') : null,
+    tab.sleeping ? t('shell.tabRow.sleeping') : null,
+    tab.muted ? t('shell.tabRow.muted') : tab.audible ? t('shell.tabRow.playingAudio') : null,
+  ].filter((s) => s !== null);
 
   return (
     <div
       role="treeitem"
-      aria-label={`${title}${tab.loading ? ', loading' : ''}${tab.sleeping ? ', sleeping' : ''}${tab.muted ? ', muted' : tab.audible ? ', playing audio' : ''}`}
+      aria-label={[title, ...states].join(', ')}
       aria-selected={active}
       aria-level={depth + 1}
       tabIndex={active ? 0 : -1}
@@ -139,7 +146,7 @@ export const TabRow = memo(function TabRow({
         <button
           className={styles.audio}
           onClick={toggleMute}
-          aria-label={tab.muted ? 'Unmute tab' : 'Mute tab'}
+          aria-label={tab.muted ? t('shell.tabRow.unmute') : t('shell.tabRow.mute')}
         >
           {tab.muted ? (
             <Icon name="mute" size={13} />
@@ -154,7 +161,12 @@ export const TabRow = memo(function TabRow({
       )}
       {tab.sleeping && <Icon name="sleep" size={12} className={styles.sleepIcon} />}
       {!editing && (
-        <button className={styles.close} onClick={close} aria-label={`Close ${title}`} tabIndex={-1}>
+        <button
+          className={styles.close}
+          onClick={close}
+          aria-label={t('shell.tabRow.close', { title })}
+          tabIndex={-1}
+        >
           <Icon name="close" size={13} />
         </button>
       )}

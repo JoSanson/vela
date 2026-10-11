@@ -1,6 +1,7 @@
 import { displayTitle, favoriteTabs } from '@vela/core';
 import type { PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
+import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Favicon } from '../Favicon';
 import type { DragItem } from './dnd';
@@ -13,6 +14,7 @@ interface Props {
 
 export function FavoritesGrid({ onDragStart, dragging }: Props) {
   const core = useShell((s) => s.core);
+  const t = useT();
   const favs = favoriteTabs(core);
   const activeId = core.spaces[core.activeSpaceId]?.activeTabId;
   if (favs.length === 0 && !dragging) return null;
@@ -20,7 +22,7 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
     <div
       className={`${styles.grid} ${favs.length === 0 ? styles.emptyZone : ''}`}
       role="list"
-      aria-label="Favorites"
+      aria-label={t('shell.favorites.label')}
       data-testid="favorites"
       data-dnd-zone="favorites"
       data-dnd-count={favs.length}
@@ -54,7 +56,7 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
           {t.audible && <span className={styles.dot} aria-hidden="true" />}
         </button>
       ))}
-      {favs.length === 0 && <span className={styles.hint}>Drop here to favorite</span>}
+      {favs.length === 0 && <span className={styles.hint}>{t('shell.favorites.dropHint')}</span>}
     </div>
   );
 }

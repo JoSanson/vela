@@ -7,6 +7,7 @@ import {
   type AutoArchiveHours,
   type ClearDataRequest,
   type Prefs,
+  type Translator,
 } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
@@ -16,12 +17,13 @@ import { useToast } from '../Toast';
 import { Button, Card, Row, Segmented, Select, TextInput, Toggle } from '../ui';
 import styles from './Settings.module.css';
 
-const ARCHIVE_OPTIONS: { value: AutoArchiveHours; label: string }[] = [
-  { value: 12, label: 'After 12 hours' },
-  { value: 24, label: 'After 24 hours' },
-  { value: 168, label: 'After 7 days' },
-  { value: 720, label: 'After 30 days' },
-];
+const ARCHIVE_HOURS: AutoArchiveHours[] = [12, 24, 168, 720];
+
+function archiveLabel(t: Translator, hours: AutoArchiveHours): string {
+  return hours < 48
+    ? t('settings.general.autoArchive.hours', { n: hours })
+    : t('settings.general.autoArchive.days', { n: hours / 24 });
+}
 
 const CLEAR_ALL: ClearDataRequest = {
   history: true,
@@ -30,13 +32,13 @@ const CLEAR_ALL: ClearDataRequest = {
   storage: true,
   downloads: true,
 };
-const CLEAR_LABELS: { key: keyof ClearDataRequest; label: string }[] = [
-  { key: 'history', label: 'History' },
-  { key: 'cookies', label: 'Cookies and logins' },
-  { key: 'cache', label: 'Cached files' },
-  { key: 'storage', label: 'Site data' },
-  { key: 'downloads', label: 'Download list' },
-];
+const CLEAR_KEYS = [
+  'history',
+  'cookies',
+  'cache',
+  'storage',
+  'downloads',
+] as const satisfies readonly (keyof ClearDataRequest)[];
 
 export function GeneralSection() {
   const { snap, setPrefs } = useSnapshot();
@@ -53,14 +55,14 @@ export function GeneralSection() {
     const r = await tryInvoke('privacy/clear', clearChoice);
     setClearing(false);
     toast(
-      r === null ? "Couldn't clear browsing data" : 'Browsing data cleared',
+      r === null ? t('settings.general.clearData.error') : t('settings.general.clearData.done'),
       r === null ? 'error' : 'info',
     );
   };
 
   const update = (patch: Partial<Prefs>): void => {
     void setPrefs(patch).then((ok) => {
-      if (!ok) toast("Couldn't save this setting", 'error');
+      if (!ok) toast(t('settings.general.saveError'), 'error');
     });
   };
 
@@ -68,18 +70,21 @@ export function GeneralSection() {
     return (
       <div className={styles.hintBox} data-testid="settings-loading">
         <Icon name="info" size={14} />
-        Loading preferences…
+        {t('settings.general.loading')}
       </div>
     );
   }
 
   return (
     <div className={styles.stack} data-testid="settings-general">
-      <p className={styles.h3}>Browsing</p>
+      <p className={styles.h3}>{t('settings.general.browsing')}</p>
       <Card>
-        <Row label="Default browser" hint="Links from other apps open in Vela.">
+        <Row
+          label={t('settings.general.defaultBrowser.label')}
+          hint={t('settings.general.defaultBrowser.hint')}
+        >
           {isDefault ? (
-            <span className={styles.soon}>Vela is your default browser</span>
+            <span className={styles.soon}>{t('settings.general.defaultBrowser.isDefault')}</span>
           ) : (
             <Button
               variant="secondary"
@@ -88,27 +93,27 @@ export function GeneralSection() {
                 void tryInvoke('app/defaultBrowser', { set: true }).then((v) => setIsDefault(v ?? null))
               }
             >
-              Make default
+              {t('settings.general.defaultBrowser.make')}
             </Button>
           )}
         </Row>
-        <Row label="Search engine" hint="Used when you type a query in the command bar.">
+        <Row label={t('settings.general.searchEngine.label')} hint={t('settings.general.searchEngine.hint')}>
           <Select
             value={prefs.searchEngineId}
             options={SEARCH_ENGINES.map((e) => ({ value: e.id, label: e.name }))}
             onChange={(v) => update({ searchEngineId: v })}
             testId="settings-search-engine"
-            aria-label="Search engine"
+            aria-label={t('settings.general.searchEngine.label')}
           />
         </Row>
-        <Row label="Appearance" hint="Follow the system, or force light or dark for every space.">
+        <Row label={t('settings.general.appearance.label')} hint={t('settings.general.appearance.hint')}>
           <Segmented
-            label="Theme"
+            label={t('settings.general.theme.label')}
             value={prefs.theme}
             options={[
-              { value: 'system', label: 'System' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
+              { value: 'system', label: t('settings.general.theme.system') },
+              { value: 'light', label: t('settings.general.theme.light') },
+              { value: 'dark', label: t('settings.general.theme.dark') },
             ]}
             onChange={(v) => update({ theme: v })}
             testId="settings-theme"
@@ -131,9 +136,9 @@ export function GeneralSection() {
             aria-label={t('settings.language.label')}
           />
         </Row>
-        <Row label="Hide sidebar" hint="Start with the sidebar collapsed. Hover the left edge to peek at it.">
+        <Row label={t('settings.general.hideSidebar.label')} hint={t('settings.general.hideSidebar.hint')}>
           <Toggle
-            label="Hide sidebar"
+            label={t('settings.general.hideSidebar.label')}
             checked={prefs.sidebarHidden}
             onChange={(v) => update({ sidebarHidden: v })}
             testId="settings-sidebar-hidden"
@@ -141,28 +146,22 @@ export function GeneralSection() {
         </Row>
       </Card>
 
-      <p className={styles.h3}>Tabs</p>
+      <p className={styles.h3}>{t('settings.general.tabs')}</p>
       <Card>
-        <Row
-          label="Auto-archive Today tabs"
-          hint="Untouched tabs move to the archive so your list stays short."
-        >
+        <Row label={t('settings.general.autoArchive.label')} hint={t('settings.general.autoArchive.hint')}>
           <Select
             value={String(prefs.autoArchiveHours)}
-            options={ARCHIVE_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+            options={ARCHIVE_HOURS.map((h) => ({ value: String(h), label: archiveLabel(t, h) }))}
             onChange={(v) => {
               const n = Number(v);
-              const hours = ARCHIVE_OPTIONS.find((o) => o.value === n)?.value;
+              const hours = ARCHIVE_HOURS.find((h) => h === n);
               if (hours) update({ autoArchiveHours: hours });
             }}
             testId="settings-auto-archive"
-            aria-label="Auto-archive delay"
+            aria-label={t('settings.general.autoArchive.aria')}
           />
         </Row>
-        <Row
-          label="Memory saver"
-          hint="Puts background tabs to sleep after a while. They reload instantly when you come back."
-        >
+        <Row label={t('settings.general.memorySaver.label')} hint={t('settings.general.memorySaver.hint')}>
           <TextInput
             type="number"
             min={1}
@@ -170,27 +169,24 @@ export function GeneralSection() {
             style={{ width: 72, textAlign: 'right' }}
             value={String(prefs.memorySaverMinutes)}
             disabled={!prefs.memorySaverEnabled}
-            aria-label="Minutes before sleeping"
+            aria-label={t('settings.general.memorySaver.minutesAria')}
             testId="settings-memory-saver-minutes"
             onChange={(v) => {
               const n = Math.max(1, Math.min(720, Math.round(Number(v))));
               if (Number.isFinite(n)) update({ memorySaverMinutes: n });
             }}
           />
-          <span className={styles.soon}>min</span>
+          <span className={styles.soon}>{t('settings.general.memorySaver.minUnit')}</span>
           <Toggle
-            label="Memory saver"
+            label={t('settings.general.memorySaver.label')}
             checked={prefs.memorySaverEnabled}
             onChange={(v) => update({ memorySaverEnabled: v })}
             testId="settings-memory-saver"
           />
         </Row>
-        <Row
-          label="Automatic picture-in-picture"
-          hint="Playing video pops out into a floating window when you switch tabs."
-        >
+        <Row label={t('settings.general.autoPip.label')} hint={t('settings.general.autoPip.hint')}>
           <Toggle
-            label="Automatic picture-in-picture"
+            label={t('settings.general.autoPip.label')}
             checked={prefs.autoPip}
             onChange={(v) => update({ autoPip: v })}
             testId="settings-auto-pip"
@@ -198,25 +194,31 @@ export function GeneralSection() {
         </Row>
       </Card>
 
-      <p className={styles.h3}>Downloads</p>
+      <p className={styles.h3}>{t('settings.general.downloads')}</p>
       <Card>
-        <Row label="Save files to" hint={prefs.downloadDir ?? 'Your Downloads folder'}>
+        <Row
+          label={t('settings.general.downloadDir.label')}
+          hint={prefs.downloadDir ?? t('settings.general.downloadDir.default')}
+        >
           <Button
             variant="secondary"
             testId="settings-download-dir"
             onClick={() => void tryInvoke('downloads/pickDir', undefined)}
           >
-            Change…
+            {t('settings.general.downloadDir.change')}
           </Button>
           {prefs.downloadDir && (
             <Button variant="ghost" size="sm" onClick={() => update({ downloadDir: null })}>
-              Reset
+              {t('settings.general.downloadDir.reset')}
             </Button>
           )}
         </Row>
-        <Row label="Ask where to save each file" hint="Show a save dialog instead of saving automatically.">
+        <Row
+          label={t('settings.general.askWhereToSave.label')}
+          hint={t('settings.general.askWhereToSave.hint')}
+        >
           <Toggle
-            label="Ask where to save each file"
+            label={t('settings.general.askWhereToSave.label')}
             checked={prefs.askWhereToSave}
             onChange={(v) => update({ askWhereToSave: v })}
             testId="settings-ask-where"
@@ -224,41 +226,35 @@ export function GeneralSection() {
         </Row>
       </Card>
 
-      <p className={styles.h3}>Privacy & updates</p>
+      <p className={styles.h3}>{t('settings.general.privacy')}</p>
       <Card>
-        <Row
-          label="Warn about dangerous sites"
-          hint="Blocks known phishing and malware sites using local lists refreshed daily."
-        >
+        <Row label={t('settings.general.safeBrowsing.label')} hint={t('settings.general.safeBrowsing.hint')}>
           <Toggle
-            label="Warn about dangerous sites"
+            label={t('settings.general.safeBrowsing.label')}
             checked={prefs.safeBrowsing}
             onChange={(v) => update({ safeBrowsing: v })}
             testId="settings-safe-browsing"
           />
         </Row>
-        <Row
-          label="Always use secure connections"
-          hint="Upgrades http:// pages to https:// and falls back only when a site has no TLS."
-        >
+        <Row label={t('settings.general.httpsUpgrade.label')} hint={t('settings.general.httpsUpgrade.hint')}>
           <Toggle
-            label="Always use secure connections"
+            label={t('settings.general.httpsUpgrade.label')}
             checked={prefs.httpsUpgrade}
             onChange={(v) => update({ httpsUpgrade: v })}
             testId="settings-https"
           />
         </Row>
-        <Row label="Clear browsing data" hint="Cookies, cache, history and site data, for every profile.">
+        <Row label={t('settings.general.clearData.label')} hint={t('settings.general.clearData.hint')}>
           {clearing ? (
             <span className={styles.clearChoices} data-testid="settings-clear-choices">
-              {CLEAR_LABELS.map((c) => (
-                <label key={c.key} className={styles.clearChoice}>
+              {CLEAR_KEYS.map((key) => (
+                <label key={key} className={styles.clearChoice}>
                   <input
                     type="checkbox"
-                    checked={clearChoice[c.key]}
-                    onChange={(e) => setClearChoice({ ...clearChoice, [c.key]: e.target.checked })}
+                    checked={clearChoice[key]}
+                    onChange={(e) => setClearChoice({ ...clearChoice, [key]: e.target.checked })}
                   />
-                  {c.label}
+                  {t(`settings.general.clearData.${key}`)}
                 </label>
               ))}
               <Button
@@ -267,46 +263,37 @@ export function GeneralSection() {
                 testId="settings-clear-confirm"
                 onClick={() => void clearData()}
               >
-                Clear now
+                {t('settings.general.clearData.confirm')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setClearing(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </span>
           ) : (
             <Button variant="secondary" testId="settings-clear-data" onClick={() => setClearing(true)}>
-              Clear…
+              {t('settings.general.clearData.start')}
             </Button>
           )}
         </Row>
-        <Row
-          label="Block ads and trackers"
-          hint="Built-in content blocking. Disable per site from the site menu."
-        >
+        <Row label={t('settings.general.blocker.label')} hint={t('settings.general.blocker.hint')}>
           <Toggle
-            label="Block ads and trackers"
+            label={t('settings.general.blocker.label')}
             checked={prefs.blockerEnabled}
             onChange={(v) => update({ blockerEnabled: v })}
             testId="settings-blocker"
           />
         </Row>
-        <Row
-          label="Glass sidebar"
-          hint="Translucent sidebar that lets your desktop show through (macOS vibrancy)."
-        >
+        <Row label={t('settings.general.glass.label')} hint={t('settings.general.glass.hint')}>
           <Toggle
-            label="Glass sidebar"
+            label={t('settings.general.glass.label')}
             checked={prefs.glass}
             onChange={(v) => update({ glass: v })}
             testId="settings-glass"
           />
         </Row>
-        <Row
-          label="Install updates automatically"
-          hint="Downloads updates in the background and installs on relaunch."
-        >
+        <Row label={t('settings.general.autoUpdate.label')} hint={t('settings.general.autoUpdate.hint')}>
           <Toggle
-            label="Install updates automatically"
+            label={t('settings.general.autoUpdate.label')}
             checked={prefs.autoUpdate}
             onChange={(v) => update({ autoUpdate: v })}
             testId="settings-auto-update"

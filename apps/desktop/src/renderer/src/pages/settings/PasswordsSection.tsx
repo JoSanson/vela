@@ -1,6 +1,7 @@
 import type { CredentialSummary } from '@vela/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { tryInvoke } from '../lib';
 import { useToast } from '../Toast';
 import { Button, Card, ConfirmButton, EmptyState, SearchBox } from '../ui';
@@ -16,6 +17,7 @@ function hostOf(origin: string): string {
 
 export function PasswordsSection() {
   const { toast } = useToast();
+  const t = useT();
   const [items, setItems] = useState<CredentialSummary[]>([]);
   const [never, setNever] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -47,7 +49,7 @@ export function PasswordsSection() {
     }
     const secret = await tryInvoke('credentials/reveal', { id });
     if (secret === null || secret === undefined) {
-      toast("Couldn't read this password", 'error');
+      toast(t('settings.passwords.readError'), 'error');
       return;
     }
     setShown((s) => ({ ...s, [id]: secret }));
@@ -56,21 +58,18 @@ export function PasswordsSection() {
 
   return (
     <div className={styles.stack} data-testid="settings-passwords">
-      <p className={styles.desc}>
-        Logins are encrypted with your operating system keychain and only ever typed into the page they were
-        saved on. Nothing is sent anywhere.
-      </p>
+      <p className={styles.desc}>{t('settings.passwords.desc')}</p>
       <SearchBox
         value={query}
         onChange={setQuery}
-        placeholder="Search sites and usernames"
+        placeholder={t('settings.passwords.search')}
         testId="passwords-search"
       />
       {items.length === 0 ? (
         <EmptyState
           icon="key"
-          title={query ? 'No matching login' : 'No saved passwords yet'}
-          hint="Vela offers to save a password after you sign in to a site."
+          title={query ? t('settings.passwords.empty.noMatch') : t('settings.passwords.empty.title')}
+          hint={t('settings.passwords.empty.hint')}
           testId="passwords-empty"
         />
       ) : (
@@ -78,17 +77,19 @@ export function PasswordsSection() {
           <table className={styles.table} data-testid="passwords-table">
             <thead>
               <tr>
-                <th>Site</th>
-                <th>Username</th>
-                <th>Password</th>
-                <th aria-label="Actions" />
+                <th>{t('settings.passwords.col.site')}</th>
+                <th>{t('settings.passwords.col.username')}</th>
+                <th>{t('settings.passwords.col.password')}</th>
+                <th aria-label={t('settings.passwords.col.actions')} />
               </tr>
             </thead>
             <tbody>
               {items.map((c) => (
                 <tr key={c.id} data-testid="password-row">
                   <td>{hostOf(c.origin)}</td>
-                  <td>{c.username || <span className={styles.soon}>No username</span>}</td>
+                  <td>
+                    {c.username || <span className={styles.soon}>{t('settings.passwords.noUsername')}</span>}
+                  </td>
                   <td className={styles.mono}>
                     {shown[c.id] !== undefined && shown[c.id] !== null ? shown[c.id] : '••••••••'}
                   </td>
@@ -97,7 +98,7 @@ export function PasswordsSection() {
                       variant="ghost"
                       size="sm"
                       icon="eye"
-                      aria-label={shown[c.id] ? 'Hide password' : 'Show password'}
+                      aria-label={shown[c.id] ? t('settings.passwords.hide') : t('settings.passwords.show')}
                       onClick={() => void reveal(c.id)}
                       testId="password-reveal"
                     />
@@ -105,8 +106,8 @@ export function PasswordsSection() {
                       label=""
                       icon="trash"
                       size="sm"
-                      question="Delete this login?"
-                      confirmLabel="Delete"
+                      question={t('settings.passwords.deleteQuestion')}
+                      confirmLabel={t('common.delete')}
                       testId="password-delete"
                       onConfirm={() => {
                         void tryInvoke('credentials/remove', { id: c.id }).then(load);
@@ -121,7 +122,7 @@ export function PasswordsSection() {
       )}
       {never.length > 0 && (
         <>
-          <p className={styles.h3}>Never saved for</p>
+          <p className={styles.h3}>{t('settings.passwords.neverSaved')}</p>
           <Card>
             <table className={styles.table}>
               <tbody>
@@ -134,7 +135,7 @@ export function PasswordsSection() {
                         size="sm"
                         onClick={() => void tryInvoke('credentials/never', { remove: o }).then(load)}
                       >
-                        <Icon name="close" size={13} /> Forget
+                        <Icon name="close" size={13} /> {t('settings.passwords.forget')}
                       </Button>
                     </td>
                   </tr>
