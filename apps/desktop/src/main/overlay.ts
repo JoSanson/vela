@@ -140,7 +140,37 @@ export class OverlayManager {
     const mw = this.windows.main;
     if (!mw || !this.view || !this.visible) return;
     const [w, h] = mw.win.getContentSize();
-    this.view.setBounds({ x: 0, y: 0, width: w ?? 0, height: h ?? 0 });
+    const width = w ?? 0;
+    const height = h ?? 0;
+    this.view.setBounds(OverlayManager.boundsFor(this.current, width, height));
+  }
+
+  /**
+   * Passive overlays (autofill popover, save-password chip, toast) only cover their own rectangle so
+   * the page underneath keeps receiving clicks and keystrokes; everything else covers the window.
+   */
+  static boundsFor(current: OverlayState, width: number, height: number): Electron.Rectangle {
+    const clamp = (r: Electron.Rectangle): Electron.Rectangle => ({
+      x: Math.max(0, Math.min(width - r.width, Math.round(r.x))),
+      y: Math.max(0, Math.min(height - r.height, Math.round(r.y))),
+      width: Math.min(width, Math.round(r.width)),
+      height: Math.min(height, Math.round(r.height)),
+    });
+    if (current.kind === 'autofill') {
+      const p = current.payload as { anchor: Electron.Rectangle; accounts: unknown[] };
+      const rows = Math.max(1, Math.min(5, p.accounts.length));
+      return clamp({
+        x: p.anchor.x,
+        y: p.anchor.y + p.anchor.height + 4,
+        width: Math.max(260, Math.min(360, p.anchor.width)),
+        height: rows * 40 + 12,
+      });
+    }
+    if (current.kind === 'savePassword')
+      return clamp({ x: (width - 540) / 2, y: 12, width: 540, height: 64 });
+    if (current.kind === 'toast')
+      return clamp({ x: (width - 420) / 2, y: height - 72, width: 420, height: 56 });
+    return { x: 0, y: 0, width, height };
   }
 
   destroy(): void {

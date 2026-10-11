@@ -7,7 +7,7 @@ import {
 } from '@vela/shared';
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron';
 
-export type Access = 'shell' | 'internal';
+export type Access = 'shell' | 'internal' | 'page';
 
 type Handler<K extends IpcInvokeChannel> = (
   req: IpcInvokeMap[K]['req'],
@@ -26,12 +26,32 @@ export function isTrustedShell(wc: WebContents): boolean {
   return trustedShell.has(wc.id);
 }
 
+const pageSenders = new Set<number>();
+
+/** Tab WebContents may use the few `page` channels (login-form detection); never popups or views. */
+export function trustPage(wc: WebContents): void {
+  pageSenders.add(wc.id);
+  wc.once('destroyed', () => pageSenders.delete(wc.id));
+}
+
+/** The origin a `page` request really comes from (top-level frame URL, never the payload). */
+export function pageOrigin(event: IpcMainInvokeEvent | IpcMainEvent): string | null {
+  const url = event.senderFrame?.url ?? '';
+  if (!/^https?:/i.test(url)) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 function allowed(event: IpcMainInvokeEvent | IpcMainEvent, access: Access): boolean {
   if (trustedShell.has(event.sender.id)) return true;
   if (access === 'internal') {
     const url = event.senderFrame?.url ?? '';
     return url.startsWith('vela://') && event.senderFrame?.parent === null;
   }
+  if (access === 'page') return pageSenders.has(event.sender.id) && event.senderFrame?.parent === null;
   return false;
 }
 

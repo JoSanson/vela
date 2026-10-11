@@ -803,4 +803,63 @@ test.describe('daily-driver compatibility', () => {
       .toBe(2);
     expect((await vela.state()).tabs[first]).toBeDefined();
   });
+
+  test('passwords: save after sign-in, then fill from the popover', async ({ vela, fixtures }) => {
+    const available = await evalMain<boolean>(vela, 'return __vela.ctx.credentials.available');
+    test.skip(!available, 'OS keychain unavailable on this runner');
+    await vela.openTab(`${fixtures}/login`);
+    const page = await vela.tabPage('/login');
+    await page.fill('#u', 'ada@example.com');
+    await page.fill('#p', 'hunter2');
+    await page.click('#go');
+    const welcome = await vela.tabPage('/welcome');
+    await expect(welcome.locator('#hello')).toHaveText('hello ada@example.com');
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('save-password')).toBeVisible();
+    await expect(overlay.getByTestId('save-password')).toContainText('ada@example.com');
+    await vela.shot('80-save-password');
+    await overlay.getByTestId('save-password-save').click();
+    await expect
+      .poll(() => evalMain<{ username: string }[]>(vela, "return __vela.ctx.credentials.list('')"))
+      .toEqual([expect.objectContaining({ username: 'ada@example.com' })]);
+    // Back on the login page the popover offers the account; picking it types both fields.
+    await welcome.evaluate((u) => {
+      location.href = u;
+    }, `${fixtures}/login`);
+    const login = await vela.tabPage('/login');
+    await login.focus('#p');
+    await expect(overlay.getByTestId('autofill-popover')).toBeVisible();
+    await vela.shot('81-autofill-popover');
+    await overlay.getByTestId('autofill-account').first().click();
+    await expect(login.locator('#u')).toHaveValue('ada@example.com');
+    await expect(login.locator('#p')).toHaveValue('hunter2');
+    await vela.overlayHidden();
+  });
+
+  test('passwords: "Never" blocks future prompts for the site', async ({ vela, fixtures }) => {
+    const available = await evalMain<boolean>(vela, 'return __vela.ctx.credentials.available');
+    test.skip(!available, 'OS keychain unavailable on this runner');
+    await vela.openTab(`${fixtures}/login`);
+    const page = await vela.tabPage('/login');
+    await page.fill('#u', 'bob@example.com');
+    await page.fill('#p', 'secret');
+    await page.click('#go');
+    const overlay = await vela.overlay();
+    await expect(overlay.getByTestId('save-password')).toBeVisible();
+    await overlay.getByTestId('save-password-never').click();
+    await vela.overlayHidden();
+    expect(await evalMain<string[]>(vela, 'return __vela.ctx.credentials.neverList()')).toHaveLength(1);
+    await (
+      await vela.tabPage('/welcome')
+    ).evaluate((u) => {
+      location.href = u;
+    }, `${fixtures}/login`);
+    const again = await vela.tabPage('/login');
+    await again.fill('#u', 'bob@example.com');
+    await again.fill('#p', 'secret2');
+    await again.click('#go');
+    await vela.tabPage('/welcome');
+    await new Promise((r) => setTimeout(r, 1200));
+    await expect(overlay.getByTestId('save-password')).toHaveCount(0);
+  });
 });

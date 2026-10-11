@@ -17,6 +17,7 @@ import {
 import { paneRects, type OpenUrlRequest } from '@vela/shared';
 import { WebContentsView, type Rectangle, type WebContents } from 'electron';
 import { preloadPath } from '../context';
+import { trustPage } from '../ipc/typed';
 import type { HistoryRepo } from '../db/historyRepo';
 import type { PrefsStore } from '../prefs';
 import type { SessionManager } from '../sessions';
@@ -371,6 +372,7 @@ export class TabManager {
   }
 
   private wire(id: Id, wc: WebContents): void {
+    trustPage(wc);
     const nav = (): TabPatch => ({
       canGoBack: wc.navigationHistory.canGoBack(),
       canGoForward: wc.navigationHistory.canGoForward(),

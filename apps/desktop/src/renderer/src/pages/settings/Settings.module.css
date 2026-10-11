@@ -1,3 +1,13 @@
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.rowEnd {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .clearChoices {
   display: flex;
   flex-wrap: wrap;
@@ -487,6 +497,16 @@
 }
 
 @media (max-width: 720px) {
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .rowEnd {
+    text-align: right;
+    white-space: nowrap;
+  }
+
   .clearChoices {
     display: flex;
     flex-wrap: wrap;

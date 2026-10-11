@@ -7,18 +7,20 @@ import { BoostsSection } from './BoostsSection';
 import { ExtensionsSection } from './ExtensionsSection';
 import { GeneralSection } from './GeneralSection';
 import { ImportSection } from './ImportSection';
+import { PasswordsSection } from './PasswordsSection';
 import { PermissionsSection } from './PermissionsSection';
 import styles from './Settings.module.css';
 import { SpacesSection } from './SpacesSection';
 
 export type SectionId =
-  'general' | 'spaces' | 'atc' | 'permissions' | 'boosts' | 'extensions' | 'import' | 'about';
+  'general' | 'spaces' | 'atc' | 'permissions' | 'passwords' | 'boosts' | 'extensions' | 'import' | 'about';
 
 const SECTIONS: { id: SectionId; label: string; icon: IconName }[] = [
   { id: 'general', label: 'General', icon: 'sliders' },
   { id: 'spaces', label: 'Spaces & profiles', icon: 'layers' },
   { id: 'atc', label: 'Air Traffic Control', icon: 'send' },
   { id: 'permissions', label: 'Permissions', icon: 'shield' },
+  { id: 'passwords', label: 'Passwords', icon: 'key' },
   { id: 'boosts', label: 'Boosts', icon: 'zap' },
   { id: 'extensions', label: 'Extensions', icon: 'puzzle' },
   { id: 'import', label: 'Import & export', icon: 'download' },
@@ -62,6 +64,7 @@ export function SettingsPage() {
           {active === 'spaces' && <SpacesSection />}
           {active === 'atc' && <AtcSection />}
           {active === 'permissions' && <PermissionsSection />}
+          {active === 'passwords' && <PasswordsSection />}
           {active === 'boosts' && <BoostsSection />}
           {active === 'extensions' && <ExtensionsSection />}
           {active === 'import' && <ImportSection />}

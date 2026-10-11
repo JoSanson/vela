@@ -6,10 +6,17 @@ import { applyTheme, systemPrefersDark } from '../lib/theme';
 import { CommandBar, type CommandBarPayload } from './CommandBar';
 import { PeekChrome } from './PeekChrome';
 import { AuthPromptView } from './AuthPrompt';
+import { AutofillPopover, SavePasswordView } from './Autofill';
 import { ExternalPromptView } from './ExternalPrompt';
 import { PermissionPromptView } from './PermissionPrompt';
 import { UpdateNotes, type UpdateNotesPayload } from './UpdateNotes';
-import type { AuthPrompt, ExternalPrompt, PermissionPrompt } from '@vela/shared';
+import type {
+  AuthPrompt,
+  AutofillPrompt,
+  ExternalPrompt,
+  PermissionPrompt,
+  SavePasswordPrompt,
+} from '@vela/shared';
 import { SpaceEditor, type SpaceEditorPayload } from './SpaceEditor';
 import { Switcher, type SwitcherPayload } from './Switcher';
 import styles from './OverlayApp.module.css';
@@ -83,6 +90,8 @@ export function OverlayApp() {
       )}
       {view.kind === 'authPrompt' && <AuthPromptView initial={view.payload as AuthPrompt} />}
       {view.kind === 'externalPrompt' && <ExternalPromptView initial={view.payload as ExternalPrompt} />}
+      {view.kind === 'autofill' && <AutofillPopover initial={view.payload as AutofillPrompt} />}
+      {view.kind === 'savePassword' && <SavePasswordView initial={view.payload as SavePasswordPrompt} />}
       {view.kind === 'updateNotes' && <UpdateNotes payload={view.payload as UpdateNotesPayload} />}
       {view.kind === 'toast' && (
         <OverlayToast text={String((view.payload as { text?: string } | null)?.text ?? '')} />

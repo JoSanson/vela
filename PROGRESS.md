@@ -93,6 +93,15 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 11.6 Stress fixes (FLIP burst guard, composited scroller, memo rows) — 3b4fbb4; walkthrough P0/P1 + capturePage crash guard — be1a506
 - [x] 11.7 Final verification on HEAD: e2e 64/64 (×3 incl. two clean runs), perf all ✅, tag v0.2.0 on this commit
 
+## Phase 12 — Everything missing
+- [ ] 12.1 Password manager
+- [ ] 12.2 Multi-window
+- [ ] 12.3 Importers (Arc, Safari, Firefox)
+- [ ] 12.4 Safe browsing
+- [ ] 12.5 Shortcut customisation
+- [ ] 12.6 Localisation (en, fr)
+- [ ] 12.7 Signing/CI/docs, v0.3.0
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x

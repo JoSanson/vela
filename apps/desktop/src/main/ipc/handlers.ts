@@ -11,7 +11,7 @@ import { extractReadable } from '../reader';
 import { paletteFromFile, pickImageAndExtract } from '../themeFromImage';
 import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
-import { emit, handle, isTrustedShell } from './typed';
+import { emit, handle, isTrustedShell, pageOrigin } from './typed';
 import { ipcMain } from 'electron';
 import { channel, UNRESERVED_SHORTCUTS } from '@vela/shared';
 
@@ -240,6 +240,36 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
   handle('auth/respond', 'shell', ({ id, username, password }) => {
     ctx.auth.respond(id, username, password);
+    return undefined;
+  });
+  handle('credentials/focus', 'page', (focus, event) => {
+    const origin = pageOrigin(event);
+    if (origin) ctx.credentials.onFocus(event.sender, origin, focus);
+    return undefined;
+  });
+  handle('credentials/submitted', 'page', ({ username, password }, event) => {
+    const origin = pageOrigin(event);
+    if (origin && typeof username === 'string' && typeof password === 'string')
+      ctx.credentials.onSubmitted(event.sender, origin, username.slice(0, 200), password.slice(0, 500));
+    return undefined;
+  });
+  handle('credentials/list', 'internal', ({ query }) => ctx.credentials.list(query));
+  handle('credentials/remove', 'internal', ({ id }) => {
+    ctx.credentials.remove(id);
+    return undefined;
+  });
+  handle('credentials/reveal', 'internal', ({ id }) => ctx.credentials.reveal(id));
+  handle('credentials/never', 'internal', ({ origin, remove }) => {
+    if (origin) ctx.credentials.setNever(origin, true);
+    if (remove) ctx.credentials.setNever(remove, false);
+    return ctx.credentials.neverList();
+  });
+  handle('credentials/useFill', 'shell', ({ tabId, id }) => {
+    ctx.credentials.fill(tabId, id);
+    return undefined;
+  });
+  handle('credentials/respond', 'shell', ({ id, action }) => {
+    ctx.credentials.respond(id, action);
     return undefined;
   });
   handle('external/respond', 'shell', ({ id, allow, remember }) => {

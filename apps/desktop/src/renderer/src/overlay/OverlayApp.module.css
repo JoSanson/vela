@@ -31,6 +31,8 @@
 .root[data-kind='authPrompt'] .backdrop,
 .root[data-kind='externalPrompt'] .backdrop,
 .root[data-kind='toast'] .backdrop,
+.root[data-kind='autofill'] .backdrop,
+.root[data-kind='savePassword'] .backdrop,
 .root[data-kind='updateNotes'] .backdrop {
   background: transparent;
 }
@@ -51,8 +53,11 @@
 .toast {
   position: absolute;
   left: 50%;
-  bottom: 24px;
+  bottom: 8px;
   transform: translateX(-50%);
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 8px 14px;
   border-radius: 999px;
   background: var(--panel-bg);

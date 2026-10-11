@@ -1,0 +1,139 @@
+.popover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--border);
+  animation: drop var(--dur-fast) var(--ease-out);
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.account:hover,
+.selected {
+  background: color-mix(in oklab, var(--space-from) 16%, transparent);
+}
+
+.key {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--space-from) 18%, transparent);
+  color: var(--accent);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hint {
+  flex: 0 0 auto;
+  width: 16px;
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+
+/* "Save password?" chip: the overlay view is sized to it, so it never blocks the page. */
+.save {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--border);
+  animation: drop var(--dur-fast) var(--ease-out);
+}
+
+.saveText {
+  flex: 1;
+  min-width: 0;
+}
+
+.saveTitle {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.saveActions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+.ghost,
+.primary {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ghost {
+  color: var(--fg-muted);
+}
+
+.ghost:hover {
+  background: var(--surface);
+  color: var(--panel-fg);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

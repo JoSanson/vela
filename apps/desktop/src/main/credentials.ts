@@ -1,0 +1,220 @@
+import type { Id } from '@vela/core';
+import type { AutofillPrompt, CredentialFocus, CredentialSummary, SavePasswordPrompt } from '@vela/shared';
+import { safeStorage, type WebContents } from 'electron';
+import type { Db } from './db/database';
+import { emit } from './ipc/typed';
+import type { OverlayManager } from './overlay';
+import type { TabManager } from './tabs/tabManager';
+
+interface Row {
+  id: string;
+  origin: string;
+  username: string;
+  secret: Buffer;
+  updated_at: number;
+  last_used_at: number | null;
+}
+
+interface PendingSave {
+  prompt: SavePasswordPrompt;
+  password: string;
+}
+
+/**
+ * Password manager. Secrets are encrypted with the OS keychain (`safeStorage`) and only ever leave
+ * main to be typed into the page's own form. The page preload reports login fields and submissions;
+ * main decides what to offer (an autofill popover under the field, a save chip after a login).
+ */
+export class CredentialsManager {
+  private pending = new Map<string, PendingSave>();
+  private autofillFor: { tabId: Id; wcId: number } | null = null;
+
+  constructor(
+    private readonly db: Db,
+    private readonly overlay: OverlayManager,
+    private readonly tabs: TabManager,
+    private readonly isPrivateTab: (tabId: Id) => boolean,
+  ) {}
+
+  get available(): boolean {
+    return safeStorage.isEncryptionAvailable();
+  }
+
+  list(query = ''): CredentialSummary[] {
+    const q = query.trim().toLowerCase();
+    const rows = this.db
+      .prepare(
+        'SELECT id, origin, username, updated_at, last_used_at FROM credentials ORDER BY origin, username',
+      )
+      .all() as Omit<Row, 'secret'>[];
+    return rows
+      .filter((r) => !q || r.origin.toLowerCase().includes(q) || r.username.toLowerCase().includes(q))
+      .map((r) => ({
+        id: r.id,
+        origin: r.origin,
+        username: r.username,
+        updatedAt: r.updated_at,
+        lastUsedAt: r.last_used_at,
+      }));
+  }
+
+  forOrigin(origin: string): CredentialSummary[] {
+    return this.list().filter((c) => c.origin === origin);
+  }
+
+  reveal(id: string): string | null {
+    const row = this.db.prepare('SELECT secret FROM credentials WHERE id = ?').get(id) as
+      Pick<Row, 'secret'> | undefined;
+    if (!row) return null;
+    try {
+      return safeStorage.decryptString(row.secret);
+    } catch {
+      return null;
+    }
+  }
+
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM credentials WHERE id = ?').run(id);
+  }
+
+  neverList(): string[] {
+    return (
+      this.db.prepare('SELECT origin FROM credentials_never ORDER BY origin').all() as { origin: string }[]
+    ).map((r) => r.origin);
+  }
+
+  setNever(origin: string, never: boolean): void {
+    if (never) {
+      this.db
+        .prepare(
+          'INSERT INTO credentials_never (origin, added_at) VALUES (?, ?) ON CONFLICT(origin) DO NOTHING',
+        )
+        .run(origin, Date.now());
+    } else this.db.prepare('DELETE FROM credentials_never WHERE origin = ?').run(origin);
+  }
+
+  private isNever(origin: string): boolean {
+    return !!this.db.prepare('SELECT 1 FROM credentials_never WHERE origin = ?').get(origin);
+  }
+
+  private save(origin: string, username: string, password: string): void {
+    if (!this.available) return;
+    const now = Date.now();
+    const secret = safeStorage.encryptString(password);
+    this.db
+      .prepare(
+        `INSERT INTO credentials (id, origin, username, secret, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(origin, username) DO UPDATE SET secret = excluded.secret, updated_at = excluded.updated_at`,
+      )
+      .run(crypto.randomUUID(), origin, username, secret, now, now);
+  }
+
+  // ---------------------------------------------------------------- page events
+
+  /** A login field got (or lost) focus in a tab: offer stored accounts right under it. */
+  onFocus(wc: WebContents, origin: string, focus: CredentialFocus | null): void {
+    const tabId = this.tabs.tabIdOf(wc);
+    if (!tabId) return;
+    if (!focus) {
+      this.hideAutofill(tabId);
+      return;
+    }
+    const accounts = this.forOrigin(origin);
+    if (accounts.length === 0) return;
+    const view = this.tabs.view(tabId);
+    if (!view) return;
+    const bounds = view.getBounds();
+    const zoom = wc.getZoomFactor();
+    const anchor = {
+      x: bounds.x + focus.rect.x * zoom,
+      y: bounds.y + focus.rect.y * zoom,
+      width: focus.rect.width * zoom,
+      height: focus.rect.height * zoom,
+    };
+    const prompt: AutofillPrompt = { tabId, origin, accounts, anchor };
+    if (this.overlay.visible && this.overlay.current.kind !== 'autofill') return;
+    this.autofillFor = { tabId, wcId: wc.id };
+    this.overlay.show('autofill', prompt);
+    const ov = this.overlay.view?.webContents;
+    if (ov) emit(ov, 'credentials/autofill', prompt);
+  }
+
+  hideAutofill(tabId?: Id): void {
+    if (!this.autofillFor || (tabId && this.autofillFor.tabId !== tabId)) return;
+    this.autofillFor = null;
+    if (this.overlay.current.kind === 'autofill') this.overlay.hide();
+  }
+
+  /** The user picked an account in the popover: decrypt and type it into the page. */
+  fill(tabId: Id, id: string): void {
+    const wc = this.tabs.webContents(tabId);
+    const row = this.db.prepare('SELECT origin, username, secret FROM credentials WHERE id = ?').get(id) as
+      Pick<Row, 'origin' | 'username' | 'secret'> | undefined;
+    if (!wc || !row) return;
+    let origin: string;
+    try {
+      origin = new URL(wc.getURL()).origin;
+    } catch {
+      return;
+    }
+    // The page may have navigated since the popover opened: never type a secret into another origin.
+    if (origin !== row.origin) return;
+    const password = this.reveal(id);
+    if (password === null) return;
+    this.db.prepare('UPDATE credentials SET last_used_at = ? WHERE id = ?').run(Date.now(), id);
+    this.hideAutofill(tabId);
+    emit(wc, 'credentials/fill', { username: row.username, password });
+  }
+
+  /** A form with a password was submitted: offer to save (or update) after the page settles. */
+  onSubmitted(wc: WebContents, origin: string, username: string, password: string): void {
+    const tabId = this.tabs.tabIdOf(wc);
+    if (!tabId || !password || !this.available || this.isNever(origin) || this.isPrivateTab(tabId)) return;
+    const existing = this.db
+      .prepare('SELECT id, secret FROM credentials WHERE origin = ? AND username = ?')
+      .get(origin, username) as Pick<Row, 'id' | 'secret'> | undefined;
+    if (existing) {
+      try {
+        if (safeStorage.decryptString(existing.secret) === password) return;
+      } catch {
+        /* undecryptable: treat as update */
+      }
+    }
+    const prompt: SavePasswordPrompt = {
+      id: crypto.randomUUID(),
+      tabId,
+      origin,
+      username,
+      update: !!existing,
+    };
+    this.pending.set(prompt.id, { prompt, password });
+    // Chrome asks after the navigation that follows the login, so the chip never covers the form itself.
+    setTimeout(() => this.showSave(prompt), 600);
+    setTimeout(() => this.pending.delete(prompt.id), 5 * 60_000);
+  }
+
+  private showSave(prompt: SavePasswordPrompt): void {
+    if (!this.pending.has(prompt.id)) return;
+    if (this.overlay.visible && !['autofill', 'savePassword', 'toast'].includes(this.overlay.current.kind)) {
+      this.overlay.onceHide(() => this.showSave(prompt));
+      return;
+    }
+    this.overlay.show('savePassword', prompt);
+    const ov = this.overlay.view?.webContents;
+    if (ov) emit(ov, 'credentials/savePrompt', prompt);
+  }
+
+  respond(id: string, action: 'save' | 'never' | 'dismiss'): void {
+    const p = this.pending.get(id);
+    this.pending.delete(id);
+    if (!p) return;
+    if (action === 'save') this.save(p.prompt.origin, p.prompt.username, p.password);
+    if (action === 'never') this.setNever(p.prompt.origin, true);
+    if (this.overlay.current.kind === 'savePassword') this.overlay.hide();
+  }
+
+  dismissAll(): void {
+    this.autofillFor = null;
+  }
+}

@@ -84,6 +84,171 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Password manager hooks for ordinary web pages. Runs in the isolated world: the page cannot see
+ * these listeners, and nothing here exposes an API to it. Main validates the sender and derives the
+ * origin from the frame URL, never from this code.
+ */
+declare const document:
+  | {
+      readonly readyState: string;
+      addEventListener: (
+        type: string,
+        cb: (e: unknown) => void,
+        opts?: boolean | { capture?: boolean },
+      ) => void;
+      querySelectorAll: (sel: string) => ArrayLike<HTMLElementLike>;
+      readonly activeElement: HTMLElementLike | null;
+    }
+  | undefined;
+interface HTMLElementLike {
+  tagName: string;
+  type?: string;
+  name?: string;
+  id?: string;
+  value?: string;
+  autocomplete?: string;
+  form?: HTMLElementLike | null;
+  closest: (sel: string) => HTMLElementLike | null;
+  querySelectorAll: (sel: string) => ArrayLike<HTMLElementLike>;
+  getBoundingClientRect: () => { x: number; y: number; width: number; height: number };
+  dispatchEvent: (e: unknown) => boolean;
+  isConnected: boolean;
+}
+declare const Event: new (type: string, init?: { bubbles?: boolean }) => unknown;
+
+const USERNAME_SEL =
+  'input[type="email"], input[type="text"], input[type="tel"], input:not([type]), input[autocomplete="username"]';
+const PASSWORD_SEL = 'input[type="password"]';
+
+function isPasswordField(el: HTMLElementLike | null): boolean {
+  return !!el && el.tagName === 'INPUT' && (el.type ?? '').toLowerCase() === 'password';
+}
+
+/** The text/email input that precedes the password field in the same form (or document). */
+function usernameFor(pw: HTMLElementLike): HTMLElementLike | null {
+  const scope = pw.form ?? pw.closest('form') ?? document;
+  if (!scope) return null;
+  const inputs = Array.from(scope.querySelectorAll(USERNAME_SEL));
+  let best: HTMLElementLike | null = null;
+  for (const el of inputs) {
+    if (!el.isConnected) continue;
+    if (
+      (el.autocomplete ?? '').includes('username') ||
+      /user|email|login|mail/i.test(`${el.name ?? ''} ${el.id ?? ''}`)
+    )
+      return el;
+    best = best ?? el;
+  }
+  return best;
+}
+
+function passwordFor(el: HTMLElementLike): HTMLElementLike | null {
+  if (isPasswordField(el)) return el;
+  const scope = el.form ?? el.closest('form') ?? document;
+  if (!scope) return null;
+  const pws = Array.from(scope.querySelectorAll(PASSWORD_SEL)).filter((p) => p.isConnected);
+  return pws[0] ?? null;
+}
+
+function setValue(el: HTMLElementLike, value: string): void {
+  // React/Vue listen to the native setter: go through the prototype so frameworks notice.
+  const proto = Object.getPrototypeOf(el) as Record<string, unknown>;
+  const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+  if (desc?.set) (desc.set as (this: unknown, v: string) => void).call(el, value);
+  else el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+if (
+  typeof document !== 'undefined' &&
+  location?.protocol !== 'vela:' &&
+  /^https?:$/.test(location?.protocol ?? '')
+) {
+  let lastFocus: HTMLElementLike | null = null;
+  const report = (el: HTMLElementLike | null): void => {
+    if (!el) {
+      ipcRenderer.send(channel('credentials/focus'), null);
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    ipcRenderer.send(channel('credentials/focus'), {
+      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+      field: isPasswordField(el) ? 'password' : 'username',
+    });
+  };
+  document.addEventListener(
+    'focusin',
+    (e) => {
+      const el = (e as { target: HTMLElementLike | null }).target;
+      if (el?.tagName !== 'INPUT') return;
+      const pw = passwordFor(el);
+      if (!pw) return;
+      if (!isPasswordField(el) && usernameFor(pw) !== el) return;
+      lastFocus = el;
+      report(el);
+    },
+    true,
+  );
+  document.addEventListener(
+    'focusout',
+    (e) => {
+      if ((e as { target: unknown }).target !== lastFocus) return;
+      lastFocus = null;
+      // Delay: a click on the popover in the overlay view must not race the blur.
+      setTimeout(() => {
+        if (!lastFocus) report(null);
+      }, 250);
+    },
+    true,
+  );
+  const submitted = (pw: HTMLElementLike): void => {
+    const password = pw.value ?? '';
+    if (!password) return;
+    const user = usernameFor(pw);
+    ipcRenderer.send(channel('credentials/submitted'), { username: user?.value ?? '', password });
+  };
+  document.addEventListener(
+    'submit',
+    (e) => {
+      const form = (e as { target: HTMLElementLike | null }).target;
+      const pw = form ? Array.from(form.querySelectorAll(PASSWORD_SEL))[0] : undefined;
+      if (pw) submitted(pw);
+    },
+    true,
+  );
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      const ev = e as KeyEvent & { target: HTMLElementLike | null };
+      if (ev.key === 'Enter' && ev.target && isPasswordField(ev.target)) submitted(ev.target);
+    },
+    true,
+  );
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = (e as { target: HTMLElementLike | null }).target;
+      const btn = el?.closest('button, input[type="submit"]');
+      const form = btn?.form ?? btn?.closest('form') ?? null;
+      const pw = form ? Array.from(form.querySelectorAll(PASSWORD_SEL))[0] : undefined;
+      if (pw && (btn?.type ?? 'submit').toLowerCase() !== 'button') submitted(pw);
+    },
+    true,
+  );
+  ipcRenderer.on(channel('credentials/fill'), (_e, creds: { username: string; password: string }) => {
+    if (!document) return;
+    const active = document.activeElement;
+    const pw =
+      (active && passwordFor(active)) ?? Array.from(document.querySelectorAll(PASSWORD_SEL))[0] ?? null;
+    if (!pw) return;
+    const user = usernameFor(pw);
+    if (user && creds.username) setValue(user, creds.username);
+    setValue(pw, creds.password);
+  });
+}
+
+/**
  * Preload for tab WebContents. Only internal `vela://` documents get a bridge; ordinary web pages
  * get nothing (main additionally gates every channel by sender).
  */

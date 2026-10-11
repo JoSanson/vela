@@ -5,6 +5,7 @@ import {
   needsSnapshot,
   type CoreAction,
   type StateDelta,
+  isEphemeralSpace,
 } from '@vela/core';
 import { app, crashReporter, dialog, session } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -36,6 +37,7 @@ import { UpdateManager } from './updater';
 import { installMaintenance } from './maintenance';
 import { installAutoPip } from './pip';
 import { AuthManager } from './auth';
+import { CredentialsManager } from './credentials';
 import { ExternalLinkManager } from './externalLinks';
 import { setPermissionDecider } from './security';
 import { PrefsStore } from './prefs';
@@ -206,6 +208,9 @@ async function boot(): Promise<void> {
   const auth = new AuthManager(overlay, tabIdOfWc, tabs.authPending);
   const external = new ExternalLinkManager(overlay, prefs);
   tabs.onExternalScheme = (tabId, url) => external.request(tabId, url);
+  const credentials = new CredentialsManager(db, overlay, tabs, (tabId) =>
+    isEphemeralSpace(store.state, store.state.tabs[tabId]?.spaceId),
+  );
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
   const extensions = new ExtensionManager(prefs, sessions);
@@ -227,6 +232,7 @@ async function boot(): Promise<void> {
     permissions,
     auth,
     external,
+    credentials,
     boosts,
     blocker,
     extensions,
@@ -284,6 +290,7 @@ async function boot(): Promise<void> {
     if (kind === 'permissionPrompt') permissions.dismissAll();
     if (kind === 'authPrompt') auth.dismissAll();
     if (kind === 'externalPrompt') external.dismissAll();
+    if (kind === 'autofill') credentials.dismissAll();
   });
   auth.install();
   installAppSecurity(c);

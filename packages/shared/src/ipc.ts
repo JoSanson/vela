@@ -116,6 +116,39 @@ export interface ExternalPrompt {
   host: string;
 }
 
+/** A stored login, never with its secret (secrets leave main only to fill a field). */
+export interface CredentialSummary {
+  id: string;
+  origin: string;
+  username: string;
+  updatedAt: number;
+  lastUsedAt: number | null;
+}
+
+/** Page → main: a login field got focus (rect in page CSS px). */
+export interface CredentialFocus {
+  rect: { x: number; y: number; width: number; height: number };
+  field: 'username' | 'password';
+}
+
+/** Overlay payload: accounts to offer for the focused field. */
+export interface AutofillPrompt {
+  tabId: Id;
+  origin: string;
+  accounts: CredentialSummary[];
+  /** Window coordinates of the field. */
+  anchor: { x: number; y: number; width: number; height: number };
+}
+
+/** Overlay payload: a login just happened and is not stored yet (or changed). */
+export interface SavePasswordPrompt {
+  id: string;
+  tabId: Id;
+  origin: string;
+  username: string;
+  update: boolean;
+}
+
 export interface ClearDataRequest {
   history: boolean;
   cookies: boolean;
@@ -337,6 +370,14 @@ export interface IpcInvokeMap {
   'downloads/pickDir': { req: undefined; res: string | null };
   'privacy/clear': { req: ClearDataRequest; res: undefined };
   'tab/print': { req: { tabId: Id }; res: undefined };
+  'credentials/focus': { req: CredentialFocus | null; res: undefined };
+  'credentials/submitted': { req: { username: string; password: string }; res: undefined };
+  'credentials/list': { req: { query?: string }; res: CredentialSummary[] };
+  'credentials/remove': { req: { id: string }; res: undefined };
+  'credentials/reveal': { req: { id: string }; res: string | null };
+  'credentials/never': { req: { origin?: string; remove?: string }; res: string[] };
+  'credentials/useFill': { req: { tabId: Id; id: string }; res: undefined };
+  'credentials/respond': { req: { id: string; action: 'save' | 'never' | 'dismiss' }; res: undefined };
   'tab/savePage': { req: { tabId: Id }; res: boolean };
 }
 
@@ -351,6 +392,8 @@ export type OverlayKind =
   | 'authPrompt'
   | 'externalPrompt'
   | 'toast'
+  | 'autofill'
+  | 'savePassword'
   | 'siteControl'
   | 'updateNotes'
   | 'none';
@@ -371,6 +414,10 @@ export interface IpcEventMap {
   'permissions/prompt': PermissionPrompt;
   'auth/prompt': AuthPrompt;
   'external/prompt': ExternalPrompt;
+  'credentials/autofill': AutofillPrompt | null;
+  'credentials/savePrompt': SavePasswordPrompt;
+  /** Main → page preload: fill the focused login form. */
+  'credentials/fill': { username: string; password: string };
   'update/changed': UpdateStatus;
   'window/fullscreen': boolean;
   'zap/pick': { tabId: Id; selector: string };

@@ -69,6 +69,25 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       res.end(pdf);
       return;
     }
+    if (p === '/login') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(
+        '<title>Login</title><form id="f" method="post" action="/welcome"><input id="u" name="user" type="email" autocomplete="username"><input id="p" name="pass" type="password" autocomplete="current-password"><button id="go" type="submit">Sign in</button></form>',
+      );
+      return;
+    }
+    if (p === '/welcome') {
+      let body = '';
+      req.on('data', (c: Buffer) => {
+        body += c.toString();
+      });
+      req.on('end', () => {
+        const user = decodeURIComponent((/user=([^&]*)/.exec(body)?.[1] ?? '').replace(/\+/g, ' '));
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<title>Welcome</title><h1 id="hello">hello ${user}</h1>`);
+      });
+      return;
+    }
     if (p === '/external') {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end('<title>External</title><a id="zoom" href="zoommtg://zoom.us/join?confno=1">join</a>');

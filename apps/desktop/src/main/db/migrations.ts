@@ -80,6 +80,26 @@ migrations.push({
   },
 });
 
+migrations.push({
+  version: 3,
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE credentials (
+        id TEXT PRIMARY KEY,
+        origin TEXT NOT NULL,
+        username TEXT NOT NULL,
+        secret BLOB NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        UNIQUE (origin, username)
+      );
+      CREATE INDEX credentials_origin ON credentials (origin);
+      CREATE TABLE credentials_never (origin TEXT PRIMARY KEY, added_at INTEGER NOT NULL);
+    `);
+  },
+});
+
 export const LATEST_SCHEMA = migrations[migrations.length - 1]?.version ?? 0;
 
 export function migrate(db: Database): number {

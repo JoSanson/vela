@@ -47,6 +47,7 @@ const PATHS: Record<string, string> = {
   arrowDown: 'M12 5v14M5 12l7 7 7-7',
   info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01',
   keyboard: 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10',
+  key: 'M15 7a4 4 0 1 1-2.9 6.8L8 18l-2 2H3v-3l6.2-6.2A4 4 0 0 1 15 7zM15.5 8.5h.01',
   users:
     'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
   sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
