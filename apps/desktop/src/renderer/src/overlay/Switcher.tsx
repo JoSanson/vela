@@ -2,6 +2,7 @@ import { displayTitle, mruTabs, prettyUrl } from '@vela/core';
 import { useEffect, useState } from 'react';
 import { Favicon } from '../components/Favicon';
 import { dispatch, invoke } from '../lib/api';
+import { useHoverSelect } from '../lib/hoverSelect';
 import { useShell } from '../lib/store';
 import styles from './Switcher.module.css';
 
@@ -62,6 +63,7 @@ export function Switcher({ payload }: { payload: SwitcherPayload }) {
     };
   }, [tabs, index, payload.seq]);
 
+  const hover = useHoverSelect(setIndex);
   if (tabs.length === 0) return null;
 
   return (
@@ -71,7 +73,7 @@ export function Switcher({ payload }: { payload: SwitcherPayload }) {
           <button
             key={t.id}
             className={`${styles.card} ${i === index ? styles.selected : ''}`}
-            onMouseEnter={() => setIndex(i)}
+            onMouseMove={(e) => hover(i, e)}
             onClick={() => {
               dispatch({ type: 'tab/activate', id: t.id, now: Date.now() });
               void invoke('overlay/hide', undefined);

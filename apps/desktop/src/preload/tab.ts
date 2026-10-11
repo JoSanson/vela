@@ -66,6 +66,19 @@ function matches(e: KeyEvent, accelerator: string): boolean {
   if (/^[0-9]$/.test(key) && e.code === `Digit${key}`) return true;
   return /^[a-z]$/.test(key) && e.code === `Key${key.toUpperCase()}`;
 }
+// The user's own accelerators replace the defaults once main answers (and whenever they change).
+let shortcutTable: [string, string][] = UNRESERVED;
+if (typeof window !== 'undefined' && location?.protocol !== 'vela:') {
+  ipcRenderer
+    .invoke(channel('shortcuts/table'))
+    .then((t: unknown) => {
+      if (Array.isArray(t)) shortcutTable = t as [string, string][];
+    })
+    .catch(() => undefined);
+  ipcRenderer.on(channel('shortcuts/changed'), (_e, t: [string, string][]) => {
+    shortcutTable = t;
+  });
+}
 if (typeof window !== 'undefined') {
   // Capture phase so a page calling stopPropagation() cannot hide the key; the decision itself
   // waits until the whole dispatch (page listeners included) has run.
@@ -73,7 +86,7 @@ if (typeof window !== 'undefined') {
     'keydown',
     (e) => {
       if (!e.isTrusted) return;
-      const hit = UNRESERVED.find(([, acc]) => matches(e, acc));
+      const hit = shortcutTable.find(([, acc]) => matches(e, acc));
       if (!hit) return;
       setTimeout(() => {
         if (!e.defaultPrevented) ipcRenderer.send(channel('shortcut'), hit[0]);

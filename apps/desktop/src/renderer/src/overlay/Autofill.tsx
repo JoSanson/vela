@@ -2,6 +2,7 @@ import type { AutofillPrompt, SavePasswordPrompt } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { invoke, vela } from '../lib/api';
+import { useHoverSelect } from '../lib/hoverSelect';
 import styles from './Autofill.module.css';
 
 function hostOf(origin: string): string {
@@ -30,6 +31,7 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [prompt, index]);
+  const hover = useHoverSelect(setIndex);
   if (!prompt) return null;
   return (
     <div className={styles.popover} role="listbox" aria-label="Saved logins" data-testid="autofill-popover">
@@ -39,7 +41,7 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
           role="option"
           aria-selected={i === index}
           className={`${styles.account} ${i === index ? styles.selected : ''}`}
-          onMouseEnter={() => setIndex(i)}
+          onMouseMove={(e) => hover(i, e)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => void invoke('credentials/useFill', { tabId: prompt.tabId, id: a.id })}
           data-testid="autofill-account"

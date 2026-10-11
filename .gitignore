@@ -11,3 +11,5 @@ playwright-report/
 e2e-artifacts/
 *.tsbuildinfo
 .env
+
+.claude/worktrees/

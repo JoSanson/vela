@@ -194,3 +194,69 @@ export function shortcutForEvent(
   for (const d of defs) if (matchesAccelerator(e, d.accelerator, platform)) return d.id;
   return null;
 }
+
+/** User overrides: shortcut id → accelerator (prefs.shortcutOverrides). */
+export type ShortcutOverrides = Record<string, string>;
+
+export const ALL_SHORTCUTS: readonly ShortcutDef[] = [...SHORTCUTS, ...SPACE_SHORTCUTS];
+
+/** Every shortcut with the user's accelerators applied; ids and reserved flags never change. */
+export function resolveShortcuts(overrides: ShortcutOverrides = {}): ShortcutDef[] {
+  return ALL_SHORTCUTS.map((d) => {
+    const acc = overrides[d.id];
+    return acc && acc !== d.accelerator ? { ...d, accelerator: acc } : d;
+  });
+}
+
+export function unreservedOf(defs: readonly ShortcutDef[]): ShortcutDef[] {
+  return defs.filter((d) => !d.reserved);
+}
+
+/** Another shortcut already using `accelerator` (case-insensitive), if any. */
+export function findConflict(
+  accelerator: string,
+  defs: readonly ShortcutDef[],
+  exceptId?: string,
+): ShortcutDef | undefined {
+  const a = accelerator.toLowerCase();
+  return defs.find((d) => d.id !== exceptId && d.accelerator.toLowerCase() === a);
+}
+
+const KEY_NAMES: Record<string, string> = {
+  arrowup: 'Up',
+  arrowdown: 'Down',
+  arrowleft: 'Left',
+  arrowright: 'Right',
+  tab: 'Tab',
+  enter: 'Enter',
+  escape: 'Escape',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  ' ': 'Space',
+  '+': '=',
+};
+
+/** Turns a keydown into an Electron accelerator (`CmdOrCtrl+Shift+K`), or null for bare modifiers. */
+export function acceleratorFromEvent(e: KeyLike, platform: string): string | null {
+  const key = e.key.toLowerCase();
+  if (['meta', 'control', 'alt', 'shift', 'dead', 'unidentified'].includes(key)) return null;
+  const isMac = platform === 'darwin';
+  const mods: string[] = [];
+  const primary = isMac ? e.metaKey : e.ctrlKey;
+  if (primary) mods.push('CmdOrCtrl');
+  if (isMac && e.ctrlKey) mods.push('Ctrl');
+  if (!isMac && e.metaKey) mods.push('Super');
+  if (e.altKey) mods.push('Alt');
+  if (e.shiftKey) mods.push('Shift');
+  let name = KEY_NAMES[key];
+  if (!name) {
+    const code = e.code ?? '';
+    if (/^Key[A-Z]$/.test(code)) name = code.slice(3);
+    else if (/^Digit[0-9]$/.test(code)) name = code.slice(5);
+    else if (key.length === 1) name = key.toUpperCase();
+    else return null;
+  }
+  // Plain letters/digits without a modifier would hijack typing: require at least one.
+  if (mods.length === 0 && /^[A-Z0-9=[\],.-]$/.test(name)) return null;
+  return [...mods, name].join('+');
+}

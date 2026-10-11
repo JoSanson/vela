@@ -15,7 +15,10 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
   suggestions, fuzzy search across open tabs, archive, full-text history and favorites, and browser
   commands with their shortcuts, in a few milliseconds.
 - **Split view** (2–4 panes), **Peek** for links from pinned tabs, **Little Vela** floating windows
-  for links opened from other apps, **Air Traffic Control** rules that route URLs to spaces.
+  for links opened from other apps, **Air Traffic Control** rules that route URLs to spaces,
+  **multiple windows** (one Space per window, ⌘N).
+- **Password manager** built in: saved after sign-in, encrypted with the OS keychain, filled from a
+  popover under the field, never sent anywhere.
 - **Light by design.** Idle tabs go to sleep and free their process (≈ 1 MB residual), the session
   restores lazily, background views are detached so Chromium throttles them, and the shell idles
   at ~110 MB. Measured by `pnpm perf` → [PERF.md](PERF.md).

@@ -8,9 +8,9 @@
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
-    "predev": "node scripts/fetch-adblock.mjs",
+    "predev": "node scripts/fetch-adblock.mjs && node scripts/fetch-safebrowsing.mjs",
     "dev": "electron-vite dev",
-    "prebuild:bundle": "node scripts/fetch-adblock.mjs",
+    "prebuild:bundle": "node scripts/fetch-adblock.mjs && node scripts/fetch-safebrowsing.mjs",
     "build:bundle": "electron-vite build",
     "build": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
     "build:ci": "electron-vite build && electron-builder --config electron-builder.yml --publish never",

@@ -862,4 +862,46 @@ test.describe('daily-driver compatibility', () => {
     await new Promise((r) => setTimeout(r, 1200));
     await expect(overlay.getByTestId('save-password')).toHaveCount(0);
   });
+
+  test('known phishing URLs are blocked before loading, with a way through', async ({ vela, fixtures }) => {
+    const bad = `${fixtures}/page/Phish`;
+    await evalMain(vela, `__vela.ctx.safeBrowsing.addTestEntry(${JSON.stringify(bad)})`);
+    await evalMain(vela, `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(bad)}, noAtc: true })`);
+    const page = await vela.tabPage('vela://error');
+    await expect(page.getByTestId('error-unsafe')).toBeVisible();
+    await expect(page.getByTestId('error-unsafe')).toContainText('Deceptive site ahead');
+    await vela.shot('82-unsafe-interstitial');
+    await page.getByTestId('unsafe-proceed').click();
+    const real = await vela.tabPage('/page/Phish');
+    await expect(real.getByTestId('heading')).toHaveText('Phish');
+  });
+
+  test('shortcuts can be rebound and the new chord works on pages', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/page/Keys2`);
+    await vela.openTab('vela://shortcuts');
+    const page = await vela.tabPage('vela://shortcuts');
+    const row = page.locator('[data-shortcut-id="findInPage"]');
+    await row.getByTestId('shortcut-keys').click();
+    await expect(row).toContainText('Press keys');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Alt+K' : 'Control+Alt+K');
+    await expect
+      .poll(
+        async () =>
+          (await evalMain<Record<string, string>>(vela, 'return __vela.ctx.prefs.value.shortcutOverrides'))
+            .findInPage,
+      )
+      .toBe('CmdOrCtrl+Alt+K');
+    await expect(row).toContainText('custom');
+    // A chord already taken is refused with an explanation.
+    await row.getByTestId('shortcut-keys').click();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+D' : 'Control+D');
+    await expect(row).toContainText('already used by');
+    await page.keyboard.press('Escape');
+    // The page sees the new chord (unreserved path through the preload).
+    const keys = vela.shell.locator(`[data-tab-id]`).filter({ hasText: 'Keys2' });
+    await keys.click();
+    const web = await vela.tabPage('/page/Keys2');
+    await web.keyboard.press(process.platform === 'darwin' ? 'Meta+Alt+K' : 'Control+Alt+K');
+    await expect(vela.shell.getByTestId('find-bar')).toBeVisible();
+  });
 });

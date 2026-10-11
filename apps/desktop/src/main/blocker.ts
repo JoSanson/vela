@@ -1,7 +1,7 @@
 import { hostOf } from '@vela/core';
 import type { BlockerStats } from '@vela/shared';
 import { ElectronBlocker, NetworkFilter, type Request } from '@ghostery/adblocker-electron';
-import { app, ipcMain, utilityProcess, type Session } from 'electron';
+import { app, ipcMain, utilityProcess, webContents, type Session } from 'electron';
 import { createRequire } from 'node:module';
 import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -150,18 +150,25 @@ export class ContentBlocker {
    * on the second session, so the per-session wiring is done here: one global handler pair that
    * forwards to whichever engine is current, plus the preload + webRequest hooks per session.
    */
+  /** Consulted for every main-frame request before the ad engine (phishing/malware lists). */
+  mainFrameGuard: ((url: string, wc: Electron.WebContents | undefined) => boolean) | null = null;
+
   private apply(ses: Session): void {
-    const wantOn = this.prefs.value.blockerEnabled;
+    // The webRequest hooks are always installed (safe browsing needs them); the ad engine itself
+    // only takes part when the blocker is enabled.
+    const wantOn = true;
     const isOn = this.wired.has(ses);
     if (wantOn && !isOn) {
       if (!this.ipcRegistered) {
         this.ipcRegistered = true;
         ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (event, url: string, msg?: unknown) =>
-          this.engine?.onInjectCosmeticFilters(
-            event,
-            url,
-            msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2],
-          ),
+          !this.prefs.value.blockerEnabled
+            ? undefined
+            : this.engine?.onInjectCosmeticFilters(
+                event,
+                url,
+                msg as Parameters<ElectronBlocker['onInjectCosmeticFilters']>[2],
+              ),
         );
         ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (event) =>
           this.engine ? this.engine.onIsMutationObserverEnabled(event) : Promise.resolve(false),
@@ -169,10 +176,22 @@ export class ContentBlocker {
       }
       const id = ses.registerPreloadScript({ type: 'frame', filePath: PRELOAD_PATH });
       ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, (details, callback) => {
-        if (this.engine) this.engine.onHeadersReceived(details, callback);
+        if (this.engine && this.prefs.value.blockerEnabled) this.engine.onHeadersReceived(details, callback);
         else callback({});
       });
       ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+        if (details.resourceType === 'mainFrame' && this.mainFrameGuard) {
+          const wc =
+            details.webContentsId !== undefined ? webContents.fromId(details.webContentsId) : undefined;
+          if (this.mainFrameGuard(details.url, wc ?? undefined)) {
+            callback({ cancel: true });
+            return;
+          }
+        }
+        if (!this.prefs.value.blockerEnabled) {
+          callback({});
+          return;
+        }
         // `$redirect` filters point at data: stubs, which Chromium's webRequest refuses
         // (ERR_UNSAFE_REDIRECT in every console): blocking outright is what the page experiences anyway.
         const safe: typeof callback = (res) =>

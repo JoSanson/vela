@@ -6,6 +6,13 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Password manager: logins are offered to be saved after a sign-in, encrypted with the OS
+  keychain, and filled from a popover under the login field; Settings > Passwords.
+- Multi-window (D024): ⌘N opens a window on another Space; Spaces move between windows, overlays
+  and Peek follow the active window.
+
 ## [0.2.0] - 2026-10-11
 
 ## [0.2.0] - 2026-10-11

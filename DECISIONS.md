@@ -171,3 +171,13 @@ quarantines the file and restores the newest backup (or starts fresh) with a toa
 to parse are skipped individually. Saves are diff-based upserts and retried with backoff instead of
 being dropped when the disk is full.
 
+## D024 — Windows show Spaces; a Space lives in one window at a time
+
+Multi-window replaces D011. Every main window displays exactly one Space; opening a Space that
+another window already shows swaps the two windows' Spaces, so a tab's native view only ever has
+one parent. `WindowManager.main` is "the window to act on" (focused, else most recently focused):
+menus, ⌘T and prompts target it. The overlay (command bar, switcher, prompts) and Peek are single
+views re-parented to the acting window, like a system sheet. Each renderer sees `activeSpaceId`
+as the Space of its own window (`window/space`), while main's global `activeSpaceId` follows
+focus. ⌘N opens a window on the first Space no window displays, creating one if needed.
+

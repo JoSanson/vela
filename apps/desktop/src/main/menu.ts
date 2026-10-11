@@ -1,15 +1,16 @@
-import { SHORTCUTS, SPACE_SHORTCUTS } from '@vela/shared';
+import { resolveShortcuts, SPACE_SHORTCUTS } from '@vela/shared';
 import { app, Menu, shell, type MenuItemConstructorOptions } from 'electron';
 import { runCommand } from './commands';
 import type { AppContext } from './context';
 
 export function installMenu(ctx: AppContext): void {
   const isMac = process.platform === 'darwin';
+  const defs = resolveShortcuts(ctx.prefs.value.shortcutOverrides);
   const item = (
     id: string,
     overrides: Partial<MenuItemConstructorOptions> = {},
   ): MenuItemConstructorOptions => {
-    const def = SHORTCUTS.find((s) => s.id === id);
+    const def = defs.find((s) => s.id === id);
     return {
       label: def?.label ?? id,
       ...(def?.reserved ? { accelerator: def.accelerator } : {}),

@@ -1,9 +1,18 @@
-import { SHORTCUTS, SPACE_SHORTCUTS, type ShortcutDef } from '@vela/shared';
-import { useMemo, useState, type ReactNode } from 'react';
+import {
+  acceleratorFromEvent,
+  ALL_SHORTCUTS,
+  findConflict,
+  resolveShortcuts,
+  type ShortcutDef,
+} from '@vela/shared';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from '../components/Icon';
+import { vela } from '../lib/api';
+import { useSnapshot } from './lib';
 import { PageShell } from './PageShell';
 import styles from './ShortcutsPage.module.css';
-import { acceleratorKeys, EmptyState, Keycaps, SearchBox } from './ui';
+import { useToast } from './Toast';
+import { acceleratorKeys, Button, EmptyState, Keycaps, SearchBox } from './ui';
 
 type Group = ShortcutDef['group'];
 
@@ -14,11 +23,6 @@ const GROUPS: { id: Group; label: string; icon: IconName }[] = [
   { id: 'view', label: 'View', icon: 'sidebar' },
   { id: 'page', label: 'Page', icon: 'book' },
   { id: 'window', label: 'Window', icon: 'expand' },
-];
-
-const ALL: ShortcutDef[] = [
-  ...SHORTCUTS,
-  ...SPACE_SHORTCUTS.map((s): ShortcutDef => ({ ...s, group: 'spaces' })),
 ];
 
 function highlight(text: string, query: string): ReactNode {
@@ -35,8 +39,61 @@ function highlight(text: string, query: string): ReactNode {
 }
 
 export function ShortcutsPage() {
+  const { snap, setPrefs } = useSnapshot();
+  const { toast } = useToast();
+  const overrides = useMemo(() => snap?.prefs.shortcutOverrides ?? {}, [snap?.prefs.shortcutOverrides]);
+  const ALL = useMemo(() => resolveShortcuts(overrides), [overrides]);
   const [query, setQuery] = useState('');
+  const [recording, setRecording] = useState<string | null>(null);
+  const [problem, setProblem] = useState<{ id: string; text: string } | null>(null);
   const q = query.trim().toLowerCase();
+  const customized = Object.keys(overrides).length;
+
+  const save = useCallback(
+    (id: string, accelerator: string | null): void => {
+      const next = { ...overrides };
+      const def = ALL_SHORTCUTS.find((d) => d.id === id);
+      if (accelerator === null || accelerator === def?.accelerator) delete next[id];
+      else next[id] = accelerator;
+      void setPrefs({ shortcutOverrides: next }).then((ok) => {
+        if (!ok) toast("Couldn't save the shortcut", 'error');
+      });
+    },
+    [overrides, setPrefs, toast],
+  );
+
+  // While a row records, the next chord becomes its accelerator; Escape cancels, Backspace resets.
+  useEffect(() => {
+    if (!recording) return;
+    const onKey = (e: KeyboardEvent): void => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        setRecording(null);
+        return;
+      }
+      if (e.key === 'Backspace' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        save(recording, null);
+        setRecording(null);
+        return;
+      }
+      const acc = acceleratorFromEvent(e, vela.platform);
+      if (!acc) return;
+      const clash = findConflict(acc, ALL, recording);
+      if (clash) {
+        setProblem({
+          id: recording,
+          text: `${acceleratorKeys(acc).join(' ')} is already used by “${clash.label}”`,
+        });
+        return;
+      }
+      setProblem(null);
+      save(recording, acc);
+      setRecording(null);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [recording, ALL, save]);
 
   const groups = useMemo(() => {
     return GROUPS.map((g) => ({
@@ -53,7 +110,7 @@ export function ShortcutsPage() {
         );
       }),
     })).filter((g) => g.items.length > 0);
-  }, [q]);
+  }, [q, ALL]);
 
   const total = groups.reduce((n, g) => n + g.items.length, 0);
 
@@ -61,19 +118,30 @@ export function ShortcutsPage() {
     <PageShell
       title="Keyboard shortcuts"
       icon="keyboard"
-      subtitle={`${total} ${total === 1 ? 'shortcut' : 'shortcuts'}`}
+      subtitle={`${total} ${total === 1 ? 'shortcut' : 'shortcuts'}${customized ? `, ${customized} customized` : ''}. Click a shortcut to change it.`}
       testId="page-shortcuts"
       maxWidth={960}
       toolbar={
-        <div style={{ flex: 1 }}>
-          <SearchBox
-            value={query}
-            onChange={setQuery}
-            placeholder="Filter by action or key"
-            testId="shortcuts-search"
-            autoFocus
-          />
-        </div>
+        <>
+          <div style={{ flex: 1 }}>
+            <SearchBox
+              value={query}
+              onChange={setQuery}
+              placeholder="Filter by action or key"
+              testId="shortcuts-search"
+              autoFocus
+            />
+          </div>
+          {customized > 0 && (
+            <Button
+              variant="ghost"
+              testId="shortcuts-reset-all"
+              onClick={() => void setPrefs({ shortcutOverrides: {} })}
+            >
+              Reset all
+            </Button>
+          )}
+        </>
       }
     >
       {groups.length === 0 ? (
@@ -86,12 +154,40 @@ export function ShortcutsPage() {
                 <Icon name={g.icon} size={14} />
                 {g.label}
               </div>
-              {g.items.map((s) => (
-                <div key={s.id} className={styles.shortcut} data-testid="shortcut-row">
-                  <span className={styles.label}>{highlight(s.label, q)}</span>
-                  <Keycaps accelerator={s.accelerator} />
-                </div>
-              ))}
+              {g.items.map((s) => {
+                const isRecording = recording === s.id;
+                const changed = s.id in overrides;
+                return (
+                  <div
+                    key={s.id}
+                    className={`${styles.shortcut} ${isRecording ? styles.recording : ''}`}
+                    data-testid="shortcut-row"
+                    data-shortcut-id={s.id}
+                  >
+                    <span className={styles.label}>
+                      {highlight(s.label, q)}
+                      {changed && <span className={styles.custom}>custom</span>}
+                    </span>
+                    {problem?.id === s.id && <span className={styles.problem}>{problem.text}</span>}
+                    <button
+                      className={styles.keys}
+                      onClick={() => {
+                        setProblem(null);
+                        setRecording(isRecording ? null : s.id);
+                      }}
+                      aria-label={`Change shortcut for ${s.label}`}
+                      aria-pressed={isRecording}
+                      data-testid="shortcut-keys"
+                    >
+                      {isRecording ? (
+                        <span className={styles.listening}>Press keys… (Esc cancels, ⌫ resets)</span>
+                      ) : (
+                        <Keycaps accelerator={s.accelerator} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </section>
           ))}
         </div>

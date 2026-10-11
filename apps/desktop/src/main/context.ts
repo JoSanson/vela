@@ -20,6 +20,7 @@ import type { Store } from './store';
 import type { TabManager } from './tabs/tabManager';
 import type { AuthManager } from './auth';
 import type { CredentialsManager } from './credentials';
+import type { SafeBrowsing } from './safeBrowsing';
 import type { ExternalLinkManager } from './externalLinks';
 import type { MainWindow } from './windows/mainWindow';
 import type { WindowManager } from './windows/windowManager';
@@ -42,6 +43,7 @@ export interface AppContext {
   auth: AuthManager;
   external: ExternalLinkManager;
   credentials: CredentialsManager;
+  safeBrowsing: SafeBrowsing;
   boosts: BoostsManager;
   blocker: ContentBlocker;
   extensions: ExtensionManager;

@@ -844,7 +844,7 @@ function hostKey(url: string): string {
   }
 }
 
-export function errorPageUrl(kind: 'net' | 'crash' | 'cert', url: string, detail: string): string {
+export function errorPageUrl(kind: 'net' | 'crash' | 'cert' | 'unsafe', url: string, detail: string): string {
   const q = new URLSearchParams({ kind, url, detail });
   return `vela://error/?${q.toString()}`;
 }

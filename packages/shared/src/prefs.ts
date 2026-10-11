@@ -29,6 +29,10 @@ export interface Prefs {
   /** null = the OS downloads folder. */
   downloadDir: string | null;
   askWhereToSave: boolean;
+  /** Block known phishing/malware sites (local lists from public feeds). */
+  safeBrowsing: boolean;
+  /** Custom accelerators by shortcut id (see packages/shared/src/shortcuts.ts). */
+  shortcutOverrides: Record<string, string>;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -54,6 +58,8 @@ export const DEFAULT_PREFS: Prefs = {
   externalSchemes: {},
   downloadDir: null,
   askWhereToSave: false,
+  safeBrowsing: true,
+  shortcutOverrides: {},
 };
 
 export const SIDEBAR_MIN_WIDTH = 200;

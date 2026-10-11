@@ -1,4 +1,11 @@
-import { FIND_BAR_HEIGHT, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH, shortcutForEvent } from '@vela/shared';
+import {
+  FIND_BAR_HEIGHT,
+  resolveShortcuts,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  shortcutForEvent,
+  unreservedOf,
+} from '@vela/shared';
 import { useCallback, useEffect, useRef } from 'react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { invoke, modKey, vela } from '../lib/api';
@@ -183,7 +190,11 @@ export function App() {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && useShell.getState().findOpen) closeFind();
       if (e.defaultPrevented || e.target instanceof HTMLInputElement) return;
-      const id = shortcutForEvent(e, vela.platform);
+      const id = shortcutForEvent(
+        e,
+        vela.platform,
+        unreservedOf(resolveShortcuts(useShell.getState().prefs.shortcutOverrides)),
+      );
       if (id) {
         e.preventDefault();
         void invoke('command/run', { id });

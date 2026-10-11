@@ -200,6 +200,17 @@ export function GeneralSection() {
       <p className={styles.h3}>Privacy & updates</p>
       <Card>
         <Row
+          label="Warn about dangerous sites"
+          hint="Blocks known phishing and malware sites using local lists refreshed daily."
+        >
+          <Toggle
+            label="Warn about dangerous sites"
+            checked={prefs.safeBrowsing}
+            onChange={(v) => update({ safeBrowsing: v })}
+            testId="settings-safe-browsing"
+          />
+        </Row>
+        <Row
           label="Always use secure connections"
           hint="Upgrades http:// pages to https:// and falls back only when a site has no TLS."
         >

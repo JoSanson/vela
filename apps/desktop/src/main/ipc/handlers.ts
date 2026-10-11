@@ -13,7 +13,7 @@ import { detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
 import { emit, handle, isTrustedShell, pageOrigin } from './typed';
 import { ipcMain } from 'electron';
-import { channel, UNRESERVED_SHORTCUTS } from '@vela/shared';
+import { channel, UNRESERVED_SHORTCUTS, resolveShortcuts, unreservedOf } from '@vela/shared';
 
 const UNRESERVED_IDS = new Set(UNRESERVED_SHORTCUTS.map((s) => s.id));
 
@@ -185,6 +185,12 @@ export function registerCoreHandlers(ctx: AppContext): void {
     if (!senderIsTab && !isTrustedShell(event.sender)) return;
     runCommand(ctx, id);
   });
+  handle('shortcuts/table', 'page', () =>
+    unreservedOf(resolveShortcuts(prefs.value.shortcutOverrides)).map((d): [string, string] => [
+      d.id,
+      d.accelerator,
+    ]),
+  );
   handle('command/run', 'shell', ({ id, payload }) => {
     runCommand(ctx, id, payload);
     return undefined;
@@ -315,6 +321,10 @@ export function registerCoreHandlers(ctx: AppContext): void {
     const dir = res.canceled ? null : (res.filePaths[0] ?? null);
     if (dir) prefs.set({ downloadDir: dir });
     return dir;
+  });
+  handle('safebrowsing/allow', 'internal', ({ host }) => {
+    ctx.safeBrowsing.allow(host);
+    return undefined;
   });
   handle('tab/print', 'internal', ({ tabId }) => {
     tabs.print(tabId);

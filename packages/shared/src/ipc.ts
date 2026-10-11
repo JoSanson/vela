@@ -372,6 +372,9 @@ export interface IpcInvokeMap {
   'downloads/pickDir': { req: undefined; res: string | null };
   'privacy/clear': { req: ClearDataRequest; res: undefined };
   'tab/print': { req: { tabId: Id }; res: undefined };
+  'safebrowsing/allow': { req: { host: string }; res: undefined };
+  /** Page preload: the unreserved shortcut table (id, accelerator) with the user's overrides. */
+  'shortcuts/table': { req: undefined; res: [string, string][] };
   'credentials/focus': { req: CredentialFocus | null; res: undefined };
   'credentials/submitted': { req: { username: string; password: string }; res: undefined };
   'credentials/list': { req: { query?: string }; res: CredentialSummary[] };
@@ -424,6 +427,7 @@ export interface IpcEventMap {
   'window/fullscreen': boolean;
   /** This window now displays another Space (multi-window, D024). */
   'window/space': Id;
+  'shortcuts/changed': [string, string][];
   'zap/pick': { tabId: Id; selector: string };
   'little/changed': LittleState;
   'peek/changed': PeekState | null;

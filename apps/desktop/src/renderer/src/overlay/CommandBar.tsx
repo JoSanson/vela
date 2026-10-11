@@ -13,6 +13,7 @@ import {
 import { SHORTCUTS, type HistoryEntry } from '@vela/shared';
 import { isMac } from '../lib/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useHoverSelect } from '../lib/hoverSelect';
 import { Favicon } from '../components/Favicon';
 import { Icon, type IconName } from '../components/Icon';
 import { dispatch, invoke } from '../lib/api';
@@ -257,6 +258,9 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const selected = sel.query === query ? Math.min(sel.idx, Math.max(0, results.length - 1)) : 0;
   const setSelected = (fn: number | ((s: number) => number)): void =>
     setSel({ query, idx: typeof fn === 'function' ? fn(selected) : fn });
+  const hover = useHoverSelect((i) => {
+    if (i !== selected) setSelected(i);
+  });
 
   const run = (item: SearchItem | undefined): void => {
     if (!item) return;
@@ -380,7 +384,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
                 role="option"
                 aria-selected={i === selected}
                 className={`${styles.item} ${i === selected ? styles.selected : ''}`}
-                onMouseEnter={() => setSelected(i)}
+                onMouseMove={(e) => hover(i, e)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => run(item)}
                 data-testid="command-result"

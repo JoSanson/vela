@@ -40,10 +40,44 @@ export function ErrorPage() {
 
   return (
     <div className={styles.center} data-testid={`error-${kind}`}>
-      <div className={`${styles.card} ${kind === 'cert' ? styles.danger : ''}`}>
+      <div className={`${styles.card} ${kind === 'cert' || kind === 'unsafe' ? styles.danger : ''}`}>
         <div className={styles.iconWrap}>
-          <Icon name={kind === 'cert' ? 'shield' : kind === 'crash' ? 'warning' : 'globe'} size={28} />
+          <Icon
+            name={kind === 'cert' || kind === 'unsafe' ? 'shield' : kind === 'crash' ? 'warning' : 'globe'}
+            size={28}
+          />
         </div>
+        {kind === 'unsafe' && (
+          <>
+            <h1 className={styles.h1}>
+              {detail === 'phishing' ? 'Deceptive site ahead' : 'Dangerous site ahead'}
+            </h1>
+            <p className={styles.muted}>
+              <strong>{host}</strong>{' '}
+              {detail === 'phishing'
+                ? 'is on a list of sites that trick people into revealing passwords or card numbers.'
+                : 'is on a list of sites known to distribute malware.'}{' '}
+              Vela blocked it before anything loaded. The lists come from URLhaus and OpenPhish and are
+              checked locally.
+            </p>
+            <div className={styles.actions}>
+              <button className={styles.primary} onClick={() => history.back()} data-testid="unsafe-back">
+                Go back
+              </button>
+              <button
+                className={styles.secondary}
+                onClick={() => {
+                  void invoke('safebrowsing/allow', { host }).then(() => {
+                    location.href = url;
+                  });
+                }}
+                data-testid="unsafe-proceed"
+              >
+                Visit anyway (unsafe)
+              </button>
+            </div>
+          </>
+        )}
         {kind === 'cert' && (
           <>
             <h1 className={styles.h1}>Your connection is not private</h1>

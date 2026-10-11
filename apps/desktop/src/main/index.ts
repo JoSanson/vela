@@ -9,6 +9,7 @@ import {
   createSpace,
   SPACE_PRESET_THEMES,
 } from '@vela/core';
+import { resolveShortcuts, unreservedOf } from '@vela/shared';
 import { app, crashReporter, dialog, session } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -40,6 +41,7 @@ import { installMaintenance } from './maintenance';
 import { installAutoPip } from './pip';
 import { AuthManager } from './auth';
 import { CredentialsManager } from './credentials';
+import { SafeBrowsing } from './safeBrowsing';
 import { ExternalLinkManager } from './externalLinks';
 import { setPermissionDecider } from './security';
 import { PrefsStore } from './prefs';
@@ -47,7 +49,7 @@ import { installInternalProtocol, registerInternalScheme } from './protocol';
 import { hardenSession, installAppSecurity } from './security';
 import { SessionManager } from './sessions';
 import { Store } from './store';
-import { TabManager } from './tabs/tabManager';
+import { errorPageUrl, TabManager } from './tabs/tabManager';
 import { WindowManager } from './windows/windowManager';
 
 import pkg from '../../package.json';
@@ -215,6 +217,15 @@ async function boot(): Promise<void> {
   );
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
+  const safeBrowsing = new SafeBrowsing(prefs, userData);
+  void safeBrowsing.init();
+  blocker.mainFrameGuard = (url, wc) => {
+    const threat = safeBrowsing.check(url);
+    if (!threat || !wc) return false;
+    // Replace the request with the interstitial; the dangerous page never starts loading.
+    setImmediate(() => void wc.loadURL(errorPageUrl('unsafe', url, threat)).catch(() => undefined));
+    return true;
+  };
   const extensions = new ExtensionManager(prefs, sessions);
   const rendererDir = join(__dirname, '../renderer');
   const devUrl = process.env.ELECTRON_RENDERER_URL;
@@ -235,6 +246,7 @@ async function boot(): Promise<void> {
     auth,
     external,
     credentials,
+    safeBrowsing,
     boosts,
     blocker,
     extensions,
@@ -375,6 +387,12 @@ async function boot(): Promise<void> {
     pendingFrom += actions.length;
   };
   store.subscribe((next, prev, action) => {
+    // Any path that makes a space active (ATC routing, activating a tab elsewhere, direct
+    // dispatches) must also show it somewhere: the acting window takes it when no window has it.
+    if (next.activeSpaceId !== prev.activeSpaceId && !windows.windowForSpace(next.activeSpaceId)) {
+      const mw = windows.main;
+      if (mw) windows.setSpace(mw, next.activeSpaceId);
+    }
     for (const w of windows.all()) {
       const t = next.spaces[w.spaceId]?.theme;
       if (t && t !== prev.spaces[w.spaceId]?.theme) w.setThemeColor(t.from);
@@ -398,7 +416,21 @@ async function boot(): Promise<void> {
       void ses.clearCache().catch(() => undefined);
     }
   });
+  let lastOverrides = JSON.stringify(prefs.value.shortcutOverrides);
   prefs.subscribe((p) => {
+    const overrides = JSON.stringify(p.shortcutOverrides);
+    if (overrides !== lastOverrides) {
+      lastOverrides = overrides;
+      installMenu(c);
+      const table = unreservedOf(resolveShortcuts(p.shortcutOverrides)).map((d): [string, string] => [
+        d.id,
+        d.accelerator,
+      ]);
+      for (const id of tabs.liveTabIds()) {
+        const wc = tabs.webContents(id);
+        if (wc) emit(wc, 'shortcuts/changed', table);
+      }
+    }
     if (p.onboardingDone) {
       for (const t of Object.values(store.state.tabs))
         if (t.url.startsWith('vela://onboarding')) {
