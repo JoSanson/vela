@@ -188,6 +188,12 @@ export class OverlayManager {
       width: Math.min(width, Math.round(r.width)),
       height: Math.min(height, Math.round(r.height)),
     });
+    // The floating sidebar covers only its own column: a full-window overlay marks the page as
+    // occluded, and the page's first repaint after it leaves flashes its background colour.
+    if (current.kind === 'sidebar') {
+      const w = (current.payload as { width?: number } | null)?.width ?? 260;
+      return clamp({ x: 0, y: 0, width: Math.min(width, w + 48), height });
+    }
     if (current.kind === 'autofill') {
       const p = current.payload as { anchor: Electron.Rectangle; accounts: unknown[] };
       const rows = Math.max(1, Math.min(5, p.accounts.length));

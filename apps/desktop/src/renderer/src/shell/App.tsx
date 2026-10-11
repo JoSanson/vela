@@ -302,7 +302,11 @@ export function App() {
         </div>
         <div
           className={styles.edge}
-          onMouseEnter={sidebarVisible ? undefined : () => void invoke('overlay/show', { kind: 'sidebar' })}
+          onMouseEnter={
+            sidebarVisible
+              ? undefined
+              : () => void invoke('overlay/show', { kind: 'sidebar', payload: { width: sidebarWidth } })
+          }
           data-testid="sidebar-edge"
         />
         {!sidebarVisible && ready && <EdgeHint />}
