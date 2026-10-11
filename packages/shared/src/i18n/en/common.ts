@@ -41,6 +41,7 @@ export const common = {
   'shortcut.spaceNext': 'Next space',
   'shortcut.spacePrev': 'Previous space',
   'shortcut.newSpace': 'New space',
+  'shortcut.allSpaces': 'All spaces',
   'shortcut.archiveView': 'Archived tabs',
   'shortcut.downloads': 'Downloads',
   'shortcut.history': 'History',

@@ -44,10 +44,33 @@
 
 .dots {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+}
+
+.dotsScroll {
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
   gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  mask-image: linear-gradient(to right, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+}
+
+.dotsScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dot {
+  flex: 0 0 auto;
 }
 
 .dot {

@@ -1,5 +1,5 @@
 import type { DownloadItemState } from '@vela/shared';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { dispatch, invoke, modKey, vela } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
@@ -29,6 +29,14 @@ export function SpaceBar() {
         inFlight.length;
   const editSpace = (id: string): void =>
     void invoke('overlay/show', { kind: 'spaceEditor', payload: { spaceId: id } });
+  // Many spaces overflow the row: it scrolls, and the active one is always brought into view.
+  const dotsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = dotsRef.current?.querySelector<HTMLElement>(
+      `[data-space-id="${CSS.escape(core.activeSpaceId)}"]`,
+    );
+    el?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [core.activeSpaceId]);
   const spaceName = active?.name ?? '';
   return (
     <div className={styles.bar}>
@@ -52,30 +60,49 @@ export function SpaceBar() {
         {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
       </button>
       <div className={styles.dots} role="group" aria-label={t('shortcut.group.spaces')}>
-        {core.spaceOrder.map((id, i) => {
-          const sp = core.spaces[id];
-          if (!sp) return null;
-          const isActive = id === core.activeSpaceId;
-          return (
-            <button
-              key={id}
-              aria-pressed={isActive}
-              aria-label={t('shell.spaceBar.spaceShortcut', { name: sp.name, n: i + 1 })}
-              title={sp.name}
-              className={`${styles.dot} ${isActive ? styles.dotActive : ''}`}
-              style={{ '--dot-color': sp.theme.from } as React.CSSProperties}
-              onClick={() => dispatch({ type: 'space/activate', id, now: Date.now() })}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                void invoke('menu/show', { kind: 'space', id });
-              }}
-              data-space-id={id}
-              data-dnd-space={id}
-            >
-              {isActive ? <span aria-hidden="true">{sp.emoji}</span> : null}
-            </button>
-          );
-        })}
+        <div
+          className={styles.dotsScroll}
+          ref={dotsRef}
+          onWheel={(e) => {
+            const el = e.currentTarget;
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY;
+          }}
+          data-testid="space-dots"
+        >
+          {core.spaceOrder.map((id, i) => {
+            const sp = core.spaces[id];
+            if (!sp) return null;
+            const isActive = id === core.activeSpaceId;
+            return (
+              <button
+                key={id}
+                aria-pressed={isActive}
+                aria-label={t('shell.spaceBar.spaceShortcut', { name: sp.name, n: i + 1 })}
+                title={sp.name}
+                className={`${styles.dot} ${isActive ? styles.dotActive : ''}`}
+                style={{ '--dot-color': sp.theme.from } as React.CSSProperties}
+                onClick={() => dispatch({ type: 'space/activate', id, now: Date.now() })}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  void invoke('menu/show', { kind: 'space', id });
+                }}
+                data-space-id={id}
+                data-dnd-space={id}
+              >
+                {isActive ? <span aria-hidden="true">{sp.emoji}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className={styles.add}
+          aria-label={t('shortcut.allSpaces')}
+          title={t('shell.spaceBar.allSpacesTitle', { shortcut: `${modKey}⇧S` })}
+          onClick={() => void invoke('overlay/show', { kind: 'spaces' })}
+          data-testid="all-spaces"
+        >
+          <Icon name="layers" size={13} />
+        </button>
         <button
           className={styles.add}
           aria-label={t('shortcut.newSpace')}

@@ -5,6 +5,7 @@ const IGNORED_SCHEMES = ['vela:', 'about:', 'data:', 'blob:', 'chrome:', 'devtoo
 
 export class HistoryRepo {
   private readonly upsert;
+  private readonly upsertSpace;
   private readonly insertVisit;
   private readonly updateTitle;
   private readonly updateFavicon;
@@ -16,7 +17,11 @@ export class HistoryRepo {
         title = CASE WHEN excluded.title <> '' THEN excluded.title ELSE title END
       RETURNING id
     `);
-    this.insertVisit = db.prepare('INSERT INTO visits (history_id, visited_at) VALUES (?, ?)');
+    this.upsertSpace = db.prepare(`
+      INSERT INTO history_spaces (history_id, space_id, last_visit, visit_count) VALUES (?, ?, ?, 1)
+      ON CONFLICT(history_id, space_id) DO UPDATE SET last_visit = excluded.last_visit, visit_count = visit_count + 1
+    `);
+    this.insertVisit = db.prepare('INSERT INTO visits (history_id, visited_at, space_id) VALUES (?, ?, ?)');
     this.updateTitle = db.prepare('UPDATE history SET title = ? WHERE url = ?');
     this.updateFavicon = db.prepare('UPDATE history SET favicon = ? WHERE url = ?');
   }
@@ -25,10 +30,13 @@ export class HistoryRepo {
     return !!url && !IGNORED_SCHEMES.some((s) => url.startsWith(s));
   }
 
-  recordVisit(url: string, title: string, now = Date.now()): void {
+  /** `spaceId` is the Space the visit happened in; the history is sealed per Space (D030). */
+  recordVisit(url: string, title: string, spaceId = '', now = Date.now()): void {
     if (!HistoryRepo.isRecordable(url)) return;
     const row = this.upsert.get(url, title, now) as { id: number } | undefined;
-    if (row) this.insertVisit.run(row.id, now);
+    if (!row) return;
+    if (spaceId) this.upsertSpace.run(row.id, spaceId, now);
+    this.insertVisit.run(row.id, now, spaceId);
   }
 
   setTitle(url: string, title: string): void {
@@ -41,9 +49,21 @@ export class HistoryRepo {
     this.updateFavicon.run(favicon, url);
   }
 
-  /** Full-text search (FTS5 prefix tokens) with a LIKE fallback for queries made of punctuation only. */
-  search(query: string, limit = 50, offset = 0): HistoryEntry[] {
+  /**
+   * Full-text search (FTS5 prefix tokens) with a LIKE fallback for queries made of punctuation only.
+   * With `spaceId`, only pages visited from that Space are returned, ordered by that Space's last
+   * visit; without it, everything (the history page).
+   */
+  search(query: string, limit = 50, offset = 0, spaceId?: string): HistoryEntry[] {
     const q = query.trim();
+    const cols =
+      spaceId === undefined
+        ? 'h.id, h.url, h.title, h.favicon, h.last_visit AS visitedAt, h.visit_count AS visitCount'
+        : 'h.id, h.url, h.title, h.favicon, hs.last_visit AS visitedAt, hs.visit_count AS visitCount';
+    const scope =
+      spaceId === undefined ? '' : 'JOIN history_spaces hs ON hs.history_id = h.id AND hs.space_id = ?';
+    const order = spaceId === undefined ? 'h.last_visit' : 'hs.last_visit';
+    const scopeArgs = spaceId === undefined ? [] : [spaceId];
     const tokens = q
       .split(/[^\p{L}\p{N}]+/u)
       .filter(Boolean)
@@ -52,41 +72,25 @@ export class HistoryRepo {
       try {
         return this.db
           .prepare(
-            `SELECT h.id, h.url, h.title, h.favicon, h.last_visit AS visitedAt, h.visit_count AS visitCount
-             FROM history_fts f JOIN history h ON h.id = f.rowid
-             WHERE history_fts MATCH ? ORDER BY h.last_visit DESC LIMIT ? OFFSET ?`,
+            `SELECT ${cols} FROM history_fts f JOIN history h ON h.id = f.rowid ${scope}
+             WHERE history_fts MATCH ? ORDER BY ${order} DESC LIMIT ? OFFSET ?`,
           )
-          .all(tokens.join(' '), limit, offset) as HistoryEntry[];
+          .all(...scopeArgs, tokens.join(' '), limit, offset) as HistoryEntry[];
       } catch {
         /* malformed MATCH: fall back to LIKE */
       }
     }
-    const rows = (
-      q
-        ? this.db
-            .prepare(
-              `SELECT id, url, title, favicon, last_visit AS visitedAt, visit_count AS visitCount FROM history
-               WHERE url LIKE ? OR title LIKE ? ORDER BY last_visit DESC LIMIT ? OFFSET ?`,
-            )
-            .all(`%${q}%`, `%${q}%`, limit, offset)
-        : this.db
-            .prepare(
-              `SELECT id, url, title, favicon, last_visit AS visitedAt, visit_count AS visitCount FROM history
-               ORDER BY last_visit DESC LIMIT ? OFFSET ?`,
-            )
-            .all(limit, offset)
-    ) as HistoryEntry[];
-    return rows;
-  }
-
-  /** Top entries for the command bar index (frecency-ish: recent + frequent). */
-  topForIndex(limit = 3000): HistoryEntry[] {
+    if (q) {
+      return this.db
+        .prepare(
+          `SELECT ${cols} FROM history h ${scope} WHERE h.url LIKE ? OR h.title LIKE ?
+           ORDER BY ${order} DESC LIMIT ? OFFSET ?`,
+        )
+        .all(...scopeArgs, `%${q}%`, `%${q}%`, limit, offset) as HistoryEntry[];
+    }
     return this.db
-      .prepare(
-        `SELECT id, url, title, favicon, last_visit AS visitedAt, visit_count AS visitCount FROM history
-         ORDER BY (visit_count * 86400000 + last_visit) DESC LIMIT ?`,
-      )
-      .all(limit) as HistoryEntry[];
+      .prepare(`SELECT ${cols} FROM history h ${scope} ORDER BY ${order} DESC LIMIT ? OFFSET ?`)
+      .all(...scopeArgs, limit, offset) as HistoryEntry[];
   }
 
   delete(opts: { ids?: number[]; all?: boolean; url?: string }): void {

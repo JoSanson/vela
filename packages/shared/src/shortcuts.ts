@@ -112,6 +112,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     reserved: false,
   },
   { id: 'newSpace', label: 'New space', accelerator: 'CmdOrCtrl+Shift+N', group: 'spaces', reserved: true },
+  { id: 'allSpaces', label: 'All spaces', accelerator: 'CmdOrCtrl+Shift+S', group: 'spaces', reserved: true },
   {
     id: 'archiveView',
     label: 'Archived tabs',

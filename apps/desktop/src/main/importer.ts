@@ -135,6 +135,8 @@ interface SecretFiles {
 interface SourceFiles {
   bookmarks: string | null;
   history: string | null;
+  /** Chromium browsers with several profiles: every `History` file with its profile directory. */
+  histories?: { dir: string; file: string }[];
   structure: string | null;
   error: BrowserImportSourceError | null;
   /** Per Chromium profile: encrypted logins and cookies (Arc, Chrome, Brave, Edge). */
@@ -201,15 +203,18 @@ function arcFiles(): SourceFiles {
   if (!base && !process.env.VELA_IMPORT_ROOT) return none;
   for (const root of bases('arc', base ? [base] : [])) {
     const sidebar = join(root, 'StorableSidebar.json');
-    const history = CHROMIUM_PROFILES.map((p) => join(root, 'User Data', p, 'History')).find((f) =>
-      existsSync(f),
-    );
+    const histories = CHROMIUM_PROFILES.map((p) => ({
+      dir: p,
+      file: join(root, 'User Data', p, 'History'),
+    })).filter((h) => existsSync(h.file));
+    const history = histories[0]?.file ?? null;
     if (existsSync(sidebar) || history) {
       const userData = join(root, 'User Data');
       const localState = join(userData, 'Local State');
       return {
         bookmarks: null,
-        history: history ?? null,
+        history,
+        histories,
         structure: existsSync(sidebar) ? sidebar : null,
         error: null,
         secrets: secretFilesUnder(userData),
@@ -317,17 +322,25 @@ function commitTree(ctx: AppContext, roots: BookmarkFolder[]): number {
   return applied.count;
 }
 
-function upsertHistory(ctx: AppContext, entries: HistoryEntryIn[]): number {
+/** `spaceIds`: the Spaces the pages count as visited from (history is sealed per Space, D030). */
+function upsertHistory(ctx: AppContext, entries: HistoryEntryIn[], spaceIds: Id[] = []): number {
   const insert = ctx.db.prepare(
     `INSERT INTO history (url, title, favicon, last_visit, visit_count) VALUES (?, ?, NULL, ?, ?)
      ON CONFLICT(url) DO UPDATE SET visit_count = MAX(visit_count, excluded.visit_count), last_visit = MAX(last_visit, excluded.last_visit),
-     title = CASE WHEN title = '' THEN excluded.title ELSE title END`,
+     title = CASE WHEN title = '' THEN excluded.title ELSE title END
+     RETURNING id`,
+  );
+  const presence = ctx.db.prepare(
+    `INSERT INTO history_spaces (history_id, space_id, last_visit, visit_count) VALUES (?, ?, ?, ?)
+     ON CONFLICT(history_id, space_id) DO UPDATE SET visit_count = MAX(visit_count, excluded.visit_count),
+     last_visit = MAX(last_visit, excluded.last_visit)`,
   );
   let count = 0;
   ctx.db.transaction(() => {
     for (const e of entries) {
       if (!/^https?:/i.test(e.url)) continue;
-      insert.run(e.url, e.title, e.lastVisit, e.visitCount);
+      const row = insert.get(e.url, e.title, e.lastVisit, e.visitCount) as { id: number } | undefined;
+      if (row) for (const sid of spaceIds) presence.run(row.id, sid, e.lastVisit, e.visitCount);
       count++;
     }
   })();
@@ -362,7 +375,7 @@ function importChromiumBookmarks(ctx: AppContext, file: string): number {
   return commitTree(ctx, chromeBookmarksToTree(data));
 }
 
-async function importChromiumHistory(ctx: AppContext, file: string): Promise<number> {
+async function importChromiumHistory(ctx: AppContext, file: string, spaceIds: Id[] = []): Promise<number> {
   const rows = await withSqliteCopy(
     file,
     (db) =>
@@ -380,6 +393,7 @@ async function importChromiumHistory(ctx: AppContext, file: string): Promise<num
       lastVisit: chromeTimeToMs(r.last_visit_time),
       visitCount: Math.max(1, r.visit_count),
     })),
+    spaceIds,
   );
 }
 
@@ -608,7 +622,16 @@ export async function runImport(
         result.favorites = counts.favorites;
         result.profiles = counts.profiles;
       }
-      if (history && files.history) result.history = await importChromiumHistory(ctx, files.history);
+      if (history) {
+        // Arc keeps one History per profile: it lands in every Space that uses that profile.
+        for (const h of files.histories ?? []) {
+          const profileId = profileMap[h.dir] ?? null;
+          const spaceIds = Object.values(ctx.store.state.spaces)
+            .filter((s) => (s.profileId ?? null) === profileId)
+            .map((s) => s.id);
+          result.history += await importChromiumHistory(ctx, h.file, spaceIds);
+        }
+      }
     } else if (source === 'safari') {
       if (bookmarks && files.bookmarks) result.bookmarks = await importSafariBookmarks(ctx, files.bookmarks);
       if (history && files.history) result.history = await importSafariHistory(ctx, files.history);

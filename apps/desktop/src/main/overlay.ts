@@ -84,6 +84,7 @@ export class OverlayManager {
       kind === 'commandBar' ||
       kind === 'switcher' ||
       kind === 'spaceEditor' ||
+      kind === 'spaces' ||
       kind === 'peek' ||
       kind === 'zap' ||
       kind === 'authPrompt'

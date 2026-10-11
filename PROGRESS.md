@@ -113,6 +113,8 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 13.8 Import panel strings shortened, hints translated — commit 528c4a4
 - [ ] 13.9 Password popover: no reopen after fill, lands on the password, typing filters, keys from the page — e2e "passwords: save after sign-in, then fill" extended (green once, 78/79 with the PiP fix pending), screenshots 81/81b. Owner suspended test runs for the rest of the session: box stays open until the suite is re-run.
 - [ ] 13.10 Favorites per profile (D029), Arc import per profile, folders reused on re-import — unit tests written in `reducer.test.ts`, `selectors.test.ts`, `importer.test.ts` but NOT run (test runs suspended by the owner); typecheck + lint green; app rebuilt for hands-on. Re-run `pnpm test && pnpm e2e` before ticking.
+- [ ] 13.11 Spaces palette (search, cards, keyboard, ⌘⇧S, menu, layers button) + scrollable dot row — e2e `spaces.spec.ts` written, NOT run (suspended); typecheck + lint green; rebuilt for hands-on.
+- [ ] 13.12 Sealed Spaces (D030): command bar scoped to the Space, history per Space (`history_spaces`, migration 4), Arc history per profile→Spaces — verification pending (test runs suspended).
 
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.

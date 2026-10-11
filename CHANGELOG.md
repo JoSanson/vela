@@ -18,6 +18,11 @@ All notable changes to Vela are documented here. The format follows
   Arc; the grid folds beyond twelve with a "+N" tile; imported tabs fetch their favicon in the
   background.
 - Password popover: typing filters the accounts; ↑ ↓ Enter and Escape work from the page itself.
+- Spaces palette (⌘⇧S, the layers button next to the Space dots, Spaces menu): every Space as a
+  card with its colour, emoji, name, profile and tab count, searchable and keyboard driven; the row
+  of dots scrolls and keeps the active Space in view (D031).
+- Sealed Spaces (D030): the command bar only offers the current Space's tabs, archive and history;
+  history is recorded per Space, and Arc history is imported into the Spaces using each profile.
 
 ### Fixed
 

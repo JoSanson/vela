@@ -340,9 +340,13 @@ export interface IpcInvokeMap {
   'overlay/hide': { req: undefined; res: undefined };
 
   'suggest/query': { req: { query: string; siteId?: string }; res: SuggestionResult };
-  'history/search': { req: { query: string; limit?: number; offset?: number }; res: HistoryEntry[] };
+  /** `spaceId` restricts to pages visited from that Space (D030); omitted = everything. */
+  'history/search': {
+    req: { query: string; limit?: number; offset?: number; spaceId?: Id };
+    res: HistoryEntry[];
+  };
   'history/delete': { req: { ids?: number[]; all?: boolean; url?: string }; res: undefined };
-  'archive/search': { req: { query: string; limit?: number }; res: ArchivedTab[] };
+  'archive/search': { req: { query: string; limit?: number; spaceId?: Id }; res: ArchivedTab[] };
 
   'downloads/list': { req: undefined; res: DownloadItemState[] };
   'downloads/action': {
@@ -434,6 +438,7 @@ export type OverlayKind =
   | 'sidebar'
   | 'switcher'
   | 'spaceEditor'
+  | 'spaces'
   | 'peek'
   | 'zap'
   | 'permissionPrompt'

@@ -100,6 +100,25 @@ migrations.push({
   },
 });
 
+// History is sealed per Space (D030): a page visited from two Spaces keeps one row (FTS, favicon)
+// and one presence per Space. Earlier visits carry no Space and only show on the history page.
+migrations.push({
+  version: 4,
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE history_spaces (
+        history_id INTEGER NOT NULL REFERENCES history(id) ON DELETE CASCADE,
+        space_id TEXT NOT NULL,
+        last_visit INTEGER NOT NULL,
+        visit_count INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (history_id, space_id)
+      );
+      CREATE INDEX history_spaces_recent ON history_spaces (space_id, last_visit DESC);
+      ALTER TABLE visits ADD COLUMN space_id TEXT NOT NULL DEFAULT '';
+    `);
+  },
+});
+
 export const LATEST_SCHEMA = migrations[migrations.length - 1]?.version ?? 0;
 
 export function migrate(db: Database): number {

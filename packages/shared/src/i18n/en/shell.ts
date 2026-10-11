@@ -95,6 +95,7 @@ export const shell = {
   'shell.spaceBar.privateHint': 'Private space: nothing is saved',
   'shell.spaceBar.spaceShortcut': '{name} (Ctrl+{n})',
   'shell.spaceBar.newSpaceTitle': 'New space ({shortcut})',
+  'shell.spaceBar.allSpacesTitle': 'All spaces ({shortcut})',
   'shell.spaceBar.downloadsProgress': 'Downloads, {pct} done',
   'shell.spaceBar.downloadsTitle': 'Downloads ({shortcut})',
   'shell.dnd.openInSplit': 'Open in split view',

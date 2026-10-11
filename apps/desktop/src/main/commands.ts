@@ -42,6 +42,9 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     case 'nextTabMru':
       overlay.show('switcher', { direction: 1, seq: ++switcherSeq });
       return;
+    case 'allSpaces':
+      overlay.toggle('spaces');
+      return;
     case 'prevTabMru':
       overlay.show('switcher', { direction: -1, seq: ++switcherSeq });
       return;

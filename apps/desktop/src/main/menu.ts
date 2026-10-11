@@ -105,6 +105,7 @@ export function installMenu(ctx: AppContext): void {
       label: t('menu.spaces.label'),
       submenu: [
         item('newSpace'),
+        item('allSpaces'),
         item('spaceNext'),
         item('spacePrev'),
         { type: 'separator' },

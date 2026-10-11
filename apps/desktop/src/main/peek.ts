@@ -94,7 +94,7 @@ export class PeekManager {
       if (target) emit(target, 'peek/changed', this.state);
     };
     const onNavigate = (_e: unknown, u: string): void => {
-      this.ctx.history.recordVisit(u, wc.getTitle());
+      this.ctx.history.recordVisit(u, wc.getTitle(), space?.id ?? this.ctx.store.state.activeSpaceId);
       push();
     };
     const onTitle = (_e: unknown, title: string): void => {

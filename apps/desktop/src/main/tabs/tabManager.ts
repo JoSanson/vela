@@ -186,6 +186,16 @@ export class TabManager {
   }
 
   /** Builds a tab-like WebContentsView (same security posture) without registering it. */
+  /** History is sealed per Space (D030): a favorite files its visits under the Space it is open in. */
+  private historySpace(id: Id): string {
+    const tab = this.state.tabs[id];
+    if (tab?.spaceId) return tab.spaceId;
+    const shownIn = Object.values(this.state.spaces).find(
+      (s) => s.activeTabId === id || s.split?.panes.includes(id),
+    );
+    return shownIn?.id ?? this.state.activeSpaceId;
+  }
+
   /** The profile a tab browses with: its Space's, or its own for favorites. */
   profileOf(tab: Tab): Id | null {
     if (tab.spaceId) return this.state.spaces[tab.spaceId]?.profileId ?? null;
@@ -455,7 +465,7 @@ export class TabManager {
       const certWarning = this.certBypassed.delete(wc.id);
       this.patch(id, { url, certWarning, zoom: Math.round(wc.getZoomFactor() * 100) / 100, ...nav() });
       if (!this.isPrivate(id)) {
-        this.deps.history.recordVisit(url, wc.getTitle());
+        this.deps.history.recordVisit(url, wc.getTitle(), this.historySpace(id));
         this.lastRecorded.set(wc.id, url.split('#')[0] ?? url);
       }
     });
@@ -466,7 +476,7 @@ export class TabManager {
       const key = url.split('#')[0] ?? url;
       if (!this.isPrivate(id) && this.lastRecorded.get(wc.id) !== key) {
         this.lastRecorded.set(wc.id, key);
-        this.deps.history.recordVisit(url, wc.getTitle());
+        this.deps.history.recordVisit(url, wc.getTitle(), this.historySpace(id));
       }
     });
     wc.on('page-title-updated', (_e, title) => {

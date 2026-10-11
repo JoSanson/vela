@@ -114,11 +114,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     query: '',
     items: [],
   });
+  // Spaces are sealed (D030): only the current Space's tabs, archive and history (favorites: its profile's).
+  const spaceId = core.activeSpaceId;
+  const spaceProfileId = core.spaces[spaceId]?.profileId ?? null;
   useEffect(() => {
     if (!site) return;
     const q = query.trim().toLowerCase();
     let cancelled = false;
-    void invoke('history/search', { query: hostOf(siteSearchBase(site)), limit: 40 })
+    void invoke('history/search', { query: hostOf(siteSearchBase(site)), limit: 40, spaceId })
       .catch(() => [] as HistoryEntry[])
       .then((history) => {
         if (cancelled) return;
@@ -136,15 +139,15 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     return () => {
       cancelled = true;
     };
-  }, [site, query]);
+  }, [site, query, spaceId]);
   useEffect(() => {
     const q = query.trim();
     if (site || q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
     let cancelled = false;
     const t = setTimeout(() => {
       void Promise.all([
-        invoke('archive/search', { query: q, limit: 12 }).catch(() => [] as ArchivedTab[]),
-        invoke('history/search', { query: q, limit: 8 }).catch(() => [] as HistoryEntry[]),
+        invoke('archive/search', { query: q, limit: 12, spaceId }).catch(() => [] as ArchivedTab[]),
+        invoke('history/search', { query: q, limit: 8, spaceId }).catch(() => [] as HistoryEntry[]),
       ]).then(([archived, history]) => {
         if (cancelled) return;
         const items: SearchItem[] = [
@@ -174,7 +177,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query, site]);
+  }, [query, site, spaceId]);
   const trimmed = query.trim();
   // Inline completion: typing a host prefix fills the rest, selected, so Enter opens it and typing on replaces it.
   const [inline, setInline] = useState<{ typed: string; full: string; url: string } | null>(null);
@@ -215,9 +218,8 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const remoteItems = useMemo(() => (remote.query === trimmed ? remote.items : []), [remote, trimmed]);
   const index = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = [];
-    const profileId = core.spaces[core.activeSpaceId]?.profileId ?? null;
-    const tabs = Object.values(core.tabs).filter(
-      (t) => t.kind !== 'favorite' || (t.profileId ?? null) === profileId,
+    const tabs = Object.values(core.tabs).filter((t) =>
+      t.kind === 'favorite' ? (t.profileId ?? null) === spaceProfileId : t.spaceId === spaceId,
     );
     const newest = tabs.reduce((m, t) => Math.max(m, t.lastActiveAt), 0);
     for (const t of tabs) {
@@ -246,7 +248,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       );
     }
     return items;
-  }, [core.tabs, core.spaces, core.activeSpaceId, remoteItems, t]);
+  }, [core.tabs, spaceId, spaceProfileId, remoteItems, t]);
 
   useEffect(() => {
     const q = query.trim();

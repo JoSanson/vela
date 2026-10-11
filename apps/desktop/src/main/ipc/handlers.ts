@@ -238,20 +238,19 @@ export function registerCoreHandlers(ctx: AppContext): void {
     return undefined;
   });
 
-  handle('history/search', 'internal', ({ query, limit, offset }) =>
-    ctx.history.search(query, limit ?? 50, offset ?? 0),
+  handle('history/search', 'internal', ({ query, limit, offset, spaceId }) =>
+    ctx.history.search(query, limit ?? 50, offset ?? 0, spaceId),
   );
   handle('history/delete', 'internal', (opts) => {
     ctx.history.delete(opts);
     return undefined;
   });
-  handle('archive/search', 'internal', ({ query, limit }) => {
+  handle('archive/search', 'internal', ({ query, limit, spaceId }) => {
     const q = query.trim().toLowerCase();
+    const scoped = spaceId ? store.state.archive.filter((a) => a.spaceId === spaceId) : store.state.archive;
     const list = q
-      ? store.state.archive.filter(
-          (a) => a.title.toLowerCase().includes(q) || a.url.toLowerCase().includes(q),
-        )
-      : store.state.archive;
+      ? scoped.filter((a) => a.title.toLowerCase().includes(q) || a.url.toLowerCase().includes(q))
+      : scoped;
     return list.slice(0, limit ?? 200);
   });
 

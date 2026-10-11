@@ -18,6 +18,7 @@ import type {
   SavePasswordPrompt,
 } from '@vela/shared';
 import { SpaceEditor, type SpaceEditorPayload } from './SpaceEditor';
+import { SpacesPalette } from './SpacesPalette';
 import { Switcher, type SwitcherPayload } from './Switcher';
 import styles from './OverlayApp.module.css';
 
@@ -81,6 +82,7 @@ export function OverlayApp() {
       <div className={styles.backdrop} onMouseDown={hide} data-testid="overlay-backdrop" />
       {view.kind === 'commandBar' && <CommandBar payload={view.payload as CommandBarPayload} />}
       {view.kind === 'switcher' && <Switcher payload={view.payload as SwitcherPayload} />}
+      {view.kind === 'spaces' && <SpacesPalette />}
       {view.kind === 'spaceEditor' && (
         <SpaceEditor key={JSON.stringify(view.payload)} payload={view.payload as SpaceEditorPayload} />
       )}

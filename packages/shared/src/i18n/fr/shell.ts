@@ -98,6 +98,7 @@ export const shell = {
   'shell.spaceBar.privateHint': 'Espace privé : rien n’est enregistré',
   'shell.spaceBar.spaceShortcut': '{name} (Ctrl+{n})',
   'shell.spaceBar.newSpaceTitle': 'Nouvel espace ({shortcut})',
+  'shell.spaceBar.allSpacesTitle': 'Tous les espaces ({shortcut})',
   'shell.spaceBar.downloadsProgress': 'Téléchargements, {pct} terminés',
   'shell.spaceBar.downloadsTitle': 'Téléchargements ({shortcut})',
   'shell.dnd.openInSplit': 'Ouvrir en vue partagée',

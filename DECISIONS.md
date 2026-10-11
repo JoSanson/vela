@@ -250,3 +250,23 @@ profile-less favorites of an earlier import rather than duplicating them. Changi
 profile does not move favorites along, as in Arc. Spaces stay 100 % independent: one profile per
 Space gives separate cookies, passwords, history partitions and favorites.
 
+## D030 — Spaces are sealed: tabs, archive and history never cross over
+
+The owner's model is one Space = one world. Beyond cookies and logins (the profile, D029), the
+command bar used to list every open tab, archived tab and history entry of the browser, and the
+history was a single list. Now: the command bar indexes only the current Space's tabs (plus the
+favorites of its profile), its archive and its history; a page's history row stays unique (full-text
+index, favicon) but each Space keeps its own presence and visit counts in `history_spaces`, written
+by the tab, Peek and Little Vela that visited it (a favorite files under the Space it is open in).
+Arc import writes each Arc profile's history into every Space mapped to that profile. The history
+page (vela://history) still shows everything, for search and deletion. Visits recorded before this
+change carry no Space and therefore only appear on the history page.
+
+## D031 — One Spaces palette instead of an endless row of dots
+
+With a dozen Spaces the bottom row overflowed and gave no clue which dot was which. The row now
+scrolls (the active Space is always brought into view) and a palette (⌘⇧S, the layers button, the
+Spaces menu) shows every Space as a card: colour, emoji, name, profile, tab count, ⌃n shortcut, with
+instant search over names and profiles and full keyboard navigation. Space management (rename,
+colour, profile, delete) stays in the Space editor, one right-click away from each card.
+

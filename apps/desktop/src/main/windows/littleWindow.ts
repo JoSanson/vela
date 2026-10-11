@@ -10,6 +10,8 @@ export class LittleWindow {
   readonly win: BrowserWindow;
   readonly view: WebContentsView;
   state: LittleState;
+  /** The Space whose history this window writes to (D030). */
+  private readonly spaceId: Id;
 
   constructor(
     private readonly ctx: Pick<AppContext, 'tabs' | 'history' | 'store' | 'windows'>,
@@ -40,6 +42,7 @@ export class LittleWindow {
     this.win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     this.win.webContents.on('will-navigate', (e) => e.preventDefault());
     const space = ctx.store.state.spaces[ctx.store.state.activeSpaceId];
+    this.spaceId = space?.id ?? ctx.store.state.activeSpaceId;
     this.view = ctx.tabs.createDetachedView(space?.profileId ?? null);
     this.state = { url, title: '', favicon: null, loading: true, canGoBack: false, canGoForward: false };
     this.wire(this.view.webContents);
@@ -65,7 +68,7 @@ export class LittleWindow {
     wc.on('did-start-loading', push);
     wc.on('did-stop-loading', push);
     wc.on('did-navigate', (_e, url) => {
-      this.ctx.history.recordVisit(url, wc.getTitle());
+      this.ctx.history.recordVisit(url, wc.getTitle(), this.spaceId);
       push();
     });
     wc.on('did-navigate-in-page', push);
