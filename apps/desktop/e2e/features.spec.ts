@@ -741,6 +741,7 @@ test.describe('daily-driver compatibility', () => {
       expect(Object.values(st.tabs).some((t) => t.url.includes('/page/Secret'))).toBe(false);
     } finally {
       await again.close();
+      rmSync(userData, { recursive: true, force: true });
     }
   });
 

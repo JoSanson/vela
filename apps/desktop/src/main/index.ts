@@ -87,6 +87,11 @@ const pendingUrls: string[] = [];
 let ctx: AppContext | null = null;
 let sweepers: ReturnType<typeof installMaintenance> | null = null;
 let flushState: (() => void) | null = null;
+// Set on before-quit: a boot still in flight then fails on destroyed views, which is not an error.
+let quitting = false;
+app.on('before-quit', () => {
+  quitting = true;
+});
 export function flushStateNow(): void {
   flushState?.();
 }
@@ -549,6 +554,7 @@ app
   .whenReady()
   .then(boot)
   .catch((err: unknown) => {
+    if (quitting) return;
     console.error('[vela] boot failed', err);
     flushState?.();
     const detail =

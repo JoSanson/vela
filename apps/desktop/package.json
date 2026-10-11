@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
   "productName": "Vela",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Vela — an Arc-inspired, Chromium-based desktop browser",
   "author": "Jordane Sanson",
   "license": "MIT",

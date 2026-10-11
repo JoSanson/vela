@@ -6,6 +6,8 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-11
+
 ### Added
 
 - Password manager: logins are offered to be saved after a sign-in, encrypted with the OS
