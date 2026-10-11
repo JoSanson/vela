@@ -21,6 +21,11 @@ All notable changes to Vela are documented here. The format follows
 - Spaces palette (⌘⇧S, the layers button next to the Space dots, Spaces menu): every Space as a
   card with its colour, emoji, name, profile and tab count, searchable and keyboard driven; the row
   of dots scrolls and keeps the active Space in view (D031).
+- Sidebar polish from hands-on feedback: no pale rail at the window edge when the sidebar is
+  open, the floating sidebar spans the full height, the header puts back / forward / reload on
+  the right like Arc, folders use filled open/closed glyphs without a chevron, double-click no
+  longer renames (right-click > Rename or F2), and the Space's emoji and name sit under the
+  favorites instead of the bottom bar.
 - Sidebar motion from Arc's own numbers (D033): the slide is a spring (response 0.3 s, damping
   0.99) instead of a fixed 220 ms curve, and a small tab peeks out of the left edge as the pointer
   approaches when the sidebar is hidden.

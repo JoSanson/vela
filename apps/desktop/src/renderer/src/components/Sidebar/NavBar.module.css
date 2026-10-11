@@ -16,6 +16,10 @@
   gap: 2px;
 }
 
+.spacer {
+  flex: 1 1 auto;
+}
+
 .bar[data-inset='mac'] .group {
   padding-left: 68px;
 }

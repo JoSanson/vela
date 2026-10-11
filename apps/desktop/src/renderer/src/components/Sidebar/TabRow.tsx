@@ -128,7 +128,6 @@ export const TabRow = memo(function TabRow({
       className={`${styles.row} ${active ? styles.active : ''} ${inSplit ? styles.inSplit : ''} ${compact ? styles.compact : ''} ${tab.sleeping ? styles.sleeping : ''}`}
       style={{ paddingLeft: compact ? 6 : 8 + depth * 14 }}
       onClick={activate}
-      onDoubleClick={() => setEditing(tab.id)}
       onMouseDown={onMouseDown}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}

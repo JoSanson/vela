@@ -11,8 +11,6 @@ export function SpaceBar() {
   const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
   const downloadsOpen = useShell((s) => s.downloadsOpen);
   const t = useT();
-  const active = core.spaces[core.activeSpaceId];
-  const isPrivate = !!core.profiles[active?.profileId ?? '']?.ephemeral;
   // Live download progress on the sidebar button: a ring fills while anything is in flight.
   const [downloads, setDownloads] = useState<DownloadItemState[]>([]);
   useEffect(() => {
@@ -37,28 +35,8 @@ export function SpaceBar() {
     );
     el?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }, [core.activeSpaceId]);
-  const spaceName = active?.name ?? '';
   return (
     <div className={styles.bar}>
-      <button
-        className={styles.name}
-        onClick={() => editSpace(core.activeSpaceId)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          void invoke('menu/show', { kind: 'space', id: core.activeSpaceId });
-        }}
-        aria-label={
-          isPrivate
-            ? t('shell.spaceBar.editSpacePrivate', { name: spaceName })
-            : t('shell.spaceBar.editSpace', { name: spaceName })
-        }
-        title={isPrivate ? t('shell.spaceBar.privateHint') : undefined}
-        data-testid="space-name"
-        data-private={isPrivate ? 'true' : undefined}
-      >
-        <span className={styles.label}>{active?.name}</span>
-        {isPrivate && <Icon name="eye" size={12} className={styles.privateMark} />}
-      </button>
       <div className={styles.dots} role="group" aria-label={t('shortcut.group.spaces')}>
         <div
           className={styles.dotsScroll}

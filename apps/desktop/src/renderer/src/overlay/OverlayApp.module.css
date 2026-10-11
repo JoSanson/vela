@@ -39,9 +39,9 @@
 
 .floatingSidebar {
   position: absolute;
-  top: 8px;
+  top: 0;
   left: 0;
-  bottom: 8px;
+  bottom: 0;
   display: flex;
   animation: slideIn var(--dur) var(--ease-out);
 }

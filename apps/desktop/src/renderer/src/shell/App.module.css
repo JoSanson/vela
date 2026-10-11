@@ -71,6 +71,8 @@
   /* Under the sidebar while it slides, so the last pixels never show the space gradient. */
   z-index: 3;
   background: var(--panel-bg);
+  /* Visible only while the sidebar is away: fully open, it would draw a pale rail at the edge. */
+  opacity: calc(1 - var(--reveal, 1));
 }
 
 .content {

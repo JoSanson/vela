@@ -30,19 +30,30 @@
   color: var(--fg);
 }
 
-.chevron {
-  transition: transform var(--dur-fast) var(--ease-out);
-  color: var(--fg-faint);
-}
-
-.open {
-  transform: rotate(90deg);
-}
-
 .folderIcon {
   display: inline-flex;
-  width: 16px;
+  width: 20px;
   justify-content: center;
+}
+
+.glyph {
+  --folder-stroke: color-mix(in oklab, var(--space-from) 55%, var(--fg));
+  --folder-fill: color-mix(in oklab, var(--panel-bg) 70%, white);
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.glyphBack,
+.glyphFront {
+  fill: var(--folder-fill);
+  stroke: var(--folder-stroke);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition: d var(--dur-fast) var(--ease-out);
+}
+
+.glyphBack {
+  fill: var(--folder-stroke);
 }
 
 .name {

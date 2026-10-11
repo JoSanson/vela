@@ -3,7 +3,6 @@ import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
-import { Icon } from '../Icon';
 import { InlineEdit } from '../InlineEdit';
 import { useFlip } from '../useFlip';
 import type { DragItem } from './dnd';
@@ -16,6 +15,29 @@ interface RowProps {
   container: Container;
   index: number;
   onDragStart: (e: PointerEvent<HTMLElement>, item: DragItem) => void;
+}
+
+/** Arc-like folder: a filled folder that opens (flap tilted) when expanded, no chevron. */
+function FolderGlyph({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      className={styles.glyph}
+      data-open={open ? 'true' : 'false'}
+    >
+      <path className={styles.glyphBack} d="M3 7a2 2 0 0 1 2-2h4.5l2 2H19a2 2 0 0 1 2 2v2H3z" />
+      {open ? (
+        <path
+          className={styles.glyphFront}
+          d="M2.5 11.5h19.2a1 1 0 0 1 1 1.2l-1.4 6.3A2 2 0 0 1 19.3 20H4.8a2 2 0 0 1-2-1.7L2 12.6a1 1 0 0 1 .5-1.1z"
+        />
+      ) : (
+        <path className={styles.glyphFront} d="M3 10h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      )}
+    </svg>
+  );
 }
 
 function FolderRow({ folder, depth, container, index, onDragStart }: RowProps) {
@@ -32,7 +54,6 @@ function FolderRow({ folder, depth, container, index, onDragStart }: RowProps) {
       className={styles.folder}
       style={{ paddingLeft: 8 + depth * 14 }}
       onClick={toggle}
-      onDoubleClick={() => setEditing(folder.id)}
       onContextMenu={(e) => {
         e.preventDefault();
         void invoke('menu/show', { kind: 'folder', id: folder.id });
@@ -59,9 +80,8 @@ function FolderRow({ folder, depth, container, index, onDragStart }: RowProps) {
       data-dnd-index={index}
       data-dnd-depth={depth}
     >
-      <Icon name="chevron" size={12} className={`${styles.chevron} ${folder.collapsed ? '' : styles.open}`} />
       <span className={styles.folderIcon} aria-hidden="true">
-        {folder.emoji ?? <Icon name="folder" size={14} />}
+        {folder.emoji ?? <FolderGlyph open={!folder.collapsed} />}
       </span>
       {editing ? (
         <InlineEdit

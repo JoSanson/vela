@@ -23,6 +23,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         >
           <Icon name="sidebar" />
         </button>
+        <span className={styles.spacer} />
         <button
           className={`${styles.btn} no-drag`}
           disabled={!tab?.canGoBack}

@@ -10,6 +10,7 @@ import { FavoritesGrid } from './FavoritesGrid';
 import { NavBar } from './NavBar';
 import { PinnedList } from './PinnedList';
 import { SpaceBar } from './SpaceBar';
+import { SpaceHeader } from './SpaceHeader';
 import { TodayList } from './TodayList';
 import styles from './Sidebar.module.css';
 
@@ -144,6 +145,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
         key={core.activeSpaceId}
         data-flip-viewport=""
       >
+        <SpaceHeader />
         <PinnedList onDragStart={onPointerDown} />
         <TodayList onDragStart={onPointerDown} />
       </div>
