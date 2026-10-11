@@ -22,6 +22,7 @@ import type { HistoryRepo } from '../db/historyRepo';
 import type { PrefsStore } from '../prefs';
 import type { SessionManager } from '../sessions';
 import type { Store } from '../store';
+import type { MainWindow } from '../windows/mainWindow';
 import type { WindowManager } from '../windows/windowManager';
 
 const ERROR_IGNORED_CODES = new Set([-3, 0]);
@@ -38,7 +39,8 @@ export type ViewHook = (tabId: Id, wc: WebContents) => void;
 
 export class TabManager {
   private views = new Map<Id, WebContentsView>();
-  private attached: Id[] = [];
+  /** tab id → id of the window holding its view. */
+  private attached = new Map<Id, number>();
   private htmlFullscreenTab: Id | null = null;
   private viewHooks: ViewHook[] = [];
   private afterLayoutHooks: (() => void)[] = [];
@@ -52,7 +54,7 @@ export class TabManager {
 
   constructor(private readonly deps: TabManagerDeps) {
     deps.store.subscribe((next, prev) => this.reconcile(next, prev));
-    deps.windows.setLayoutListener(() => this.layout());
+    deps.windows.setLayoutListener((mw) => this.layout(mw));
   }
 
   /** Called for every freshly created tab WebContents (security, blocker, boosts…). */
@@ -98,42 +100,64 @@ export class TabManager {
   // ---------------------------------------------------------------- lifecycle
 
   reconcile(state: CoreState, prev: CoreState | null): void {
-    const mw = this.deps.windows.main;
-    if (!mw || mw.win.isDestroyed()) return;
+    const windows = this.deps.windows.all();
+    if (windows.length === 0) return;
     for (const id of [...this.views.keys()]) {
       const tab = state.tabs[id];
       if (!tab || (tab.sleeping && prev?.tabs[id] && !prev.tabs[id]?.sleeping)) this.destroyView(id);
     }
-    const visible = visibleTabIds(state);
-    const leaving = this.attached.filter((id) => !visible.includes(id));
-    const entering = visible.filter((id) => !this.attached.includes(id) && this.views.has(id));
-    for (const id of leaving) for (const hook of this.visibilityHooks) hook(id, false);
-    const attachedBefore = this.attached.length;
-    for (const id of visible) {
+    // Each window shows the visible tabs of its own space; a view sits in exactly one window.
+    const wanted = new Map<Id, MainWindow>();
+    for (const mw of windows) for (const id of visibleTabIds(state, mw.spaceId)) wanted.set(id, mw);
+    const attachedBefore = [...this.attached.entries()];
+    const leaving = attachedBefore
+      .filter(([id, winId]) => wanted.get(id)?.win.id !== winId)
+      .map(([id]) => id);
+    const entering = [...wanted.keys()].filter((id) => !this.attached.has(id) && this.views.has(id));
+    for (const id of leaving) if (!wanted.has(id)) for (const hook of this.visibilityHooks) hook(id, false);
+    for (const [id, mw] of wanted) {
       const tab = state.tabs[id];
       if (!tab) continue;
       this.ensureView(tab);
-      this.attach(id);
+      this.attach(id, mw);
     }
     for (const id of entering) for (const hook of this.visibilityHooks) hook(id, true);
-    const space = state.spaces[state.activeSpaceId];
-    const layoutKey = `${visible.join(',')}|${(space?.split?.sizes ?? []).map((s) => s.toFixed(3)).join(',')}`;
+    const layoutKey = windows
+      .map((mw) => {
+        const space = state.spaces[mw.spaceId];
+        return `${mw.win.id}:${visibleTabIds(state, mw.spaceId).join(',')}|${(space?.split?.sizes ?? []).map((s) => s.toFixed(3)).join(',')}`;
+      })
+      .join(';');
     // Title/favicon/loading patches arrive many times per navigation: only touch native bounds
     // (and re-stack the overlay/peek views) when the visible set or pane sizes changed.
-    if (layoutKey !== this.lastLayoutKey || this.attached.length !== attachedBefore) {
+    if (layoutKey !== this.lastLayoutKey || this.attached.size !== attachedBefore.length) {
       this.lastLayoutKey = layoutKey;
       this.layout();
     }
-    // Views that leave the screen are snapshotted for the switcher before being detached; they
-    // sit beneath the freshly attached views meanwhile, so the switch itself is not delayed.
+    // Views that leave a window are snapshotted for the switcher before being detached; they sit
+    // beneath the freshly attached views meanwhile, so the switch itself is not delayed.
     for (const id of leaving) {
+      if (wanted.has(id)) continue;
       void this.snapshot(id).finally(() => {
-        if (!visibleTabIds(this.state).includes(id)) this.detach(id);
+        if (!this.wantedWindow(id)) this.detach(id);
       });
     }
     const active = state.spaces[state.activeSpaceId]?.activeTabId;
     const prevActive = prev?.spaces[prev.activeSpaceId]?.activeTabId;
     if (active && active !== prevActive) this.focusTab(active);
+  }
+
+  /** The window that should display `tabId` right now (its space's window), if any. */
+  wantedWindow(tabId: Id): MainWindow | undefined {
+    for (const mw of this.deps.windows.all())
+      if (visibleTabIds(this.state, mw.spaceId).includes(tabId)) return mw;
+    return undefined;
+  }
+
+  /** The window currently holding the tab's view. */
+  windowOf(tabId: Id): MainWindow | undefined {
+    const winId = this.attached.get(tabId);
+    return winId === undefined ? undefined : this.deps.windows.byId(winId);
   }
 
   /**
@@ -298,21 +322,23 @@ export class TabManager {
     if (this.htmlFullscreenTab === id) this.htmlFullscreenTab = null;
   }
 
-  private attach(id: Id): void {
-    const mw = this.deps.windows.main;
+  private attach(id: Id, mw: MainWindow): void {
     const view = this.views.get(id);
-    if (!mw || !view) return;
-    if (!this.attached.includes(id)) {
-      mw.win.contentView.addChildView(view);
-      this.attached.push(id);
-    }
+    if (!view || mw.win.isDestroyed()) return;
+    const current = this.attached.get(id);
+    if (current === mw.win.id) return;
+    if (current !== undefined) this.detach(id);
+    mw.win.contentView.addChildView(view);
+    this.attached.set(id, mw.win.id);
   }
 
   private detach(id: Id): void {
-    const mw = this.deps.windows.main;
     const view = this.views.get(id);
-    this.attached = this.attached.filter((x) => x !== id);
-    if (!mw || !view || mw.win.isDestroyed()) return;
+    const winId = this.attached.get(id);
+    this.attached.delete(id);
+    if (!view || winId === undefined) return;
+    const mw = this.deps.windows.byId(winId);
+    if (!mw) return;
     try {
       mw.win.contentView.removeChildView(view);
     } catch {
@@ -320,43 +346,53 @@ export class TabManager {
     }
   }
 
+  /** Destroys the views a closing window was showing (they come back lazily elsewhere). */
+  destroyWindowViews(winId: number): void {
+    for (const [id, w] of [...this.attached.entries()]) if (w === winId) this.destroyView(id);
+  }
+
   /** Window resize / sidebar / find bar changes: bounds moved even though panes did not. */
-  layout(): void {
-    const mw = this.deps.windows.main;
-    if (!mw || mw.win.isDestroyed()) return;
+  layout(only?: MainWindow): void {
     const state = this.state;
-    const space = activeSpace(state);
-    const panes = this.htmlFullscreenTab
-      ? [this.htmlFullscreenTab]
-      : (space?.split?.panes ?? (space?.activeTabId ? [space.activeTabId] : []));
-    const sizes = this.htmlFullscreenTab ? [1] : (space?.split?.sizes ?? [1]);
-    let bounds: Rectangle;
-    let radius: number;
-    if (this.htmlFullscreenTab) {
-      const [w, h] = mw.win.getContentSize();
-      bounds = { x: 0, y: 0, width: w ?? 0, height: h ?? 0 };
-      radius = 0;
-    } else {
-      bounds = mw.contentBounds();
-      radius = mw.contentRadius();
+    for (const mw of only ? [only] : this.deps.windows.all()) {
+      if (mw.win.isDestroyed()) continue;
+      const space = state.spaces[mw.spaceId];
+      const fullscreenTab =
+        this.htmlFullscreenTab && this.attached.get(this.htmlFullscreenTab) === mw.win.id
+          ? this.htmlFullscreenTab
+          : null;
+      const panes = fullscreenTab
+        ? [fullscreenTab]
+        : (space?.split?.panes ?? (space?.activeTabId ? [space.activeTabId] : []));
+      const sizes = fullscreenTab ? [1] : (space?.split?.sizes ?? [1]);
+      let bounds: Rectangle;
+      let radius: number;
+      if (fullscreenTab) {
+        const [w, h] = mw.win.getContentSize();
+        bounds = { x: 0, y: 0, width: w ?? 0, height: h ?? 0 };
+        radius = 0;
+      } else {
+        bounds = mw.contentBounds();
+        radius = mw.contentRadius();
+      }
+      const rects = paneRects(
+        bounds,
+        panes.length === sizes.length ? sizes : panes.map(() => 1 / panes.length),
+      );
+      panes.forEach((id, i) => {
+        const view = this.views.get(id);
+        const r = rects[i];
+        if (!view || !r || this.attached.get(id) !== mw.win.id) return;
+        view.setBounds(r);
+        view.setBorderRadius(panes.length > 1 ? Math.min(radius, 8) : radius);
+      });
     }
-    const rects = paneRects(
-      bounds,
-      panes.length === sizes.length ? sizes : panes.map(() => 1 / panes.length),
-    );
-    panes.forEach((id, i) => {
-      const view = this.views.get(id);
-      const r = rects[i];
-      if (!view || !r) return;
-      view.setBounds(r);
-      view.setBorderRadius(panes.length > 1 ? Math.min(radius, 8) : radius);
-    });
     for (const hook of this.afterLayoutHooks) hook();
   }
 
   focusTab(id: Id): void {
     const wc = this.webContents(id);
-    if (wc && this.attached.includes(id)) wc.focus();
+    if (wc && this.attached.has(id)) wc.focus();
   }
 
   // ---------------------------------------------------------------- events
@@ -751,7 +787,7 @@ export class TabManager {
   /** Stores a small thumbnail of a currently attached view (used by the switcher). */
   private async snapshot(tabId: Id): Promise<void> {
     const wc = this.webContents(tabId);
-    if (!wc || !this.attached.includes(tabId) || wc.isLoading() || !this.canCapture(wc)) return;
+    if (!wc || !this.attached.has(tabId) || wc.isLoading() || !this.canCapture(wc)) return;
     if (Date.now() - (this.previewAt.get(tabId) ?? 0) < 2000) return;
     this.previewAt.set(tabId, Date.now());
     try {
@@ -775,7 +811,7 @@ export class TabManager {
 
   async capture(tabId: Id, width: number): Promise<string | null> {
     const wc = this.webContents(tabId);
-    if (wc && this.attached.includes(tabId) && this.canCapture(wc)) {
+    if (wc && this.attached.has(tabId) && this.canCapture(wc)) {
       try {
         const img = await wc.capturePage();
         if (!img.isEmpty()) {

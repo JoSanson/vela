@@ -83,8 +83,7 @@ export class UpdateManager {
 
   private set(patch: Partial<UpdateStatus>): void {
     this.status = { ...this.status, ...patch };
-    const wc = this.ctx.windows.main?.win.webContents;
-    if (wc) emit(wc, 'update/changed', this.status);
+    for (const mw of this.ctx.windows.all()) emit(mw.win.webContents, 'update/changed', this.status);
     const ov = this.ctx.overlay.view?.webContents;
     if (ov) emit(ov, 'update/changed', this.status);
   }

@@ -102,7 +102,7 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       const idx = state.spaceOrder.indexOf(state.activeSpaceId);
       const n = state.spaceOrder.length;
       const target = state.spaceOrder[(idx + (id === 'spaceNext' ? 1 : -1) + n) % n];
-      if (target) store.dispatch({ type: 'space/activate', id: target, now });
+      if (target) ctx.activateSpace(target);
       return;
     }
     case 'newSpace': {
@@ -113,7 +113,7 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
         now,
       });
       store.dispatch({ type: 'space/create', space: sp });
-      store.dispatch({ type: 'space/activate', id: sp.id, now });
+      ctx.activateSpace(sp.id);
       overlay.show('spaceEditor', { spaceId: sp.id });
       return;
     }
@@ -159,6 +159,8 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       return;
     }
     case 'newWindow':
+      void ctx.openWindow();
+      return;
     case 'littleWindow': {
       const url = (payload as { url?: string } | undefined)?.url ?? 'about:blank';
       ctx.openLittle(url);
@@ -173,7 +175,7 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       const m = /^space(\d)$/.exec(id);
       if (m) {
         const target = state.spaceOrder[Number(m[1]) - 1];
-        if (target) store.dispatch({ type: 'space/activate', id: target, now });
+        if (target) ctx.activateSpace(target);
         return;
       }
       toShell(id, payload);

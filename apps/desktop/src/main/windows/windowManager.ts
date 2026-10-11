@@ -1,23 +1,74 @@
+import type { Id } from '@vela/core';
 import type { Layout } from '@vela/shared';
-import { screen, type BrowserWindow, type Rectangle } from 'electron';
+import { screen, type BrowserWindow, type Rectangle, type WebContents } from 'electron';
 import type { PrefsStore } from '../prefs';
 import type { LittleWindow } from './littleWindow';
 import { MainWindow } from './mainWindow';
 
+/**
+ * Every main window shows exactly one Space, and a Space lives in one window at a time (D024).
+ * `main` is the window to act on: the focused one, else the most recently focused one.
+ */
 export class WindowManager {
-  main: MainWindow | null = null;
+  readonly windows = new Map<number, MainWindow>();
   readonly littles = new Set<LittleWindow>();
-  private onLayoutChange: (() => void) | null = null;
+  private focusOrder: number[] = [];
+  private onLayoutChange: ((mw: MainWindow) => void) | null = null;
   private gestureHandler: ((cmd: 'back' | 'forward') => void) | null = null;
   private onCreated: ((mw: MainWindow) => void) | null = null;
+  private onFocused: ((mw: MainWindow) => void) | null = null;
+  private onSpaceChanged: ((mw: MainWindow, spaceId: Id, previous: Id) => void) | null = null;
 
-  /** Runs for every main window (initial and Dock re-activation) to wire events. */
+  constructor(private readonly prefs: PrefsStore) {}
+
+  get main(): MainWindow | null {
+    for (const id of this.focusOrder) {
+      const mw = this.windows.get(id);
+      if (mw && !mw.win.isDestroyed()) return mw;
+    }
+    const first = this.windows.values().next().value;
+    return first && !first.win.isDestroyed() ? first : null;
+  }
+
+  all(): MainWindow[] {
+    return [...this.windows.values()].filter((mw) => !mw.win.isDestroyed());
+  }
+
+  byId(id: number): MainWindow | undefined {
+    const mw = this.windows.get(id);
+    return mw && !mw.win.isDestroyed() ? mw : undefined;
+  }
+
+  /** The main window whose shell page is `wc` (not overlays, not tabs). */
+  byShell(wc: WebContents): MainWindow | undefined {
+    for (const mw of this.all()) if (mw.win.webContents.id === wc.id) return mw;
+    return undefined;
+  }
+
+  windowForSpace(spaceId: Id): MainWindow | undefined {
+    for (const mw of this.all()) if (mw.spaceId === spaceId) return mw;
+    return undefined;
+  }
+
+  /** Runs for every main window (initial, ⌘N, Dock re-activation) to wire events. */
   setWindowCreatedListener(fn: (mw: MainWindow) => void): void {
     this.onCreated = fn;
   }
 
+  setFocusListener(fn: (mw: MainWindow) => void): void {
+    this.onFocused = fn;
+  }
+
+  setSpaceListener(fn: (mw: MainWindow, spaceId: Id, previous: Id) => void): void {
+    this.onSpaceChanged = fn;
+  }
+
   setGestureHandler(fn: (cmd: 'back' | 'forward') => void): void {
     this.gestureHandler = fn;
+  }
+
+  setLayoutListener(fn: (mw: MainWindow) => void): void {
+    this.onLayoutChange = fn;
   }
 
   registerLittle(w: LittleWindow): void {
@@ -30,30 +81,50 @@ export class WindowManager {
     return undefined;
   }
 
-  constructor(private readonly prefs: PrefsStore) {}
-
-  setLayoutListener(fn: () => void): void {
-    this.onLayoutChange = fn;
+  /**
+   * Shows `spaceId` in `mw`. If another window already shows it, that window takes `mw`'s previous
+   * space instead (a swap), so no space is ever displayed twice.
+   */
+  setSpace(mw: MainWindow, spaceId: Id): void {
+    if (mw.spaceId === spaceId) return;
+    const previous = mw.spaceId;
+    const other = this.windowForSpace(spaceId);
+    mw.spaceId = spaceId;
+    this.onSpaceChanged?.(mw, spaceId, previous);
+    if (other && other !== mw) {
+      other.spaceId = previous;
+      this.onSpaceChanged?.(other, previous, spaceId);
+    }
   }
 
-  async createMain(backgroundColor: string): Promise<MainWindow> {
+  async createMain(
+    backgroundColor: string,
+    opts: { spaceId: Id; bounds?: Rectangle | null; offset?: boolean },
+  ): Promise<MainWindow> {
     const prefs = this.prefs.value;
-    const bounds = WindowManager.sanitizeBounds(prefs.windowBounds);
+    let bounds = WindowManager.sanitizeBounds(opts.bounds === undefined ? prefs.windowBounds : opts.bounds);
+    if (opts.offset && bounds) bounds = { ...bounds, x: bounds.x + 32, y: bounds.y + 32 };
     const layout: Layout = { sidebarWidth: prefs.sidebarWidth, sidebarVisible: !prefs.sidebarHidden };
-    const mw = new MainWindow({ bounds, layout, backgroundColor, glass: prefs.glass });
+    const mw = new MainWindow({ bounds, layout, backgroundColor, glass: prefs.glass, spaceId: opts.spaceId });
     const unsubscribePrefs = this.prefs.subscribe((p) => {
       if (!mw.win.isDestroyed()) mw.setGlass(p.glass);
     });
-    this.main = mw;
     const { win } = mw;
+    this.windows.set(win.id, mw);
+    this.focusOrder.unshift(win.id);
     win.once('ready-to-show', () => {
       if (!win.isDestroyed() && !win.isVisible()) win.show();
     });
     const persistBounds = (): void => {
       if (win.isDestroyed() || win.isFullScreen() || win.isMinimized()) return;
-      this.prefs.set({ windowBounds: win.getNormalBounds() });
+      // The most recently used window decides where the next launch opens.
+      if (this.main === mw) this.prefs.set({ windowBounds: win.getNormalBounds() });
     };
-    win.on('resize', () => this.onLayoutChange?.());
+    win.on('focus', () => {
+      this.focusOrder = [win.id, ...this.focusOrder.filter((i) => i !== win.id)];
+      this.onFocused?.(mw);
+    });
+    win.on('resize', () => this.onLayoutChange?.(mw));
     win.on('resized', persistBounds);
     win.on('moved', persistBounds);
     win.on('swipe', (_e, direction) => {
@@ -64,21 +135,21 @@ export class WindowManager {
       if (cmd === 'browser-backward') this.gestureHandler?.('back');
       if (cmd === 'browser-forward') this.gestureHandler?.('forward');
     });
-    win.on('enter-full-screen', () => this.onLayoutChange?.());
-    win.on('leave-full-screen', () => this.onLayoutChange?.());
+    win.on('enter-full-screen', () => this.onLayoutChange?.(mw));
+    win.on('leave-full-screen', () => this.onLayoutChange?.(mw));
     win.on('closed', () => {
       unsubscribePrefs();
-      if (this.main === mw) this.main = null;
+      this.windows.delete(win.id);
+      this.focusOrder = this.focusOrder.filter((i) => i !== win.id);
     });
     this.onCreated?.(mw);
     await mw.load();
     return mw;
   }
 
-  setLayout(layout: Layout): void {
-    if (!this.main) return;
-    this.main.layout = layout;
-    this.onLayoutChange?.();
+  setLayout(mw: MainWindow, layout: Layout): void {
+    mw.layout = layout;
+    this.onLayoutChange?.(mw);
   }
 
   focusedMain(): BrowserWindow | null {

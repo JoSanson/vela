@@ -3,18 +3,21 @@ import { WebContentsView } from 'electron';
 import { preloadPath, rendererUrl } from './context';
 import { emit, trustShell } from './ipc/typed';
 import type { TabManager } from './tabs/tabManager';
+import type { MainWindow } from './windows/mainWindow';
 import type { WindowManager } from './windows/windowManager';
 
 const EXIT_MS = 110;
 
 /**
- * A single transparent WebContentsView layered above every tab view. It hosts the command bar,
- * switcher, peek and other overlays so they can render on top of web content.
+ * A single transparent WebContentsView layered above the tab views of whichever window is being
+ * acted on (`host`). It hosts the command bar, switcher, peek chrome and prompts; one overlay is
+ * open at a time across windows, like a system sheet.
  */
 export class OverlayManager {
   view: WebContentsView | null = null;
   current: OverlayState = { kind: 'none', payload: null };
   visible = false;
+  host: MainWindow | null = null;
   private hideHooks: ((kind: OverlayKind) => void)[] = [];
   private onceHooks: (() => void)[] = [];
   private detachTimer: NodeJS.Timeout | null = null;
@@ -30,8 +33,7 @@ export class OverlayManager {
   }
 
   async init(): Promise<void> {
-    const mw = this.windows.main;
-    if (!mw || this.view) return;
+    if (this.view) return;
     const view = new WebContentsView({
       webPreferences: {
         preload: preloadPath('shell'),
@@ -49,23 +51,31 @@ export class OverlayManager {
     view.webContents.on('will-navigate', (e) => e.preventDefault());
     this.view = view;
     // The renderer subscribes after load: replay the current state so an early show() is not lost.
-    view.webContents.on('did-finish-load', () => emit(view.webContents, 'overlay/changed', this.current));
+    view.webContents.on('did-finish-load', () => {
+      emit(view.webContents, 'overlay/changed', this.current);
+      if (this.host) emit(view.webContents, 'window/space', this.host.spaceId);
+    });
     await view.webContents.loadURL(rendererUrl('overlay'));
   }
 
-  show(kind: OverlayKind, payload: unknown = null): void {
-    const mw = this.windows.main;
-    if (!mw || !this.view) return;
+  show(kind: OverlayKind, payload: unknown = null, target?: MainWindow): void {
+    const mw = target ?? this.windows.main;
+    if (!mw || !this.view || mw.win.isDestroyed()) return;
     // A toast never replaces something the user is interacting with.
     if (kind === 'toast' && this.visible) return;
-    this.current = { kind, payload };
     if (this.detachTimer) {
       clearTimeout(this.detachTimer);
       this.detachTimer = null;
     }
-    if (!this.visible) {
+    if (this.host && this.host !== mw) this.removeFromHost();
+    this.current = { kind, payload };
+    if (!this.visible || this.host !== mw) {
       mw.win.contentView.addChildView(this.view);
       this.visible = true;
+    }
+    if (this.host !== mw) {
+      this.host = mw;
+      emit(this.view.webContents, 'window/space', mw.spaceId);
     }
     this.layout();
     emit(this.view.webContents, 'overlay/changed', this.current);
@@ -95,21 +105,31 @@ export class OverlayManager {
     };
   }
 
+  private removeFromHost(): void {
+    const host = this.host;
+    if (!host || !this.view || host.win.isDestroyed()) return;
+    try {
+      host.win.contentView.removeChildView(this.view);
+    } catch {
+      /* already removed */
+    }
+  }
+
   hide(): void {
-    const mw = this.windows.main;
+    const host = this.host;
     if (!this.view) return;
     const wasVisible = this.visible;
     const wasKind = this.current.kind;
     this.current = { kind: 'none', payload: null };
     emit(this.view.webContents, 'overlay/changed', this.current);
-    if (this.visible && mw && !mw.win.isDestroyed()) {
+    if (this.visible && host && !host.win.isDestroyed()) {
       // Detach a beat later so the renderer can play its 90 ms exit; a show() in between cancels it.
       const view = this.view;
       this.detachTimer = setTimeout(() => {
         this.detachTimer = null;
-        if (this.visible || mw.win.isDestroyed()) return;
+        if (this.visible || host.win.isDestroyed()) return;
         try {
-          mw.win.contentView.removeChildView(view);
+          host.win.contentView.removeChildView(view);
         } catch {
           /* already removed */
         }
@@ -120,9 +140,9 @@ export class OverlayManager {
       for (const fn of this.hideHooks) fn(wasKind);
       for (const fn of this.onceHooks.splice(0)) fn();
     }
-    const active = this.tabs.activeTabId();
+    const active = host ? this.tabs.state.spaces[host.spaceId]?.activeTabId : null;
     if (active) this.tabs.focusTab(active);
-    else mw?.win.webContents.focus();
+    else host?.win.webContents.focus();
   }
 
   toggle(kind: OverlayKind, payload: unknown = null): void {
@@ -130,19 +150,30 @@ export class OverlayManager {
     else this.show(kind, payload);
   }
 
+  /** A window is closing: drop the overlay from it without an exit animation. */
+  windowClosed(mw: MainWindow): void {
+    if (this.host !== mw) return;
+    if (this.detachTimer) {
+      clearTimeout(this.detachTimer);
+      this.detachTimer = null;
+    }
+    this.current = { kind: 'none', payload: null };
+    this.visible = false;
+    this.host = null;
+    if (this.view) emit(this.view.webContents, 'overlay/changed', this.current);
+  }
+
   raise(): void {
-    const mw = this.windows.main;
-    if (!mw || !this.view || !this.visible) return;
-    mw.win.contentView.addChildView(this.view);
+    const host = this.host;
+    if (!host || !this.view || !this.visible || host.win.isDestroyed()) return;
+    host.win.contentView.addChildView(this.view);
   }
 
   layout(): void {
-    const mw = this.windows.main;
-    if (!mw || !this.view || !this.visible) return;
-    const [w, h] = mw.win.getContentSize();
-    const width = w ?? 0;
-    const height = h ?? 0;
-    this.view.setBounds(OverlayManager.boundsFor(this.current, width, height));
+    const host = this.host;
+    if (!host || !this.view || !this.visible || host.win.isDestroyed()) return;
+    const [w, h] = host.win.getContentSize();
+    this.view.setBounds(OverlayManager.boundsFor(this.current, w ?? 0, h ?? 0));
   }
 
   /**
@@ -178,5 +209,6 @@ export class OverlayManager {
     if (this.view && !this.view.webContents.isDestroyed()) this.view.webContents.close();
     this.view = null;
     this.visible = false;
+    this.host = null;
   }
 }

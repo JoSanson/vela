@@ -12,8 +12,12 @@ import { vela } from './api';
 
 export interface ShellStore {
   ready: boolean;
+  /** Faithful copy of main's state. */
+  raw: CoreState;
+  /** `raw` seen from this window: `activeSpaceId` is the space this window displays. */
   core: CoreState;
   rev: number;
+  windowSpaceId: Id | null;
   prefs: Prefs;
   platform: Platform;
   version: string;
@@ -33,6 +37,7 @@ export interface ShellStore {
   showToast: (toast: ShellStore['toast']) => void;
   hydrate: (snap: ShellSnapshot) => void;
   setCore: (core: CoreState) => void;
+  setWindowSpace: (spaceId: Id | null) => void;
   setPrefs: (prefs: Prefs) => void;
   setOverlay: (overlay: OverlayState) => void;
   setFullscreen: (v: boolean) => void;
@@ -47,10 +52,18 @@ export interface ShellStore {
   setSiteControlOpen: (v: boolean) => void;
 }
 
+/** Multi-window (D024): each window renders its own space, whatever main's global active space is. */
+function viewFor(core: CoreState, windowSpaceId: Id | null): CoreState {
+  if (!windowSpaceId || windowSpaceId === core.activeSpaceId || !core.spaces[windowSpaceId]) return core;
+  return { ...core, activeSpaceId: windowSpaceId };
+}
+
 export const useShell = create<ShellStore>((set) => ({
   ready: false,
+  raw: createDefaultState(0),
   core: createDefaultState(0),
   rev: 0,
+  windowSpaceId: null,
   prefs: DEFAULT_PREFS,
   platform: vela.platform,
   version: '',
@@ -72,8 +85,10 @@ export const useShell = create<ShellStore>((set) => ({
     setFaviconToken(snap.faviconToken);
     set({
       ready: true,
-      core: snap.state,
+      raw: snap.state,
+      core: viewFor(snap.state, snap.spaceId),
       rev: snap.rev,
+      windowSpaceId: snap.spaceId,
       prefs: snap.prefs,
       platform: snap.platform,
       version: snap.version,
@@ -83,7 +98,8 @@ export const useShell = create<ShellStore>((set) => ({
       sidebarWidth: snap.prefs.sidebarWidth,
     });
   },
-  setCore: (core) => set({ core }),
+  setCore: (core) => set((s) => ({ raw: core, core: viewFor(core, s.windowSpaceId) })),
+  setWindowSpace: (spaceId) => set((s) => ({ windowSpaceId: spaceId, core: viewFor(s.raw, spaceId) })),
   setPrefs: (prefs) => set({ prefs }),
   setOverlay: (overlay) => set({ overlay }),
   setFullscreen: (fullscreen) => set({ fullscreen }),
@@ -108,7 +124,7 @@ export function connectStore(): () => void {
   const onDelta = (delta: StateDelta): void => {
     const st = useShell.getState();
     if (!st.ready) return;
-    const res = applyDelta(st.core, st.rev, delta);
+    const res = applyDelta(st.raw, st.rev, delta);
     if ('resync' in res) {
       if (resyncing) return;
       resyncing = true;
@@ -117,10 +133,11 @@ export function connectStore(): () => void {
       });
       return;
     }
-    useShell.setState({ core: res.state, rev: res.rev });
+    useShell.setState({ raw: res.state, core: viewFor(res.state, st.windowSpaceId), rev: res.rev });
   };
   const offs = [
     vela.on('state/changed', onDelta),
+    vela.on('window/space', (spaceId) => useShell.getState().setWindowSpace(spaceId)),
     vela.on('prefs/changed', (prefs) => s.setPrefs(prefs)),
     vela.on('overlay/changed', (o) => s.setOverlay(o)),
     vela.on('window/fullscreen', (v) => s.setFullscreen(v)),

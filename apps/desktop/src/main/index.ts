@@ -6,6 +6,8 @@ import {
   type CoreAction,
   type StateDelta,
   isEphemeralSpace,
+  createSpace,
+  SPACE_PRESET_THEMES,
 } from '@vela/core';
 import { app, crashReporter, dialog, session } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -239,6 +241,32 @@ async function boot(): Promise<void> {
     favicons,
     updater: new UpdateManager({ windows, prefs, overlay }),
     perf,
+    activateSpace: (id, target) => {
+      const mw = target ?? windows.main;
+      if (!store.state.spaces[id]) return;
+      if (mw) windows.setSpace(mw, id);
+      store.dispatch({ type: 'space/activate', id, now: Date.now() });
+    },
+    openWindow: async () => {
+      const state = store.state;
+      // A window shows a space nobody else shows: the next undisplayed one, or a fresh space.
+      let spaceId = state.spaceOrder.find((sid) => !windows.windowForSpace(sid));
+      if (!spaceId) {
+        const preset = SPACE_PRESET_THEMES[state.spaceOrder.length % SPACE_PRESET_THEMES.length];
+        const sp = createSpace({
+          name: `Space ${state.spaceOrder.length + 1}`,
+          ...(preset ? { theme: preset } : {}),
+          now: Date.now(),
+        });
+        store.dispatch({ type: 'space/create', space: sp });
+        spaceId = sp.id;
+      }
+      const theme = store.state.spaces[spaceId]?.theme;
+      const win = await windows.createMain(theme?.from ?? '#1b1b22', { spaceId, offset: true });
+      tabs.reconcile(store.state, null);
+      store.dispatch({ type: 'space/activate', id: spaceId, now: Date.now() });
+      return win;
+    },
     openLittle: (url: string) => {
       const theme = activeSpace(store.state)?.theme;
       const w = new LittleWindow({ tabs, history, store, windows }, url, theme?.from ?? '#1b1b22');
@@ -302,8 +330,20 @@ async function boot(): Promise<void> {
 
   const theme = activeSpace(store.state)?.theme;
   perf.appReady = Date.now();
-  const mw = await windows.createMain(theme?.from ?? '#1b1b22');
+  const mw = await windows.createMain(theme?.from ?? '#1b1b22', { spaceId: store.state.activeSpaceId });
   registerCoreHandlers(c);
+  // Focusing a window makes its space the active one (menus, ⌘T, ⌘N act there).
+  windows.setFocusListener((w) => {
+    if (store.state.activeSpaceId !== w.spaceId && store.state.spaces[w.spaceId])
+      store.dispatch({ type: 'space/activate', id: w.spaceId, now: Date.now() });
+  });
+  windows.setSpaceListener((w, spaceId) => {
+    emit(w.win.webContents, 'window/space', spaceId);
+    const t = store.state.spaces[spaceId]?.theme;
+    if (t) w.setThemeColor(t.from);
+    if (overlay.host === w && overlay.view) emit(overlay.view.webContents, 'window/space', spaceId);
+    tabs.reconcile(store.state, null);
+  });
   const internalPages = (): Electron.WebContents[] => {
     const list = tabs
       .liveTabIds()
@@ -319,8 +359,7 @@ async function boot(): Promise<void> {
   // Deltas, not snapshots: the actions of one tick are coalesced into a single message per renderer,
   // which replays them through the same reducer (packages/core/src/delta.ts).
   const broadcast = (delta: StateDelta): void => {
-    const target = shellWcNow();
-    if (target) emit(target, 'state/changed', delta);
+    for (const w of windows.all()) emit(w.win.webContents, 'state/changed', delta);
     if (overlay.view) emit(overlay.view.webContents, 'state/changed', delta);
     for (const wc of internalPages()) emit(wc, 'state/changed', delta);
   };
@@ -336,8 +375,10 @@ async function boot(): Promise<void> {
     pendingFrom += actions.length;
   };
   store.subscribe((next, prev, action) => {
-    const theme = next.spaces[next.activeSpaceId]?.theme;
-    if (theme && theme !== prev.spaces[prev.activeSpaceId]?.theme) windows.main?.setThemeColor(theme.from);
+    for (const w of windows.all()) {
+      const t = next.spaces[w.spaceId]?.theme;
+      if (t && t !== prev.spaces[w.spaceId]?.theme) w.setThemeColor(t.from);
+    }
     if (needsSnapshot(action)) {
       pending = [];
       flushScheduled = false;
@@ -365,8 +406,7 @@ async function boot(): Promise<void> {
           setTimeout(() => store.dispatch({ type: 'tab/close', id: t.id, now: Date.now() }), 1500);
         }
     }
-    const target = shellWcNow();
-    if (target) emit(target, 'prefs/changed', p);
+    for (const w of windows.all()) emit(w.win.webContents, 'prefs/changed', p);
     if (overlay.view) emit(overlay.view.webContents, 'prefs/changed', p);
     for (const wc of internalPages()) emit(wc, 'prefs/changed', p);
   });
@@ -385,8 +425,7 @@ async function boot(): Promise<void> {
   installAutoPip(c);
   c.updater.start();
   downloads.onChange((list) => {
-    const target = shellWcNow();
-    if (target) emit(target, 'downloads/changed', list);
+    for (const w of windows.all()) emit(w.win.webContents, 'downloads/changed', list);
     for (const id of tabs.liveTabIds()) {
       const wc = tabs.webContents(id);
       if (wc?.getURL().startsWith('vela://downloads')) emit(wc, 'downloads/changed', list);
@@ -481,9 +520,13 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (ctx?.windows.main === null) {
     const c = ctx;
-    void c.windows.createMain(activeSpace(c.store.state)?.theme.from ?? '#1b1b22').then(() => {
-      c.tabs.reconcile(c.store.state, null);
-      return c.overlay.init();
-    });
+    void c.windows
+      .createMain(activeSpace(c.store.state)?.theme.from ?? '#1b1b22', {
+        spaceId: c.store.state.activeSpaceId,
+      })
+      .then(() => {
+        c.tabs.reconcile(c.store.state, null);
+        return c.overlay.init();
+      });
   }
 });

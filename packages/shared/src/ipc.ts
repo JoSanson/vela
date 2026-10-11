@@ -12,6 +12,8 @@ export interface ShellSnapshot {
   overlay: OverlayState;
   /** Revision of `state`; deltas carry `fromRev`/`rev` so a missed message triggers a resync. */
   rev: number;
+  /** The Space this window (or the overlay's host window) displays; null for internal pages. */
+  spaceId: Id | null;
   /** Per-launch secret inserted into `vela://favicon/` URLs by the renderer. */
   faviconToken: string;
   /** Which tab (if any) this window is a "Little" window for. */
@@ -420,6 +422,8 @@ export interface IpcEventMap {
   'credentials/fill': { username: string; password: string };
   'update/changed': UpdateStatus;
   'window/fullscreen': boolean;
+  /** This window now displays another Space (multi-window, D024). */
+  'window/space': Id;
   'zap/pick': { tabId: Id; selector: string };
   'little/changed': LittleState;
   'peek/changed': PeekState | null;

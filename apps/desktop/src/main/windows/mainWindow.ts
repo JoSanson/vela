@@ -1,3 +1,4 @@
+import type { Id } from '@vela/core';
 import { contentBounds, CONTENT_RADIUS, topBarHeight, type Layout } from '@vela/shared';
 import { BrowserWindow, type Rectangle } from 'electron';
 import { preloadPath, rendererUrl } from '../context';
@@ -10,6 +11,7 @@ export interface MainWindowOptions {
   layout: Layout;
   backgroundColor: string;
   glass: boolean;
+  spaceId: Id;
 }
 
 /** Opaque overlay colours derived from the space gradient (WCO ignores alpha). */
@@ -27,10 +29,13 @@ export function overlayColors(hex: string): { color: string; symbolColor: string
 export class MainWindow {
   readonly win: BrowserWindow;
   layout: Layout;
+  /** The Space this window shows (set by WindowManager.setSpace). */
+  spaceId: Id;
   private readonly opaqueBackground: string;
 
   constructor(opts: MainWindowOptions) {
     this.layout = opts.layout;
+    this.spaceId = opts.spaceId;
     this.opaqueBackground = opts.backgroundColor;
     this.win = new BrowserWindow({
       width: opts.bounds?.width ?? 1280,

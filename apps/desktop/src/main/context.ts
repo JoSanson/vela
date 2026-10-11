@@ -1,3 +1,4 @@
+import type { Id } from '@vela/core';
 import type { Prefs } from '@vela/shared';
 import { app } from 'electron';
 import { join } from 'node:path';
@@ -20,6 +21,7 @@ import type { TabManager } from './tabs/tabManager';
 import type { AuthManager } from './auth';
 import type { CredentialsManager } from './credentials';
 import type { ExternalLinkManager } from './externalLinks';
+import type { MainWindow } from './windows/mainWindow';
 import type { WindowManager } from './windows/windowManager';
 
 export type RendererPage = 'index' | 'overlay' | 'little' | 'pages';
@@ -46,6 +48,10 @@ export interface AppContext {
   favicons: FaviconCache;
   updater: UpdateManager;
   openLittle: (url: string) => void;
+  /** Shows a space in a window (the focused one by default) and makes it the active space. */
+  activateSpace: (id: Id, mw?: MainWindow | null) => void;
+  /** ⌘N: a new main window showing a space not displayed yet (created if needed). */
+  openWindow: () => Promise<MainWindow | null>;
   /** Wall-clock timestamps (Date.now()) of startup milestones. */
   perf: Record<string, number>;
   version: string;

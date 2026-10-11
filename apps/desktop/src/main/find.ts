@@ -5,7 +5,7 @@ import { emit } from './ipc/typed';
 export function installFind(ctx: AppContext): void {
   ctx.tabs.onViewCreated((tabId, wc) => {
     wc.on('found-in-page', (_e, result) => {
-      const shell = ctx.windows.main?.win.webContents;
+      const shell = (ctx.tabs.windowOf(tabId) ?? ctx.windows.main)?.win.webContents;
       if (!shell) return;
       emit(shell, 'find/result', {
         tabId,

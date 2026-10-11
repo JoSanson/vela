@@ -29,6 +29,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
     return {
       state: store.state,
       rev: store.rev,
+      spaceId: spaceForSender(event.sender),
       prefs: prefs.value,
       version: ctx.version,
       platform: process.platform as ShellSnapshot['platform'],
@@ -42,8 +43,24 @@ export function registerCoreHandlers(ctx: AppContext): void {
   // Internal pages are our own code, but the model is still guarded at the boundary: no full
   // replacement from a page, and tab URLs limited to schemes a page may legitimately set.
   const PAGE_URL = /^(https?|vela|about|view-source):/i;
+  // The Space a renderer belongs to: a shell's own, the overlay's host, or an internal page's tab.
+  const spaceForSender = (wc: Electron.WebContents): string | null => {
+    const mw = windows.byShell(wc);
+    if (mw) return mw.spaceId;
+    if (overlay.view?.webContents.id === wc.id) return overlay.host?.spaceId ?? null;
+    const tabId = tabs.tabIdOf(wc);
+    return tabId ? (store.state.tabs[tabId]?.spaceId ?? null) : null;
+  };
   handle('state/dispatch', 'internal', (action, event) => {
-    const fromShell = event.sender.id === windows.main?.win.webContents.id;
+    const fromShell = isTrustedShell(event.sender);
+    // Switching spaces from a window's sidebar means "show that space here" (D024).
+    if (fromShell && action.type === 'space/activate') {
+      const mw =
+        windows.byShell(event.sender) ??
+        (overlay.view?.webContents.id === event.sender.id ? overlay.host : null);
+      ctx.activateSpace(action.id, mw ?? windows.main);
+      return undefined;
+    }
     if (!fromShell) {
       if (action.type === 'state/replace') throw new Error('state/replace is not allowed from a page');
       if (action.type === 'tab/open' && !PAGE_URL.test(action.tab.url))
@@ -109,12 +126,17 @@ export function registerCoreHandlers(ctx: AppContext): void {
     dataUrl: await tabs.capture(tabId, width),
   }));
 
-  handle('layout/set', 'shell', (layout) => {
-    windows.setLayout(layout);
+  handle('layout/set', 'shell', (layout, event) => {
+    const mw = windows.byShell(event.sender);
+    if (mw) windows.setLayout(mw, layout);
     return undefined;
   });
-  handle('window/action', 'shell', ({ action }) => {
-    const win = windows.main?.win;
+  handle('window/action', 'shell', ({ action }, event) => {
+    if (action === 'new') {
+      void ctx.openWindow();
+      return undefined;
+    }
+    const win = (windows.byShell(event.sender) ?? windows.main)?.win;
     if (!win) return undefined;
     switch (action) {
       case 'minimize':
@@ -130,14 +152,17 @@ export function registerCoreHandlers(ctx: AppContext): void {
       case 'fullscreen':
         win.setFullScreen(!win.isFullScreen());
         break;
-      case 'new':
       case 'little':
         runCommand(ctx, 'littleWindow');
         break;
     }
     return undefined;
   });
-  handle('window/isFullscreen', 'shell', () => windows.main?.win.isFullScreen() ?? false);
+  handle(
+    'window/isFullscreen',
+    'shell',
+    (_r, event) => (windows.byShell(event.sender) ?? windows.main)?.win.isFullScreen() ?? false,
+  );
 
   handle('overlay/show', 'shell', ({ kind, payload }) => {
     overlay.show(kind, payload);
@@ -424,11 +449,11 @@ export function registerCoreHandlers(ctx: AppContext): void {
     mw.win.on('enter-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', true));
     mw.win.on('leave-full-screen', () => emit(mw.win.webContents, 'window/fullscreen', false));
     mw.win.on('closed', () => {
-      ctx.peek.close();
-      tabs.destroyAll();
-      overlay.destroy();
+      if (ctx.peek.hostIs(mw)) ctx.peek.close();
+      overlay.windowClosed(mw);
+      tabs.destroyWindowViews(mw.win.id);
     });
   };
   windows.setWindowCreatedListener(wireWindow);
-  if (windows.main) wireWindow(windows.main);
+  for (const mw of windows.all()) wireWindow(mw);
 }

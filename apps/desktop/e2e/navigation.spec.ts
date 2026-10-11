@@ -1,4 +1,12 @@
-import { expect, test } from './helpers';
+import { expect, test, type VelaApp } from './helpers';
+
+async function evalMain<T>(vela: VelaApp, code: string): Promise<T> {
+  return vela.app.evaluate((_e, c) => {
+    const g = globalThis as unknown as { __vela: unknown };
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    return (new Function('__vela', c) as (v: unknown) => T)(g.__vela);
+  }, code);
+}
 
 test.describe('command bar', () => {
   test('fuzzy-finds an open tab and switches to it; plain words become a search', async ({
@@ -200,5 +208,49 @@ test.describe('little window', () => {
     await expect
       .poll(() => vela.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
       .toBe(1);
+  });
+});
+
+test.describe('windows', () => {
+  test('⌘N opens a second window on another space; tabs of that space live there', async ({
+    vela,
+    fixtures,
+  }) => {
+    const first = await vela.openTab(`${fixtures}/page/One`);
+    await vela.command('newWindow');
+    await expect
+      .poll(() => evalMain<number>(vela, 'return __vela.ctx.windows.all().length'), { timeout: 15_000 })
+      .toBe(2);
+    const wins = await evalMain<{ id: number; spaceId: string }[]>(
+      vela,
+      'return __vela.ctx.windows.all().map((w) => ({ id: w.win.id, spaceId: w.spaceId }))',
+    );
+    expect(new Set(wins.map((w) => w.spaceId)).size).toBe(2);
+    const firstSpace = (await vela.state()).spaceOrder[0];
+    const second = wins.find((w) => w.spaceId !== firstSpace) ?? wins[1];
+    if (!second) throw new Error('no second window');
+    await evalMain(
+      vela,
+      `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/Two`)}, spaceId: ${JSON.stringify(second.spaceId)}, noAtc: true })`,
+    );
+    await expect
+      .poll(() =>
+        evalMain<number | null>(
+          vela,
+          "const t = Object.values(__vela.ctx.store.state.tabs).find((x) => x.url.includes('/page/Two')); return t ? (__vela.ctx.tabs.windowOf(t.id)?.win.id ?? null) : null",
+        ),
+      )
+      .toBe(second.id);
+    // The first window keeps showing its own space and tab.
+    expect(
+      await evalMain<number | null>(
+        vela,
+        `return __vela.ctx.tabs.windowOf(${JSON.stringify(first)})?.win.id ?? null`,
+      ),
+    ).not.toBe(second.id);
+    await evalMain(vela, `__vela.ctx.windows.byId(${second.id}).win.close()`);
+    await expect.poll(() => evalMain<number>(vela, 'return __vela.ctx.windows.all().length')).toBe(1);
+    expect((await vela.state()).tabs[first]).toBeDefined();
+    await expect(vela.shell.locator(`[data-tab-id="${first}"]`)).toBeVisible();
   });
 });

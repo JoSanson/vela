@@ -2,6 +2,7 @@ import { createTab, hostOf, type Id } from '@vela/core';
 import type { PeekState } from '@vela/shared';
 import type { Rectangle, WebContentsView } from 'electron';
 import type { AppContext } from './context';
+import type { MainWindow } from './windows/mainWindow';
 import { emit } from './ipc/typed';
 
 const AUTH_RE = /(^|[./-])(accounts\.google|login|signin|sign-in|oauth|auth|sso|okta|auth0)([./?-]|$)/i;
@@ -49,9 +50,15 @@ export class PeekManager {
     });
   }
 
+  private host: MainWindow | null = null;
+
+  hostIs(mw: MainWindow): boolean {
+    return this.host === mw;
+  }
+
   rect(): Rectangle {
-    const win = this.ctx.windows.main?.win;
-    if (!win) return { x: 0, y: 0, width: 0, height: 0 };
+    const win = this.host?.win;
+    if (!win || win.isDestroyed()) return { x: 0, y: 0, width: 0, height: 0 };
     const [w, h] = win.getContentSize();
     const width = w ?? 0;
     const height = h ?? 0;
@@ -62,8 +69,10 @@ export class PeekManager {
   }
 
   open(url: string, fromTabId?: Id): void {
-    const win = this.ctx.windows.main?.win;
-    if (!win) return;
+    const host = (fromTabId && this.ctx.tabs.windowOf(fromTabId)) || this.ctx.windows.main;
+    const win = host?.win;
+    if (!host || !win || win.isDestroyed()) return;
+    this.host = host;
     if (this.view) this.destroyView();
     const fromTab = fromTabId ? this.ctx.store.state.tabs[fromTabId] : undefined;
     const space = fromTab?.spaceId ? this.ctx.store.state.spaces[fromTab.spaceId] : undefined;
@@ -125,7 +134,7 @@ export class PeekManager {
     wc.on('will-navigate', (e, u) => {
       if (u.startsWith('file:') || u.startsWith('vela://')) e.preventDefault();
     });
-    this.ctx.overlay.show('peek', { url });
+    this.ctx.overlay.show('peek', { url }, host);
     win.contentView.addChildView(view);
     this.layout();
     void wc.loadURL(url).catch(() => undefined);
@@ -142,13 +151,13 @@ export class PeekManager {
   }
 
   raise(): void {
-    const win = this.ctx.windows.main?.win;
-    if (!win || !this.view) return;
+    const win = this.host?.win;
+    if (!win || win.isDestroyed() || !this.view) return;
     win.contentView.addChildView(this.view);
   }
 
   private destroyView(): void {
-    const win = this.ctx.windows.main?.win;
+    const win = this.host?.win;
     const view = this.view;
     this.view = null;
     this.state = null;
@@ -179,11 +188,11 @@ export class PeekManager {
 
   openAsTab(): void {
     const view = this.view;
-    const win = this.ctx.windows.main?.win;
-    if (!view || !win) return;
+    const win = this.host?.win;
+    if (!view || !win || win.isDestroyed()) return;
     const url = view.webContents.getURL();
     const fromTab = this.fromTabId ? this.ctx.store.state.tabs[this.fromTabId] : undefined;
-    const spaceId = fromTab?.spaceId ?? this.ctx.store.state.activeSpaceId;
+    const spaceId = fromTab?.spaceId ?? this.host?.spaceId ?? this.ctx.store.state.activeSpaceId;
     const tab = createTab({ url, spaceId, title: view.webContents.getTitle() });
     try {
       win.contentView.removeChildView(view);
