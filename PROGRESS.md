@@ -99,7 +99,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 12.3 Importers (Arc, Safari, Firefox) — baaadcf/58ca8ae, e2e Arc f7aae93 (screenshot 34-import-arc)
 - [x] 12.4 Safe browsing — 18ae0ef + 21a90c2 (e2e: phishing interstitial, screenshot 82)
 - [x] 12.5 Shortcut customisation — 18ae0ef (e2e: shortcut rebind)
-- [ ] 12.6 Localisation (en, fr)
+- [x] 12.6 Localisation (en, fr) — 36bc02e + 0c39e05 (808 keys, e2e: localization ×2, screenshot 90-settings-french)
 - [ ] 12.7 Signing/CI/docs, v0.3.0
 
 ## DoD checklist
