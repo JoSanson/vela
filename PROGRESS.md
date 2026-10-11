@@ -94,11 +94,11 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 11.7 Final verification on HEAD: e2e 64/64 (×3 incl. two clean runs), perf all ✅, tag v0.2.0 on this commit
 
 ## Phase 12 — Everything missing
-- [ ] 12.1 Password manager
-- [ ] 12.2 Multi-window
-- [ ] 12.3 Importers (Arc, Safari, Firefox)
-- [ ] 12.4 Safe browsing
-- [ ] 12.5 Shortcut customisation
+- [x] 12.1 Password manager — 94fda33 (e2e: passwords ×2, screenshots 80/81)
+- [x] 12.2 Multi-window — d4f34b0 + 18ae0ef (adopt fix; e2e: windows)
+- [x] 12.3 Importers (Arc, Safari, Firefox) — baaadcf/58ca8ae, e2e Arc f7aae93 (screenshot 34-import-arc)
+- [x] 12.4 Safe browsing — 18ae0ef + 21a90c2 (e2e: phishing interstitial, screenshot 82)
+- [x] 12.5 Shortcut customisation — 18ae0ef (e2e: shortcut rebind)
 - [ ] 12.6 Localisation (en, fr)
 - [ ] 12.7 Signing/CI/docs, v0.3.0
 

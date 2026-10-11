@@ -88,11 +88,11 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 11.7 Second round
 
 ## Phase 12 — Everything that was still missing (owner: "do it all, world-class UX")
-- [ ] 12.1 Password manager: encrypted vault (safeStorage), detection in pages, fill chip, save prompt, settings section
-- [ ] 12.2 Multi-window: windows show spaces, views move between windows, overlays/peek per window, ⌘N
-- [ ] 12.3 Import from Arc (structure), Safari, Firefox; onboarding import step
-- [ ] 12.4 Safe browsing: phishing/malware feeds refreshed daily, interstitial, dangerous download hints
-- [ ] 12.5 Shortcut customisation: per-id overrides, conflict detection, live rebind UI
+- [x] 12.1 Password manager: encrypted vault (safeStorage), detection in pages, fill chip, save prompt, settings section
+- [x] 12.2 Multi-window: windows show spaces, views move between windows, overlays/peek per window, ⌘N
+- [x] 12.3 Import from Arc (structure), Safari, Firefox; onboarding import step
+- [x] 12.4 Safe browsing: phishing/malware feeds refreshed daily, interstitial, dangerous download hints
+- [x] 12.5 Shortcut customisation: per-id overrides, conflict detection, live rebind UI
 - [ ] 12.6 Localisation: i18n layer, English + French, locale from the OS
 - [ ] 12.7 Signing/notarisation wired behind secrets, CI hardening, docs; final verification, v0.3.0
 
