@@ -94,5 +94,5 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 12.4 Safe browsing: phishing/malware feeds refreshed daily, interstitial, dangerous download hints
 - [x] 12.5 Shortcut customisation: per-id overrides, conflict detection, live rebind UI
 - [x] 12.6 Localisation: i18n layer, English + French, locale from the OS
-- [ ] 12.7 Signing/notarisation wired behind secrets, CI hardening, docs; final verification, v0.3.0
+- [x] 12.7 Signing/notarisation wired behind secrets, CI hardening, docs; final verification, v0.3.0
 
