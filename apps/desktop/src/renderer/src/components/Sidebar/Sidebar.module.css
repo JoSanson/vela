@@ -11,7 +11,7 @@
 .floating {
   background: var(--sidebar-bg);
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 0 0 1px var(--border);
 }
 
 .scroll {
