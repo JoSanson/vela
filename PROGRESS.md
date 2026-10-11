@@ -105,6 +105,14 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 ## Phase 13 — Owner hands-on feedback (2026-10-11)
 - [x] 13.1 Import panel layout (name column collapsing, untranslated Safari hint) — e2e `import-layout.spec.ts` + screenshot 35-import-onboarding-fr, commit 692ebdc
 - [x] 13.2 Floating sidebar toggle docks back; continuous content geometry during the slide (unit `layout.test.ts`, e2e "docks it back", main-process sampling 16 frames x 260→4 / y 8→0 / radius 10→0 with no jump), commit 7233ad2
+- [x] 13.3 Window drag by the top edge / double-click zoom after page loads (drag-region nudge, larger grip) — e2e sidebar suite + manual, commit dad71fe
+- [x] 13.4 Quick search keyword + Tab (site pill, per-site suggestions, recent searches, Settings editor) — unit `siteSearch.test.ts`, e2e `siteSearch.spec.ts`, screenshots 36/37, commit dad71fe
+- [x] 13.5 Arc favorites import limited to the shown profile, +N fold, background favicons — e2e `favoritesGrid.spec.ts` + screenshot 38, commit 528c4a4
+- [x] 13.6 Arc migration: profiles, passwords, cookies per profile, keychain consent, merge on re-import — unit `chromiumSecrets.test.ts`, e2e `importSecrets.spec.ts`, commit 528c4a4
+- [x] 13.7 Auto-PiP YouTube-only, "back to tab" via the WebContents `activate` event — commit 528c4a4 (e2e PiP test fixed in 13.9, `VELA_AUTOPIP_HOST`)
+- [x] 13.8 Import panel strings shortened, hints translated — commit 528c4a4
+- [ ] 13.9 Password popover: no reopen after fill, lands on the password, typing filters, keys from the page — e2e "passwords: save after sign-in, then fill" extended (green once, 78/79 with the PiP fix pending), screenshots 81/81b. Owner suspended test runs for the rest of the session: box stays open until the suite is re-run.
+- [ ] 13.10 Favorites per profile (D029), Arc import per profile, folders reused on re-import — unit tests written in `reducer.test.ts`, `selectors.test.ts`, `importer.test.ts` but NOT run (test runs suspended by the owner); typecheck + lint green; app rebuilt for hands-on. Re-run `pnpm test && pnpm e2e` before ticking.
 
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.

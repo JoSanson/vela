@@ -39,8 +39,13 @@ export type TabKind = 'favorite' | 'pinned' | 'today';
 export interface Tab {
   id: Id;
   kind: TabKind;
-  /** null for favorites (global). */
+  /** null for favorites, which belong to a profile instead of a Space. */
   spaceId: Id | null;
+  /**
+   * Favorites only (Arc semantics): the profile they belong to; every Space using that profile
+   * shows them and they browse with its session. null = the default profile, and for other tabs.
+   */
+  profileId?: Id | null;
   url: string;
   /** Pinned & favorites: the URL they return to. */
   homeUrl: string | null;

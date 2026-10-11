@@ -215,7 +215,10 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const remoteItems = useMemo(() => (remote.query === trimmed ? remote.items : []), [remote, trimmed]);
   const index = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = [];
-    const tabs = Object.values(core.tabs);
+    const profileId = core.spaces[core.activeSpaceId]?.profileId ?? null;
+    const tabs = Object.values(core.tabs).filter(
+      (t) => t.kind !== 'favorite' || (t.profileId ?? null) === profileId,
+    );
     const newest = tabs.reduce((m, t) => Math.max(m, t.lastActiveAt), 0);
     for (const t of tabs) {
       const age = Math.max(0, newest - t.lastActiveAt);
@@ -243,7 +246,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       );
     }
     return items;
-  }, [core.tabs, remoteItems, t]);
+  }, [core.tabs, core.spaces, core.activeSpaceId, remoteItems, t]);
 
   useEffect(() => {
     const q = query.trim();

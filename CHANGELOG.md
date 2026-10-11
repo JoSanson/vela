@@ -6,12 +6,32 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Quick search: type a keyword and Tab in the command bar (y YouTube, p Perplexity, g Google,
+  c ChatGPT, w Wikipedia, gh GitHub, r Reddit, a Amazon, x X, m Maps) to search that site, with
+  its suggestions and your recent searches there; the list is editable in Settings > General.
+- Arc migration in one go: Arc profiles become Vela profiles attached to their Spaces, passwords
+  and cookies are imported into the matching profile (macOS asks once to read "Arc Safe Storage"),
+  importing again merges instead of duplicating.
+- Favorites belong to a profile (D029): every Space shows the favorites of its own profile, as in
+  Arc; the grid folds beyond twelve with a "+N" tile; imported tabs fetch their favicon in the
+  background.
+- Password popover: typing filters the accounts; ↑ ↓ Enter and Escape work from the page itself.
+
 ### Fixed
 
+- Password popover: it closed and reopened on the field it had just filled, hiding the next
+  field; it now fills both fields, lands on the password and only comes back on a click.
 - Import panel: source rows keep a fixed grid (the name column collapsed under a long option
   label); the Arc hint and the Safari Full Disk Access message are short and translated.
 - Sidebar: the toggle inside the floating sidebar docks it back; the content inset, corner radius
   and hover edge follow the slide instead of jumping on the last frame.
+- Window dragging by the top edge and double-click zoom are reliable after a page loads.
+- Auto Picture-in-Picture applies to YouTube only; the floating window's "back to tab" button
+  brings the tab and the window back.
+- Arc import: favorites of every profile were merged into one grid; folders were duplicated on a
+  second import.
 
 ## [0.3.0] - 2026-10-11
 

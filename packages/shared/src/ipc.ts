@@ -135,7 +135,11 @@ export interface CredentialSummary {
 export interface CredentialFocus {
   rect: { x: number; y: number; width: number; height: number };
   field: 'username' | 'password';
+  /** What the user typed in the username field so far: accounts are filtered by it. */
+  typed?: string;
 }
+
+export type AutofillKey = 'ArrowDown' | 'ArrowUp' | 'Enter';
 
 /** Overlay payload: accounts to offer for the focused field. */
 export interface AutofillPrompt {
@@ -411,7 +415,10 @@ export interface IpcInvokeMap {
   'safebrowsing/allow': { req: { host: string }; res: undefined };
   /** Page preload: the unreserved shortcut table (id, accelerator) with the user's overrides. */
   'shortcuts/table': { req: undefined; res: [string, string][] };
-  'credentials/focus': { req: CredentialFocus | null; res: undefined };
+  /** Page preload → main; resolves to whether the popover is now showing for that field. */
+  'credentials/focus': { req: CredentialFocus | null; res: boolean };
+  /** Page preload → main: a navigation key pressed while the popover is open (false: it was not). */
+  'credentials/key': { req: { key: AutofillKey }; res: boolean };
   'credentials/submitted': { req: { username: string; password: string }; res: undefined };
   'credentials/list': { req: { query?: string }; res: CredentialSummary[] };
   'credentials/remove': { req: { id: string }; res: undefined };
@@ -459,6 +466,10 @@ export interface IpcEventMap {
   'credentials/savePrompt': SavePasswordPrompt;
   /** Main → page preload: fill the focused login form. */
   'credentials/fill': { username: string; password: string };
+  /** Main → page preload: the popover closed for another reason than the page's own report. */
+  'credentials/autofillHidden': undefined;
+  /** Main → overlay: a key forwarded from the page while the popover is open. */
+  'credentials/autofillKey': AutofillKey;
   'update/changed': UpdateStatus;
   'window/fullscreen': boolean;
   /** This window now displays another Space (multi-window, D024). */

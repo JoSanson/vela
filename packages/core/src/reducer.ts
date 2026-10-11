@@ -211,10 +211,18 @@ function moveTab(state: CoreState, id: Id, to: MoveTarget, now: number): CoreSta
       next = updateSpace(next, prevSpaceId, (sp) => ({ ...sp, activeTabId: replacement }));
     }
   }
+  // A tab favorited from a Space joins that Space's profile; a favorite reordered keeps its own.
+  const profileId =
+    kind !== 'favorite'
+      ? null
+      : prevSpaceId
+        ? (state.spaces[prevSpaceId]?.profileId ?? null)
+        : (tab.profileId ?? null);
   next = updateTab(next, id, (t) => ({
     ...t,
     kind,
     spaceId: targetSpaceId,
+    profileId,
     homeUrl: kind === 'today' ? null : (t.homeUrl ?? t.url),
     lastActiveAt: kind === 'today' ? now : t.lastActiveAt,
   }));

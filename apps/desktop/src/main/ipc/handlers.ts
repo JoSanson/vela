@@ -284,9 +284,9 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
   handle('credentials/focus', 'page', (focus, event) => {
     const origin = pageOrigin(event);
-    if (origin) ctx.credentials.onFocus(event.sender, origin, focus);
-    return undefined;
+    return origin ? ctx.credentials.onFocus(event.sender, origin, focus) : false;
   });
+  handle('credentials/key', 'page', ({ key }, event) => ctx.credentials.key(event.sender, key));
   handle('credentials/submitted', 'page', ({ username, password }, event) => {
     const origin = pageOrigin(event);
     if (origin && typeof username === 'string' && typeof password === 'string')

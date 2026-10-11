@@ -21,21 +21,29 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
   const [index, setIndex] = useState(0);
   const t = useT();
   useEffect(() => vela.on('credentials/autofill', (p) => setPrompt(p)), []);
+  // The page keeps keyboard focus: its preload forwards the navigation keys while we are open.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
+    const onKey = (key: string): void => {
       if (!prompt) return;
-      if (e.key === 'ArrowDown') setIndex((i) => (i + 1) % prompt.accounts.length);
-      if (e.key === 'ArrowUp') setIndex((i) => (i - 1 + prompt.accounts.length) % prompt.accounts.length);
-      if (e.key === 'Enter') {
-        const a = prompt.accounts[index];
+      const n = prompt.accounts.length;
+      if (key === 'ArrowDown') setIndex((i) => (Math.min(i, n - 1) + 1) % n);
+      if (key === 'ArrowUp') setIndex((i) => (Math.min(i, n - 1) - 1 + n) % n);
+      if (key === 'Enter') {
+        const a = prompt.accounts[Math.min(index, n - 1)];
         if (a) void invoke('credentials/useFill', { tabId: prompt.tabId, id: a.id });
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const off = vela.on('credentials/autofillKey', onKey);
+    const onLocal = (e: KeyboardEvent): void => onKey(e.key);
+    window.addEventListener('keydown', onLocal);
+    return () => {
+      off();
+      window.removeEventListener('keydown', onLocal);
+    };
   }, [prompt, index]);
   const hover = useHoverSelect(setIndex);
   if (!prompt) return null;
+  const selected = Math.min(index, prompt.accounts.length - 1);
   return (
     <div
       className={styles.popover}
@@ -47,8 +55,8 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
         <button
           key={a.id}
           role="option"
-          aria-selected={i === index}
-          className={`${styles.account} ${i === index ? styles.selected : ''}`}
+          aria-selected={i === selected}
+          className={`${styles.account} ${i === selected ? styles.selected : ''}`}
           onMouseMove={(e) => hover(i, e)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => void invoke('credentials/useFill', { tabId: prompt.tabId, id: a.id })}
@@ -61,7 +69,7 @@ export function AutofillPopover({ initial }: { initial: AutofillPrompt | null })
             <span className={styles.user}>{a.username || t('overlay.autofill.noUsername')}</span>
             <span className={styles.site}>{hostOf(a.origin)}</span>
           </span>
-          <span className={styles.hint}>{i === index ? '↵' : ''}</span>
+          <span className={styles.hint}>{i === selected ? '↵' : ''}</span>
         </button>
       ))}
     </div>

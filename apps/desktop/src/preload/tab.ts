@@ -125,6 +125,7 @@ interface HTMLElementLike {
   querySelectorAll: (sel: string) => ArrayLike<HTMLElementLike>;
   getBoundingClientRect: () => { x: number; y: number; width: number; height: number };
   dispatchEvent: (e: unknown) => boolean;
+  focus: () => void;
   isConnected: boolean;
 }
 declare const Event: new (type: string, init?: { bubbles?: boolean }) => unknown;
@@ -163,6 +164,16 @@ function passwordFor(el: HTMLElementLike): HTMLElementLike | null {
   return pws[0] ?? null;
 }
 
+/** The username or password input of a login form, or null for any other element. */
+function loginField(el: unknown): HTMLElementLike | null {
+  const input = el as HTMLElementLike | null;
+  if (input?.tagName !== 'INPUT') return null;
+  const pw = passwordFor(input);
+  if (!pw) return null;
+  if (!isPasswordField(input) && usernameFor(pw) !== input) return null;
+  return input;
+}
+
 function setValue(el: HTMLElementLike, value: string): void {
   // React/Vue listen to the native setter: go through the prototype so frameworks notice.
   const proto = Object.getPrototypeOf(el) as Record<string, unknown>;
@@ -173,45 +184,88 @@ function setValue(el: HTMLElementLike, value: string): void {
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+const NAV_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Enter', 'Escape']);
+
 if (
   typeof document !== 'undefined' &&
   location?.protocol !== 'vela:' &&
   /^https?:$/.test(location?.protocol ?? '')
 ) {
   let lastFocus: HTMLElementLike | null = null;
+  // The field the popover is open for (set optimistically, corrected when main answers).
+  let shownFor: HTMLElementLike | null = null;
   const report = (el: HTMLElementLike | null): void => {
     if (!el) {
+      shownFor = null;
       ipcRenderer.send(channel('credentials/focus'), null);
       return;
     }
     const r = el.getBoundingClientRect();
-    ipcRenderer.send(channel('credentials/focus'), {
-      rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-      field: isPasswordField(el) ? 'password' : 'username',
-    });
+    const password = isPasswordField(el);
+    shownFor = el;
+    ipcRenderer
+      .invoke(channel('credentials/focus'), {
+        rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+        field: password ? 'password' : 'username',
+        typed: password ? '' : (el.value ?? ''),
+      })
+      .then((shown: unknown) => {
+        if (shown !== true && shownFor === el) shownFor = null;
+      })
+      .catch(() => {
+        if (shownFor === el) shownFor = null;
+      });
   };
+  ipcRenderer.on(channel('credentials/autofillHidden'), () => {
+    shownFor = null;
+  });
+  // Focus offers accounts for an empty field only: a filled one (by the user, the site or a
+  // previous fill) keeps the popover away so Tab moves on. A click asks again regardless.
   document.addEventListener(
     'focusin',
     (e) => {
-      const el = (e as { target: HTMLElementLike | null }).target;
-      if (el?.tagName !== 'INPUT') return;
-      const pw = passwordFor(el);
-      if (!pw) return;
-      if (!isPasswordField(el) && usernameFor(pw) !== el) return;
+      const el = loginField((e as { target: unknown }).target);
+      if (!el) return;
       lastFocus = el;
-      report(el);
+      if ((el.value ?? '') === '') report(el);
+      else if (shownFor && shownFor !== el) report(null);
+    },
+    true,
+  );
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = loginField((e as { target: unknown }).target);
+      if (el && shownFor !== el) report(el);
+    },
+    true,
+  );
+  document.addEventListener(
+    'input',
+    (e) => {
+      const el = loginField((e as { target: unknown }).target);
+      if (!el) return;
+      if (isPasswordField(el)) {
+        if (shownFor) report(null);
+      } else report(el);
     },
     true,
   );
   document.addEventListener(
     'focusout',
     (e) => {
-      if ((e as { target: unknown }).target !== lastFocus) return;
+      const ev = e as { target: unknown; relatedTarget: unknown };
+      if (ev.target !== lastFocus) return;
       lastFocus = null;
-      // Delay: a click on the popover in the overlay view must not race the blur.
+      if (loginField(ev.relatedTarget)) return;
+      if (ev.relatedTarget) {
+        report(null);
+        return;
+      }
+      // Focus left the document, maybe for a click on the popover itself: give it time to land.
       setTimeout(() => {
         if (!lastFocus) report(null);
-      }, 250);
+      }, 600);
     },
     true,
   );
@@ -233,7 +287,27 @@ if (
   document.addEventListener(
     'keydown',
     (e) => {
-      const ev = e as KeyEvent & { target: HTMLElementLike | null };
+      const ev = e as KeyEvent & {
+        target: HTMLElementLike | null;
+        preventDefault: () => void;
+        stopPropagation: () => void;
+      };
+      const plain = !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.shiftKey;
+      if (ev.isTrusted && plain && shownFor && ev.target === shownFor && NAV_KEYS.has(ev.key)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (ev.key === 'Escape') {
+          report(null);
+          return;
+        }
+        ipcRenderer
+          .invoke(channel('credentials/key'), { key: ev.key })
+          .then((handled: unknown) => {
+            if (handled !== true) shownFor = null;
+          })
+          .catch(() => undefined);
+        return;
+      }
       if (ev.key === 'Enter' && ev.target && isPasswordField(ev.target)) submitted(ev.target);
     },
     true,
@@ -254,10 +328,14 @@ if (
     const active = document.activeElement;
     const pw =
       (active && passwordFor(active)) ?? Array.from(document.querySelectorAll(PASSWORD_SEL))[0] ?? null;
-    if (!pw) return;
-    const user = usernameFor(pw);
-    if (user && creds.username) setValue(user, creds.username);
-    setValue(pw, creds.password);
+    if (pw) {
+      const user = usernameFor(pw);
+      if (user && creds.username) setValue(user, creds.username);
+      setValue(pw, creds.password);
+      // Both fields are done: land on the password so Enter submits, whatever the form's markup.
+      if (active !== pw) pw.focus();
+    }
+    report(null);
   });
 }
 

@@ -1,4 +1,4 @@
-import type { Container, Id } from '@vela/core';
+import { favoriteTabs, type Container, type Id } from '@vela/core';
 import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { dispatch } from '../../lib/api';
 import { useShell } from '../../lib/store';
@@ -159,8 +159,16 @@ export function performDrop(item: DragItem, target: DropTarget): void {
       return;
     }
     case 'favorites': {
+      // The grid shows this Space's profile only: map its slot back to the global favorites list.
+      const shown = favoriteTabs(core);
+      const at = shown[target.index];
+      const last = shown.at(-1);
+      let index = at
+        ? core.favorites.indexOf(at.id)
+        : last
+          ? core.favorites.indexOf(last.id) + 1
+          : core.favorites.length;
       const from = findCurrent(item.id);
-      let index = target.index;
       if (from?.container.kind === 'favorites' && from.index < index) index -= 1;
       dispatch({ type: 'tab/move', id: item.id, to: { container: { kind: 'favorites' }, index }, now });
       return;

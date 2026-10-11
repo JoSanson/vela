@@ -51,8 +51,12 @@ export function todayTabs(state: CoreState, spaceId: Id): Tab[] {
   return space.today.map((id) => state.tabs[id]).filter((t): t is Tab => t !== undefined);
 }
 
-export function favoriteTabs(state: CoreState): Tab[] {
-  return state.favorites.map((id) => state.tabs[id]).filter((t): t is Tab => t !== undefined);
+/** The favorites a Space shows: those of its profile (favorites belong to profiles, as in Arc). */
+export function favoriteTabs(state: CoreState, spaceId: Id = state.activeSpaceId): Tab[] {
+  const profileId = state.spaces[spaceId]?.profileId ?? null;
+  return state.favorites
+    .map((id) => state.tabs[id])
+    .filter((t): t is Tab => t !== undefined && (t.profileId ?? null) === profileId);
 }
 
 export function displayTitle(tab: Pick<Tab, 'customTitle' | 'title' | 'url'>): string {

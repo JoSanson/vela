@@ -141,6 +141,30 @@ describe('tab/open', () => {
     expect(tb(s, 'p1').homeUrl).toBe('https://p1.example.com/');
   });
 
+  it('favoriting a tab gives it the profile of its Space; moving it back drops it', () => {
+    let s = reduce(baseState(), {
+      type: 'space/create',
+      space: createSpace({ id: 's2', name: 'Work', profileId: 'p1', now: NOW }),
+    });
+    s = open(s, 'w1', 's2');
+    s = reduce(s, { type: 'tab/favorite', id: 'w1' });
+    expect(s.tabs.w1).toMatchObject({ kind: 'favorite', spaceId: null, profileId: 'p1' });
+    s = reduce(s, {
+      type: 'tab/move',
+      id: 'w1',
+      to: { container: { kind: 'favorites' }, index: 0 },
+      now: NOW,
+    });
+    expect(s.tabs.w1?.profileId).toBe('p1');
+    s = reduce(s, {
+      type: 'tab/move',
+      id: 'w1',
+      to: { container: { kind: 'today', spaceId: 's1' }, index: 0 },
+      now: NOW,
+    });
+    expect(s.tabs.w1).toMatchObject({ kind: 'today', spaceId: 's1', profileId: null });
+  });
+
   it('appends favorites globally and activates them in the active space', () => {
     let s = open(baseState(), 'fav1', null, { kind: 'favorite' });
     s = open(s, 'fav2', null, { kind: 'favorite', index: 0 });

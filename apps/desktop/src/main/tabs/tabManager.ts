@@ -186,6 +186,12 @@ export class TabManager {
   }
 
   /** Builds a tab-like WebContentsView (same security posture) without registering it. */
+  /** The profile a tab browses with: its Space's, or its own for favorites. */
+  profileOf(tab: Tab): Id | null {
+    if (tab.spaceId) return this.state.spaces[tab.spaceId]?.profileId ?? null;
+    return tab.profileId ?? null;
+  }
+
   webPreferencesFor(profileId: Id | null): Electron.WebPreferences {
     const partitions: Record<Id, string | undefined> = {};
     for (const p of Object.values(this.state.profiles)) partitions[p.id] = p.partition;
@@ -287,11 +293,7 @@ export class TabManager {
   private ensureView(tab: Tab): WebContentsView {
     const existing = this.views.get(tab.id);
     if (existing && !existing.webContents.isDestroyed()) return existing;
-    const space = tab.spaceId ? this.state.spaces[tab.spaceId] : undefined;
-    const partitions: Record<Id, string | undefined> = {};
-    for (const p of Object.values(this.state.profiles)) partitions[p.id] = p.partition;
-    const ses = this.deps.sessions.forProfile(space?.profileId ?? null, partitions);
-    const view = new WebContentsView({ webPreferences: TabManager.webPreferences(ses) });
+    const view = new WebContentsView({ webPreferences: this.webPreferencesFor(this.profileOf(tab)) });
     view.setBackgroundColor('#ffffff');
     this.views.set(tab.id, view);
     this.wire(tab.id, view.webContents);
@@ -582,7 +584,7 @@ export class TabManager {
             height: 640,
             autoHideMenuBar: true,
             backgroundColor: '#ffffff',
-            webPreferences: this.webPreferencesFor(space?.profileId ?? null),
+            webPreferences: this.webPreferencesFor(tab ? this.profileOf(tab) : (space?.profileId ?? null)),
           },
         };
       }
@@ -628,7 +630,12 @@ export class TabManager {
       const routed = matchAtc(state.atcRules, url);
       if (routed && state.spaces[routed]) spaceId = routed;
     }
-    const tab = createTab({ url, spaceId: kind === 'favorite' ? null : spaceId, kind });
+    const tab = createTab({
+      url,
+      spaceId: kind === 'favorite' ? null : spaceId,
+      kind,
+      profileId: kind === 'favorite' ? (state.spaces[spaceId]?.profileId ?? null) : null,
+    });
     this.deps.store.dispatch({
       type: 'tab/open',
       tab,

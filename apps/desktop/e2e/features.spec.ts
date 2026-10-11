@@ -160,19 +160,31 @@ test.describe('memory saver', () => {
 });
 
 test.describe('auto picture-in-picture', () => {
-  test('a playing video pops out when the tab is hidden and comes back when shown', async ({
-    vela,
-    fixtures,
-  }) => {
-    const v = await vela.openTab(`${fixtures}/video.html`);
+  test('a playing video pops out when the tab is hidden and comes back when shown', async ({ fixtures }) => {
+    // Auto-PiP is YouTube-only; the fixture host is allowed through the env override.
+    const vela = await launchVela({ fixtures, env: { VELA_AUTOPIP_HOST: new URL(fixtures).hostname } });
+    try {
+      const v = await vela.openTab(`${fixtures}/video.html`);
+      const page = await vela.tabPage('/video.html');
+      await expect.poll(() => page.evaluate(() => !document.querySelector('video')?.paused)).toBe(true);
+      await vela.openTab(`${fixtures}/page/Away`);
+      await expect
+        .poll(() => page.evaluate(() => !!document.pictureInPictureElement), { timeout: 8000 })
+        .toBe(true);
+      await sidebarTab(vela, v).click();
+      await expect.poll(() => page.evaluate(() => !!document.pictureInPictureElement)).toBe(false);
+    } finally {
+      await vela.close();
+    }
+  });
+
+  test('ordinary sites never pop out automatically', async ({ vela, fixtures }) => {
+    await vela.openTab(`${fixtures}/video.html`);
     const page = await vela.tabPage('/video.html');
     await expect.poll(() => page.evaluate(() => !document.querySelector('video')?.paused)).toBe(true);
     await vela.openTab(`${fixtures}/page/Away`);
-    await expect
-      .poll(() => page.evaluate(() => !!document.pictureInPictureElement), { timeout: 8000 })
-      .toBe(true);
-    await sidebarTab(vela, v).click();
-    await expect.poll(() => page.evaluate(() => !!document.pictureInPictureElement)).toBe(false);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(await page.evaluate(() => !!document.pictureInPictureElement)).toBe(false);
   });
 });
 
@@ -930,7 +942,35 @@ test.describe('daily-driver compatibility', () => {
     await overlay.getByTestId('autofill-account').first().click();
     await expect(login.locator('#u')).toHaveValue('ada@example.com');
     await expect(login.locator('#p')).toHaveValue('hunter2');
+    // The popover closes once filled, lands on the password and stays away from filled fields.
     await vela.overlayHidden();
+    expect(await login.evaluate(() => document.activeElement?.id)).toBe('p');
+    await login.focus('#u');
+    await new Promise((r) => setTimeout(r, 300));
+    await expect(overlay.getByTestId('autofill-popover')).toHaveCount(0);
+    // A click asks again; Escape dismisses without touching the page.
+    await login.click('#u');
+    await expect(overlay.getByTestId('autofill-popover')).toBeVisible();
+    await login.keyboard.press('Escape');
+    await vela.overlayHidden();
+    await expect(login.locator('#u')).toHaveValue('ada@example.com');
+    // Typing filters the accounts; Enter picks the highlighted one from the page itself.
+    await evalMain(
+      vela,
+      `__vela.ctx.credentials.importMany([{ origin: ${JSON.stringify(new URL(fixtures).origin)}, username: 'bob@example.com', password: 'b0b', updatedAt: Date.now() }])`,
+    );
+    await login.fill('#p', '');
+    await login.fill('#u', '');
+    await expect(overlay.getByTestId('autofill-account')).toHaveCount(2);
+    await login.keyboard.type('b');
+    await expect(overlay.getByTestId('autofill-account')).toHaveCount(1);
+    await expect(overlay.getByTestId('autofill-account')).toContainText('bob@example.com');
+    await vela.shot('81b-autofill-filtered');
+    await login.keyboard.press('Enter');
+    await expect(login.locator('#u')).toHaveValue('bob@example.com');
+    await expect(login.locator('#p')).toHaveValue('b0b');
+    await vela.overlayHidden();
+    expect(await login.evaluate(() => location.pathname)).toBe('/login');
   });
 
   test('passwords: "Never" blocks future prompts for the site', async ({ vela, fixtures }) => {

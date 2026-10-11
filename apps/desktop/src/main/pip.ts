@@ -18,9 +18,13 @@ const EXIT_PIP = `(async () => {
   return true;
 })()`;
 
-/** Only YouTube pops out: ads, hero videos and autoplaying clips on ordinary sites stay put. */
-export function autoPipAllowed(url: string): boolean {
+/**
+ * Only YouTube pops out: ads, hero videos and autoplaying clips on ordinary sites stay put.
+ * `VELA_AUTOPIP_HOST` adds one host so the e2e suite can exercise the feature on its fixture server.
+ */
+export function autoPipAllowed(url: string, extraHost = process.env.VELA_AUTOPIP_HOST): boolean {
   const host = hostOf(url);
+  if (extraHost && host === extraHost) return true;
   return host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be';
 }
 

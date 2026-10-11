@@ -1,4 +1,4 @@
-import { todayTabs } from '@vela/core';
+import { todayTabs, favoriteTabs } from '@vela/core';
 import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke, modKey } from '../../lib/api';
 import { useT } from '../../lib/i18n';
@@ -94,7 +94,7 @@ export function TodayList({ onDragStart }: Props) {
           />
         ))}
       </div>
-      {tabs.length === 0 && !hasPinned && core.favorites.length === 0 && (
+      {tabs.length === 0 && !hasPinned && favoriteTabs(core, space.id).length === 0 && (
         <p className={styles.emptyHint}>
           {hintBefore}
           <span className={styles.nowrap}>

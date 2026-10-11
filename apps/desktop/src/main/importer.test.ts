@@ -1,4 +1,4 @@
-import { createDefaultState, createTab, reduce, type CoreState } from '@vela/core';
+import { createDefaultState, createTab, reduce, type CoreState, favoriteTabs } from '@vela/core';
 import { describe, expect, it } from 'vitest';
 import {
   applyArcSidebar,
@@ -175,7 +175,7 @@ describe('Arc sidebar', () => {
 
   it('recreates spaces, pinned folders in order, today tabs and favorites', () => {
     const { state, counts } = applyArcSidebar(createDefaultState(NOW), parseArcSidebar(arcFixture()), NOW);
-    expect(counts).toEqual({ spaces: 2, pinned: 5, today: 3, folders: 2, favorites: 2, profiles: 1 });
+    expect(counts).toEqual({ spaces: 2, pinned: 5, today: 3, folders: 2, favorites: 3, profiles: 1 });
 
     const [, workId, playId] = state.spaceOrder;
     const work = state.spaces[workId ?? ''];
@@ -217,14 +217,35 @@ describe('Arc sidebar', () => {
     // The same URL may live in another space.
     expect(names(state, play?.today ?? [])).toEqual(['https://docs.example.com/']);
 
-    // Favorites: only the first space's profile container (what Arc shows), deduplicated, global.
-    expect(names(state, state.favorites)).toEqual(['https://cal.example.com/', 'https://mail.example.com/']);
-    expect(state.tabs[state.favorites[0] ?? '']).toMatchObject({ kind: 'favorite', spaceId: null });
-
     // The custom Arc profile becomes a Vela profile attached to its space; the default one maps to none.
     expect(work?.profileId).toBeNull();
     const profile = Object.values(state.profiles).find((p) => p.id === play?.profileId);
     expect(profile?.name).toBe('Profile 1');
+
+    // Favorites: each top-apps container lands in its profile, so each Space sees its own set.
+    expect(names(state, state.favorites)).toEqual([
+      'https://cal.example.com/',
+      'https://mail.example.com/',
+      'https://cal.example.com/',
+    ]);
+    expect(state.tabs[state.favorites[0] ?? '']).toMatchObject({
+      kind: 'favorite',
+      spaceId: null,
+      profileId: null,
+    });
+    expect(state.tabs[state.favorites[2] ?? '']).toMatchObject({ kind: 'favorite', profileId: profile?.id });
+    expect(
+      names(
+        state,
+        favoriteTabs(state, workId ?? '').map((t) => t.id),
+      ),
+    ).toEqual(['https://cal.example.com/', 'https://mail.example.com/']);
+    expect(
+      names(
+        state,
+        favoriteTabs(state, playId ?? '').map((t) => t.id),
+      ),
+    ).toEqual(['https://cal.example.com/']);
   });
 
   it('names profiles from Local State and reuses spaces and profiles when importing again', () => {
@@ -232,14 +253,15 @@ describe('Arc sidebar', () => {
     const first = applyArcSidebar(createDefaultState(NOW), sb, NOW, { 'Profile 1': 'Perso' });
     expect(Object.values(first.state.profiles).map((p) => p.name)).toEqual(['Perso']);
     const again = applyArcSidebar(first.state, sb, NOW + 1, { 'Profile 1': 'Perso' });
-    expect(again.counts).toMatchObject({ spaces: 0, pinned: 0, today: 0, favorites: 0, profiles: 0 });
+    expect(again.counts).toEqual({ spaces: 0, pinned: 0, today: 0, folders: 0, favorites: 0, profiles: 0 });
     expect(Object.keys(again.state.spaces)).toEqual(Object.keys(first.state.spaces));
     expect(Object.keys(again.state.tabs)).toEqual(Object.keys(first.state.tabs));
+    expect(Object.keys(again.state.folders)).toEqual(Object.keys(first.state.folders));
     expect(again.profiles['Profile 1']).toBe(Object.values(first.state.profiles)[0]?.id);
     expect(again.profiles.default).toBeNull();
   });
 
-  it('removes favorites that an earlier import took from the other profiles', () => {
+  it('claims favorites an earlier import left without a profile instead of duplicating them', () => {
     let base = createDefaultState(NOW);
     for (const url of ['https://only-custom.example.com/', 'https://mine.example.com/']) {
       base = reduce(base, {
@@ -260,20 +282,18 @@ describe('Arc sidebar', () => {
       savedTitle: 'X',
     });
     sb.items.get('top-custom')?.children.push('fav-x');
-    const { state } = applyArcSidebar(base, sb, NOW);
+    const { state, counts } = applyArcSidebar(base, sb, NOW);
+    expect(counts.favorites).toBe(3);
     expect(names(state, state.favorites)).toEqual([
+      'https://only-custom.example.com/',
       'https://mine.example.com/',
       'https://cal.example.com/',
       'https://mail.example.com/',
+      'https://cal.example.com/',
     ]);
-  });
-
-  it('takes the favorites of the profile the first space uses', () => {
-    const json = arcFixture() as { sidebar: { containers: [unknown, { spaces: unknown[] }] } };
-    const spaces = json.sidebar.containers[1].spaces;
-    json.sidebar.containers[1].spaces = [spaces[2], spaces[3], spaces[0], spaces[1]];
-    const { state } = applyArcSidebar(createDefaultState(NOW), parseArcSidebar(json), NOW);
-    expect(names(state, state.favorites)).toEqual(['https://cal.example.com/']);
+    const custom = Object.values(state.profiles)[0]?.id;
+    expect(state.tabs[state.favorites[0] ?? '']?.profileId).toBe(custom);
+    expect(state.tabs[state.favorites[1] ?? '']?.profileId).toBeNull();
   });
 
   it('skips favorites already present and survives cycles', () => {
@@ -289,8 +309,8 @@ describe('Arc sidebar', () => {
     const pinned = sb.items.get('work-pinned');
     if (pinned) pinned.children = [...pinned.children, 'work-pinned'];
     const { state, counts } = applyArcSidebar(base, sb, NOW);
-    expect(counts.favorites).toBe(1);
-    expect(state.favorites).toHaveLength(2);
+    expect(counts.favorites).toBe(2);
+    expect(state.favorites).toHaveLength(3);
   });
 
   it('maps icons and timestamps', () => {

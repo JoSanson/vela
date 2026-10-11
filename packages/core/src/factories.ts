@@ -46,6 +46,8 @@ export interface TabInit {
   kind?: TabKind;
   title?: string;
   now?: number;
+  /** Favorites: the profile they belong to (null = default). */
+  profileId?: Id | null;
 }
 
 export function createTab(init: TabInit): Tab {
@@ -55,6 +57,7 @@ export function createTab(init: TabInit): Tab {
     id: init.id ?? createId(),
     kind,
     spaceId: kind === 'favorite' ? null : init.spaceId,
+    profileId: kind === 'favorite' ? (init.profileId ?? null) : null,
     url: init.url,
     homeUrl: kind === 'today' ? null : init.url,
     title: init.title ?? '',

@@ -234,7 +234,19 @@ to allow Vela to read that keychain item; on Linux the basic backend's fixed pas
 Windows (DPAPI) is not supported yet. Cookies land in the Vela profile that matches the Chromium
 profile directory (names from `Local State`), so sessions never mix; passwords go through the
 same `safeStorage` store as the password manager. Nothing leaves the machine, and importing again
-reuses spaces and profiles instead of duplicating them. Favorites are imported from the profile of
-Arc's first space only, because Arc shows one profile's favorites at a time while Vela's grid is
-global; the grid folds beyond twelve with a "+N" tile.
+reuses spaces and profiles instead of duplicating them (folders of the same name are refilled,
+not twinned). The grid folds beyond twelve with a "+N" tile.
+
+## D029 — Favorites belong to a profile, not to a Space nor to the whole browser
+
+Arc attaches favorites (top apps) to a profile: every Space that uses the profile shows the same
+row, and two Spaces on different profiles show different ones. Vela had a single global grid, so
+an owner with one Arc profile per Space saw one merged, wrong grid everywhere. A favorite now
+carries `profileId` (null = the default profile), `favoriteTabs(state, spaceId)` returns the ones
+of that Space's profile, a tab favorited from a Space takes the Space's profile, and the favorite
+browses with that profile's session (cookies, logins) exactly like the Space's own tabs. Arc import
+writes each top-apps container into the Vela profile its Arc profile maps to, and adopts the
+profile-less favorites of an earlier import rather than duplicating them. Changing a Space's
+profile does not move favorites along, as in Arc. Spaces stay 100 % independent: one profile per
+Space gives separate cookies, passwords, history partitions and favorites.
 

@@ -140,6 +140,25 @@ describe('tab lists', () => {
       spaces: { ...s.spaces, s1: { ...(s.spaces.s1 ?? createSpace({ name: 'x' })), today: ['ghost', 't3'] } },
     };
     expect(favoriteTabs(dangling).map((t) => t.id)).toEqual(['fav']);
+    // Favorites belong to a profile: a Space only shows the ones of its own profile.
+    const withProfile = reduce(s, {
+      type: 'space/create',
+      space: createSpace({ id: 's2', name: 'Work', profileId: 'p1', now: NOW }),
+    });
+    const owned = reduce(withProfile, {
+      type: 'tab/open',
+      tab: createTab({
+        id: 'fav-p1',
+        url: 'https://w.example.com/',
+        spaceId: null,
+        kind: 'favorite',
+        profileId: 'p1',
+        now: NOW,
+      }),
+      activate: false,
+    });
+    expect(favoriteTabs(owned, 's1').map((t) => t.id)).toEqual(['fav']);
+    expect(favoriteTabs(owned, 's2').map((t) => t.id)).toEqual(['fav-p1']);
     expect(todayTabs(dangling, 's1').map((t) => t.id)).toEqual(['t3']);
   });
 });

@@ -335,10 +335,15 @@ export function applyArcSidebar(
     return item.children.map((c) => sidebar.items.get(c)).filter((c): c is ArcItem => c !== undefined);
   };
 
-  const openTab = (item: ArcItem, spaceId: Id | null, kind: 'pinned' | 'today' | 'favorite'): Id => {
+  const openTab = (
+    item: ArcItem,
+    spaceId: Id | null,
+    kind: 'pinned' | 'today' | 'favorite',
+    profileId: Id | null = null,
+  ): Id => {
     const url = item.url ?? '';
     const tab = {
-      ...createTab({ url, spaceId, kind, title: item.savedTitle ?? item.title ?? '', now }),
+      ...createTab({ url, spaceId, kind, profileId, title: item.savedTitle ?? item.title ?? '', now }),
       createdAt: item.createdAt ?? now,
     };
     next = reduce(next, { type: 'tab/open', tab, activate: false, index: Number.MAX_SAFE_INTEGER });
@@ -393,7 +398,17 @@ export function applyArcSidebar(
           }
           counts.pinned++;
         } else if (child.kind === 'list' && depth < MAX_FOLDER_DEPTH) {
-          const f = createFolder({ spaceId: space.id, name: child.title?.trim() || 'Folder' });
+          const name = child.title?.trim() || 'Folder';
+          // Importing again fills the folder of the same name at the same place, never a twin.
+          const siblings = parentFolderId
+            ? (next.folders[parentFolderId]?.children ?? [])
+            : (next.spaces[space.id]?.pinned ?? []);
+          const existingFolder = siblings.map((id) => next.folders[id]).find((f) => f?.name === name);
+          if (existingFolder) {
+            walkPinned(child.id, existingFolder.id, depth + 1);
+            continue;
+          }
+          const f = createFolder({ spaceId: space.id, name });
           next = reduce(next, {
             type: 'folder/create',
             folder: f,
@@ -424,59 +439,34 @@ export function applyArcSidebar(
     if (arc.unpinnedId) walkToday(arc.unpinnedId);
   });
 
-  const favUrls = new Set(next.favorites.map((id) => next.tabs[id]?.url).filter((u): u is string => !!u));
-  const walkFavorites = (parentArcId: string): void => {
-    for (const child of childrenOf(parentArcId)) {
-      if (child.kind === 'tab') {
-        if (!child.url || !isWebUrl(child.url) || favUrls.has(child.url)) continue;
-        favUrls.add(child.url);
-        openTab(child, null, 'favorite');
-        counts.favorites++;
-      } else {
-        walkFavorites(child.id);
-      }
-    }
-  };
-  // Arc shows the favorites of the current space's profile; Vela's grid is global, so take the
-  // profile of the first space (what Arc opens on), falling back to the one most spaces use.
-  const withItems = new Set(
-    sidebar.favoriteContainers
-      .filter((c) => (sidebar.items.get(c.id)?.children.length ?? 0) > 0)
-      .map((c) => c.profile),
-  );
-  const usage = new Map<string, number>();
-  for (const space of sidebar.spaces) usage.set(space.profile, (usage.get(space.profile) ?? 0) + 1);
-  const first = sidebar.spaces[0]?.profile;
-  const chosen =
-    first !== undefined && withItems.has(first)
-      ? first
-      : ([...usage.entries()].filter(([p]) => withItems.has(p)).sort((a, b) => b[1] - a[1])[0]?.[0] ??
-        first ??
-        'default');
-  // An earlier import may have merged every profile's favorites: drop the ones that only exist in
-  // the other profiles' containers, never anything the user favorited themselves.
-  const urlsIn = (containerId: string, acc: Set<string>, stack = new Set<string>()): Set<string> => {
-    if (stack.has(containerId)) return acc;
-    stack.add(containerId);
-    for (const childId of sidebar.items.get(containerId)?.children ?? []) {
-      const child = sidebar.items.get(childId);
-      if (!child) continue;
-      if (child.kind === 'tab' && child.url) acc.add(child.url);
-      else urlsIn(child.id, acc, stack);
-    }
-    return acc;
-  };
-  const chosenUrls = new Set<string>();
-  const otherUrls = new Set<string>();
-  for (const c of sidebar.favoriteContainers) urlsIn(c.id, c.profile === chosen ? chosenUrls : otherUrls);
+  // Favorites belong to a profile in Arc and in Vela: each top-apps container lands in the Vela
+  // profile its Arc profile maps to. Favorites an earlier import left without a profile are
+  // claimed by the first profile whose container lists their URL instead of being duplicated.
+  const favKey = (profileId: Id | null, url: string): string => `${profileId ?? ''}\n${url}`;
+  const favByKey = new Map<string, Id>();
   for (const id of next.favorites) {
-    const url = next.tabs[id]?.url;
-    if (url && otherUrls.has(url) && !chosenUrls.has(url)) {
-      next = reduce(next, { type: 'tab/close', id, now });
-      favUrls.delete(url);
-    }
+    const t = next.tabs[id];
+    if (t) favByKey.set(favKey(t.profileId ?? null, t.url), id);
   }
-  for (const c of sidebar.favoriteContainers) if (c.profile === chosen) walkFavorites(c.id);
+  const walkFavorites = (parentArcId: string, profileId: Id | null): void => {
+    for (const child of childrenOf(parentArcId)) {
+      if (child.kind !== 'tab') {
+        walkFavorites(child.id, profileId);
+        continue;
+      }
+      if (!child.url || !isWebUrl(child.url) || favByKey.has(favKey(profileId, child.url))) continue;
+      const legacy = profileId ? favByKey.get(favKey(null, child.url)) : undefined;
+      if (legacy) {
+        next = reduce(next, { type: 'tab/update', id: legacy, patch: { profileId } });
+        favByKey.delete(favKey(null, child.url));
+        favByKey.set(favKey(profileId, child.url), legacy);
+        continue;
+      }
+      favByKey.set(favKey(profileId, child.url), openTab(child, null, 'favorite', profileId));
+      counts.favorites++;
+    }
+  };
+  for (const c of sidebar.favoriteContainers) walkFavorites(c.id, mapped.byDir[c.profile] ?? null);
 
   return { state: next, counts, profiles: mapped.byDir };
 }

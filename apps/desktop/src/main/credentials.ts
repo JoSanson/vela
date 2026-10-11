@@ -1,5 +1,11 @@
 import type { Id } from '@vela/core';
-import type { AutofillPrompt, CredentialFocus, CredentialSummary, SavePasswordPrompt } from '@vela/shared';
+import type {
+  AutofillKey,
+  AutofillPrompt,
+  CredentialFocus,
+  CredentialSummary,
+  SavePasswordPrompt,
+} from '@vela/shared';
 import { safeStorage, type WebContents } from 'electron';
 import type { Db } from './db/database';
 import { emit } from './ipc/typed';
@@ -139,17 +145,23 @@ export class CredentialsManager {
   // ---------------------------------------------------------------- page events
 
   /** A login field got (or lost) focus in a tab: offer stored accounts right under it. */
-  onFocus(wc: WebContents, origin: string, focus: CredentialFocus | null): void {
+  onFocus(wc: WebContents, origin: string, focus: CredentialFocus | null): boolean {
     const tabId = this.tabs.tabIdOf(wc);
-    if (!tabId) return;
+    if (!tabId) return false;
     if (!focus) {
       this.hideAutofill(tabId);
-      return;
+      return false;
     }
-    const accounts = this.forOrigin(origin);
-    if (accounts.length === 0) return;
+    const typed = (focus.typed ?? '').trim().toLowerCase();
+    const accounts = this.forOrigin(origin).filter(
+      (a) => !typed || a.username.toLowerCase().startsWith(typed),
+    );
+    if (accounts.length === 0) {
+      this.hideAutofill(tabId);
+      return false;
+    }
     const view = this.tabs.view(tabId);
-    if (!view) return;
+    if (!view) return false;
     const bounds = view.getBounds();
     const zoom = wc.getZoomFactor();
     const anchor = {
@@ -159,20 +171,40 @@ export class CredentialsManager {
       height: focus.rect.height * zoom,
     };
     const prompt: AutofillPrompt = { tabId, origin, accounts, anchor };
-    if (this.overlay.visible && this.overlay.current.kind !== 'autofill') return;
+    if (this.overlay.visible && this.overlay.current.kind !== 'autofill') return false;
     this.autofillFor = { tabId, wcId: wc.id };
     this.overlay.show('autofill', prompt);
     const ov = this.overlay.view?.webContents;
     if (ov) emit(ov, 'credentials/autofill', prompt);
+    return true;
+  }
+
+  /** Arrow keys and Enter typed in the page while the popover is open drive the popover. */
+  key(wc: WebContents, key: AutofillKey): boolean {
+    const tabId = this.tabs.tabIdOf(wc);
+    if (!tabId || this.autofillFor?.tabId !== tabId) return false;
+    if (this.overlay.current.kind !== 'autofill') {
+      this.hideAutofill(tabId);
+      return false;
+    }
+    const ov = this.overlay.view?.webContents;
+    if (ov) emit(ov, 'credentials/autofillKey', key);
+    return true;
   }
 
   hideAutofill(tabId?: Id): void {
     if (!this.autofillFor || (tabId && this.autofillFor.tabId !== tabId)) return;
+    const wc = this.tabs.webContents(this.autofillFor.tabId);
     this.autofillFor = null;
     if (this.overlay.current.kind === 'autofill') this.overlay.hide();
+    if (wc) emit(wc, 'credentials/autofillHidden', undefined);
   }
 
-  /** The user picked an account in the popover: decrypt and type it into the page. */
+  /**
+   * The user picked an account in the popover: decrypt and type it into the page. The popover is
+   * not closed here: closing it hands focus back to the page, and the field must already hold the
+   * value by then or its focus event would open the popover again. The page reports once filled.
+   */
   fill(tabId: Id, id: string): void {
     const wc = this.tabs.webContents(tabId);
     const row = this.db.prepare('SELECT origin, username, secret FROM credentials WHERE id = ?').get(id) as
@@ -189,7 +221,6 @@ export class CredentialsManager {
     const password = this.reveal(id);
     if (password === null) return;
     this.db.prepare('UPDATE credentials SET last_used_at = ? WHERE id = ?').run(Date.now(), id);
-    this.hideAutofill(tabId);
     emit(wc, 'credentials/fill', { username: row.username, password });
   }
 
@@ -241,6 +272,8 @@ export class CredentialsManager {
   }
 
   dismissAll(): void {
+    const wc = this.autofillFor ? this.tabs.webContents(this.autofillFor.tabId) : undefined;
     this.autofillFor = null;
+    if (wc) emit(wc, 'credentials/autofillHidden', undefined);
   }
 }
