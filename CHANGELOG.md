@@ -6,6 +6,13 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Import from Arc (the whole sidebar: Spaces with name, emoji and colour, pinned tabs and nested
+  folders in order, open tabs, favorites, plus history), Safari (bookmarks, Reading List and
+  history; asks for Full Disk Access when macOS denies the read) and Firefox (bookmarks and
+  history from the most recent profile), next to Chrome, Brave and Edge.
+
 ## [0.2.0] - 2026-10-11
 
 ## [0.2.0] - 2026-10-11

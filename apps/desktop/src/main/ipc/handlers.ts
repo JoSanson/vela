@@ -413,8 +413,8 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
 
   handle('import/sources', 'internal', () => detectSources());
-  handle('import/run', 'internal', ({ source, bookmarks, history }) =>
-    runImport(ctx, source, bookmarks, history),
+  handle('import/run', 'internal', ({ source, bookmarks, history, structure }) =>
+    runImport(ctx, source, bookmarks, history, structure),
   );
   handle('export/state', 'internal', () => exportState(ctx));
   handle('export/saveToFile', 'internal', () => saveExportToFile(ctx));

@@ -1,4 +1,4 @@
-import type { BrowserImportSource, ImportResult } from '@vela/shared';
+import type { BrowserImportSource, BrowserImportSourceId, ImportResult } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import styles from './ImportPanel.module.css';
@@ -6,19 +6,40 @@ import { tryInvoke } from './lib';
 import { useToast } from './Toast';
 import { Button, Spinner } from './ui';
 
-const LOGO: Record<BrowserImportSource['id'], { letter: string; color: string }> = {
+const LOGO: Record<BrowserImportSourceId, { letter: string; color: string }> = {
+  arc: { letter: 'A', color: '#ff536a' },
   chrome: { letter: 'C', color: '#4285f4' },
   brave: { letter: 'B', color: '#fb542b' },
   edge: { letter: 'E', color: '#0c7fd1' },
+  safari: { letter: 'S', color: '#1a8cff' },
+  firefox: { letter: 'F', color: '#ff7139' },
 };
 
 interface Choice {
   bookmarks: boolean;
   history: boolean;
+  structure: boolean;
 }
 
 interface Props {
   onImported?: (source: BrowserImportSource, result: ImportResult) => void;
+}
+
+function subtitle(src: BrowserImportSource): string {
+  if (src.error) return src.error;
+  if (!src.available) return 'Not installed';
+  if (src.id === 'arc') {
+    return src.history ? 'Sidebar and history found' : 'Sidebar found, no history database';
+  }
+  if (src.id === 'safari') return 'Bookmarks and history found';
+  return 'Profile found';
+}
+
+function summary(src: BrowserImportSource, r: ImportResult): string {
+  if (src.id === 'arc') {
+    return `${r.spaces ?? 0} spaces · ${r.bookmarks} pinned · ${r.todayTabs ?? 0} tabs · ${r.favorites ?? 0} favorites · ${r.history} history`;
+  }
+  return `${r.bookmarks} bookmarks · ${r.history} history`;
 }
 
 export function ImportPanel({ onImported }: Props) {
@@ -38,21 +59,35 @@ export function ImportPanel({ onImported }: Props) {
     };
   }, []);
 
-  const choiceFor = (id: string): Choice => choices[id] ?? { bookmarks: true, history: true };
+  const choiceFor = (id: string): Choice =>
+    choices[id] ?? { bookmarks: true, history: true, structure: true };
   const setChoice = (id: string, patch: Partial<Choice>): void =>
     setChoices((prev) => ({ ...prev, [id]: { ...choiceFor(id), ...patch } }));
 
   const run = async (src: BrowserImportSource): Promise<void> => {
     const c = choiceFor(src.id);
     setRunning(src.id);
-    const res = await tryInvoke('import/run', { source: src.id, bookmarks: c.bookmarks, history: c.history });
+    const res = await tryInvoke('import/run', {
+      source: src.id,
+      bookmarks: c.bookmarks && src.bookmarks,
+      history: c.history && src.history,
+      structure: c.structure && src.structure,
+    });
     setRunning(null);
     if (!res) {
       toast(`Couldn't import from ${src.name}`, 'error');
       return;
     }
+    if (res.error) {
+      toast(res.error, 'error');
+      return;
+    }
     setResults((prev) => ({ ...prev, [src.id]: res }));
-    toast(`Imported ${res.bookmarks} bookmarks and ${res.history} history entries from ${src.name}`);
+    toast(
+      src.id === 'arc'
+        ? `Recreated ${res.spaces ?? 0} spaces with ${res.bookmarks} pinned tabs and ${res.favorites ?? 0} favorites from Arc`
+        : `Imported ${res.bookmarks} bookmarks and ${res.history} history entries from ${src.name}`,
+    );
     onImported?.(src, res);
   };
 
@@ -66,8 +101,8 @@ export function ImportPanel({ onImported }: Props) {
   if (sources.length === 0) {
     return (
       <div className={styles.emptyNote} data-testid="import-none">
-        No Chrome, Brave or Edge profile was found on this Mac. You can still import a Vela export from a
-        file.
+        No Arc, Chrome, Brave, Edge, Safari or Firefox data was found on this Mac. You can still import a Vela
+        export from a file.
       </div>
     );
   }
@@ -79,6 +114,8 @@ export function ImportPanel({ onImported }: Props) {
         const logo = LOGO[src.id];
         const done = results[src.id];
         const busy = running === src.id;
+        const canRun =
+          (c.bookmarks && src.bookmarks) || (c.history && src.history) || (c.structure && src.structure);
         return (
           <div
             key={src.id}
@@ -91,39 +128,63 @@ export function ImportPanel({ onImported }: Props) {
             </span>
             <span className={styles.name}>
               {src.name}
-              <span className={styles.sub}>{src.available ? 'Profile found' : 'Not installed'}</span>
+              <span className={styles.sub} data-tone={src.error ? 'warning' : undefined}>
+                {subtitle(src)}
+              </span>
+              {src.structure ? (
+                <span className={styles.hint}>
+                  Imports the whole sidebar: every Space with its name, emoji and colour, pinned tabs and
+                  folders in order, open tabs, and favorites.
+                </span>
+              ) : null}
             </span>
             {done ? (
               <span className={styles.result} data-testid="import-result">
                 <Icon name="check" size={14} />
-                {done.bookmarks} bookmarks · {done.history} history
+                {summary(src, done)}
               </span>
             ) : (
               <>
                 <span className={styles.checks}>
-                  <label className={styles.check}>
+                  {src.id === 'arc' ? (
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={c.structure}
+                        disabled={!src.available || !src.structure || busy}
+                        onChange={(e) => setChoice(src.id, { structure: e.target.checked })}
+                        data-testid={`import-structure-${src.id}`}
+                      />
+                      Recreate Spaces, pinned tabs and favorites
+                    </label>
+                  ) : (
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={c.bookmarks}
+                        disabled={!src.available || !src.bookmarks || busy}
+                        onChange={(e) => setChoice(src.id, { bookmarks: e.target.checked })}
+                      />
+                      Bookmarks
+                    </label>
+                  )}
+                  <label
+                    className={styles.check}
+                    title={src.available && !src.history ? 'No history database found' : undefined}
+                  >
                     <input
                       type="checkbox"
-                      checked={c.bookmarks}
-                      disabled={!src.available || busy}
-                      onChange={(e) => setChoice(src.id, { bookmarks: e.target.checked })}
-                    />
-                    Bookmarks
-                  </label>
-                  <label className={styles.check}>
-                    <input
-                      type="checkbox"
-                      checked={c.history}
-                      disabled={!src.available || busy}
+                      checked={c.history && src.history}
+                      disabled={!src.available || !src.history || busy}
                       onChange={(e) => setChoice(src.id, { history: e.target.checked })}
                     />
-                    History
+                    {src.available && !src.history ? 'History (none found)' : 'History'}
                   </label>
                 </span>
                 <Button
                   variant="primary"
                   size="sm"
-                  disabled={!src.available || busy || (!c.bookmarks && !c.history) || running !== null}
+                  disabled={!src.available || busy || !canRun || running !== null}
                   testId={`import-run-${src.id}`}
                   onClick={() => void run(src)}
                 >

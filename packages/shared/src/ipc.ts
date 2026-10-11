@@ -184,15 +184,31 @@ export interface UpdateStatus {
   error: string | null;
 }
 
+export type BrowserImportSourceId = 'arc' | 'chrome' | 'brave' | 'edge' | 'safari' | 'firefox';
+
 export interface BrowserImportSource {
-  id: 'chrome' | 'brave' | 'edge';
+  id: BrowserImportSourceId;
   name: string;
   available: boolean;
+  /** Bookmarks can be read from this install. Arc has no bookmarks: its sidebar is `structure`. */
+  bookmarks: boolean;
+  /** A readable history database exists for this install. */
+  history: boolean;
+  /** The whole sidebar (spaces, pinned tabs, folders, favorites) can be recreated (Arc only). */
+  structure: boolean;
+  /** Why the install cannot be read (for example macOS denied access), shown under the name. */
+  error: string | null;
 }
 
 export interface ImportResult {
   bookmarks: number;
   history: number;
+  /** Arc sidebar import only. */
+  spaces?: number;
+  todayTabs?: number;
+  favorites?: number;
+  /** Set when a source could not be read; counts are then partial. */
+  error?: string;
 }
 
 export interface OpenUrlRequest {
@@ -340,7 +356,7 @@ export interface IpcInvokeMap {
 
   'import/sources': { req: undefined; res: BrowserImportSource[] };
   'import/run': {
-    req: { source: BrowserImportSource['id']; bookmarks: boolean; history: boolean };
+    req: { source: BrowserImportSourceId; bookmarks: boolean; history: boolean; structure?: boolean };
     res: ImportResult;
   };
   'export/state': { req: undefined; res: string };
