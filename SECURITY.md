@@ -90,6 +90,15 @@ Electron security checklist point by point against the code, and describes the t
 - **Updates**: electron-updater verifies the sha512 of downloaded artifacts; on macOS/Windows a
   code signature is required for installation (see `RELEASING.md`).
 
+- **Safe browsing** never sends a URL anywhere: lists are downloaded whole and matched locally;
+  a blocked site shows an interstitial and "Visit anyway" is per host, per session.
+- **Password manager**: secrets are encrypted with Electron `safeStorage` (Keychain / DPAPI /
+  libsecret) before they reach SQLite; the login form detector runs in the preload's isolated
+  world and only reports field positions, and fill values travel main → preload, never through the
+  page's JavaScript. Private spaces never offer to save.
+- **Shortcut overrides** are validated accelerators (`acceleratorFromEvent`) and may not take a
+  reserved chord of another command; the page-first delivery of unreserved chords is unchanged.
+
 ## Reporting
 
 Open a private security advisory on the GitHub repository (`Security` → `Advisories`).

@@ -23,11 +23,16 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
   restores lazily, background views are detached so Chromium throttles them, and the shell idles
   at ~110 MB. Measured by `pnpm perf` → [PERF.md](PERF.md).
 - **Auto PiP**, **Boosts** (per-site CSS/JS + Zap element picker), built-in **content blocker**,
-  **reader mode**, downloads, history (full-text), per-site permissions, import from
-  Chrome/Brave/Edge, unpacked Chrome extensions, in-app auto-updates.
+  **reader mode**, downloads, history (full-text), per-site permissions, unpacked Chrome
+  extensions, in-app auto-updates.
 - **Daily-driver basics done right.** HTTP auth prompt, inline PDFs, print and save page, local
   files (open, drop, Finder), private spaces, clear browsing data, HTTPS-first, external-app links
   with a confirmation, default-browser registration, translate via Peek.
+- **Safe browsing** against public phishing/malware lists, checked locally, with an interstitial
+  you can step through. **Customisable shortcuts** (click a chord, press the new one, conflicts
+  explained). **English and French** UI, following the OS or chosen in Settings.
+- **Switch from anywhere**: Arc (the whole sidebar: Spaces, pinned folders, favorites, history),
+  Safari, Firefox, Chrome, Brave, Edge.
 - **Chromium always fresh.** A scheduled workflow (`engine-watch.yml`) bumps Electron within 24 h
   of a stable release, runs the full CI and publishes a release automatically.
 
@@ -59,7 +64,8 @@ the hardening checklist, [DECISIONS.md](DECISIONS.md) for the why, and
 
 ## Keyboard shortcuts
 
-`vela://shortcuts` lists everything. The essentials (⌘ on macOS, Ctrl elsewhere):
+`vela://shortcuts` lists everything and lets you rebind any of it. The defaults (⌘ on macOS,
+Ctrl elsewhere):
 
 | Action                     | Shortcut            |
 | -------------------------- | ------------------- |
@@ -81,5 +87,5 @@ the hardening checklist, [DECISIONS.md](DECISIONS.md) for the why, and
 
 ## Status
 
-v0.1.0 — every P0 and P1 feature from the product spec is implemented and covered by the e2e suite
+v0.3.0 — every P0 and P1 feature from the product spec is implemented and covered by the e2e suite
 (`apps/desktop/e2e`). See [PROGRESS.md](PROGRESS.md) and [CHANGELOG.md](CHANGELOG.md).

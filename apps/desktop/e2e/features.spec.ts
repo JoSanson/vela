@@ -292,6 +292,102 @@ test.describe('import & export', () => {
     }
   });
 
+  test('imports the whole Arc sidebar: spaces, pinned folders, today tabs and favorites', async ({
+    fixtures,
+  }) => {
+    const root = mkdtempSync(join(tmpdir(), 'vela-arc-'));
+    mkdirSync(join(root, 'arc'), { recursive: true });
+    const item = (
+      id: string,
+      parentID: string | null,
+      childrenIds: string[],
+      data: Record<string, unknown>,
+      title: string | null = null,
+    ): unknown[] => [id, { id, parentID, childrenIds, title, createdAt: 700000000, data }];
+    const tab = (id: string, parent: string, url: string, title: string): unknown[] =>
+      item(id, parent, [], { tab: { savedURL: url, savedTitle: title, timeLastActiveAt: 700000000 } });
+    const container = (id: string, spaceId: string, children: string[]): unknown[] =>
+      item(id, null, children, { itemContainer: { containerType: { spaceItems: { _0: spaceId } } } });
+    const sidebar = {
+      version: 1,
+      sidebar: {
+        containers: [
+          { global: {} },
+          {
+            spaces: [
+              'space-work',
+              {
+                id: 'space-work',
+                title: 'Work',
+                containerIDs: ['unpinned', 'work-unpinned', 'pinned', 'work-pinned'],
+                customInfo: { iconType: { emoji: 128187, emoji_v2: '💻' } },
+                profile: { default: true },
+              },
+              'space-play',
+              {
+                id: 'space-play',
+                title: 'Play',
+                containerIDs: ['unpinned', 'play-unpinned', 'pinned', 'play-pinned'],
+                customInfo: { iconType: { emoji_v2: '🎮' } },
+                profile: { default: true },
+              },
+            ],
+            items: [
+              ...container('work-pinned', 'space-work', ['folder-docs', 'tab-mail']),
+              ...item('folder-docs', 'work-pinned', ['tab-docs'], { list: {} }, 'Docs'),
+              ...tab('tab-docs', 'folder-docs', `${fixtures}/page/ArcDocs`, 'Arc docs'),
+              ...tab('tab-mail', 'work-pinned', `${fixtures}/page/ArcMail`, 'Arc mail'),
+              ...container('work-unpinned', 'space-work', ['tab-today']),
+              ...tab('tab-today', 'work-unpinned', `${fixtures}/page/ArcToday`, 'Arc today'),
+              ...container('play-pinned', 'space-play', []),
+              ...container('play-unpinned', 'space-play', ['tab-game']),
+              ...tab('tab-game', 'play-unpinned', `${fixtures}/page/ArcGame`, 'Arc game'),
+              ...item('top-default', null, ['fav-1'], {
+                itemContainer: { containerType: { topApps: { _0: { default: true } } } },
+              }),
+              ...tab('fav-1', 'top-default', `${fixtures}/page/ArcFav`, 'Arc favorite'),
+            ],
+            topAppsContainerIDs: [{ default: true }, 'top-default'],
+          },
+        ],
+      },
+    };
+    writeFileSync(join(root, 'arc', 'StorableSidebar.json'), JSON.stringify(sidebar));
+    const vela = await launchVela({ fixtures, env: { VELA_IMPORT_ROOT: root } });
+    try {
+      const sources = await evalMain<{ id: string; available: boolean; structure: boolean }[]>(
+        vela,
+        'return __vela.importer.detectSources()',
+      );
+      expect(sources.find((s) => s.id === 'arc')).toMatchObject({ available: true, structure: true });
+      const result = await evalMain<Record<string, number>>(
+        vela,
+        "return __vela.importer.runImport('arc', true, true, true)",
+      );
+      expect(result).toMatchObject({ spaces: 2, bookmarks: 2, todayTabs: 2, favorites: 1 });
+      const st = await vela.state();
+      const spaces = Object.values(st.spaces);
+      expect(spaces.map((s) => `${s.emoji} ${s.name}`)).toEqual(
+        expect.arrayContaining(['💻 Work', '🎮 Play']),
+      );
+      const work = spaces.find((s) => s.name === 'Work');
+      const docs = Object.values(st.folders).find((f) => f.name === 'Docs');
+      expect(docs?.spaceId).toBe(work?.id);
+      expect(docs?.children.map((c) => st.tabs[c]?.url)).toEqual([`${fixtures}/page/ArcDocs`]);
+      const byUrl = (u: string) => Object.values(st.tabs).find((t) => t.url === `${fixtures}/page/${u}`);
+      expect(byUrl('ArcMail')).toMatchObject({ kind: 'pinned', spaceId: work?.id });
+      expect(byUrl('ArcToday')).toMatchObject({ kind: 'today', spaceId: work?.id });
+      expect(byUrl('ArcGame')).toMatchObject({ kind: 'today' });
+      expect(byUrl('ArcFav')).toMatchObject({ kind: 'favorite' });
+      await evalMain(vela, `__vela.ctx.activateSpace(${JSON.stringify(work?.id)})`);
+      await expect(vela.shell.locator('[data-dnd-type="folder"]')).toHaveCount(1);
+      await vela.shot('34-import-arc');
+    } finally {
+      await vela.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('export → import round-trips the whole state', async ({ vela, fixtures }) => {
     const a = await vela.openTab(`${fixtures}/page/Exported`);
     await vela.command('pinTab');

@@ -171,7 +171,6 @@ quarantines the file and restores the newest backup (or starts fresh) with a toa
 to parse are skipped individually. Saves are diff-based upserts and retried with backoff instead of
 being dropped when the disk is full.
 
-<<<<<<< HEAD
 ## D024 — Windows show Spaces; a Space lives in one window at a time
 
 Multi-window replaces D011. Every main window displays exactly one Space; opening a Space that
@@ -182,9 +181,8 @@ views re-parented to the acting window, like a system sheet. Each renderer sees 
 as the Space of its own window (`window/space`), while main's global `activeSpaceId` follows
 focus. ⌘N opens a window on the first Space no window displays, creating one if needed.
 
-=======
 
-## D024 — Browser import: Arc keeps its structure, Safari goes through XML plists
+## D025 — Browser import: Arc keeps its structure, Safari goes through XML plists
 
 Arc's `StorableSidebar.json` is mapped 1:1 instead of being flattened into bookmarks: each Arc
 space becomes a Vela Space (name, emoji, theme derived from `primaryColorPalette.midTone` with the
@@ -203,4 +201,26 @@ but `open` fails with EPERM, so detection opens the files and reports "Grant Vel
 Access…" instead of listing Safari as available. Firefox uses the most recently modified
 `places.sqlite` across profiles; `profiles.ini` is not consulted. Every sqlite read goes through a
 temp copy including `-wal`/`-shm`/`-journal` siblings.
->>>>>>> worktree-agent-afe1d671262b811c8
+
+## D026 — Safe browsing from local lists, not a remote lookup API
+
+Known phishing and malware URLs are checked against lists kept on disk (URLhaus hosts and the
+OpenPhish feed, bundled at build time by `scripts/fetch-safebrowsing.mjs` and refreshed daily
+into `userData/safebrowsing.json`). Google Safe Browsing's Update API would be more complete but
+needs an API key, quota and a privacy story for hash prefixes; the local lists cost nothing, never
+send a URL anywhere and are good enough to stop the bulk of what people actually click. The check
+runs in the content blocker's always-on `onBeforeRequest` for main frames: the request is
+cancelled, and the tab's `did-fail-load` turns that failure into the interstitial (racing
+`loadURL` against Chromium's own error page proved order-dependent). "Visit anyway" allows the
+host until restart only.
+
+## D027 — Localisation with a 90-line ICU subset and typed dictionaries
+
+Strings live in `packages/shared/src/i18n/{en,fr}/<area>.ts` as flat objects; the French file
+`satisfies Record<keyof typeof en, string>` so a missing translation is a type error, and the unit
+test refuses empty strings. The runtime supports `{name}` and `{n, plural, …}` only, resolved with
+`Intl.PluralRules`; i18next/FormatJS would add ~100 kB to each renderer for features a browser
+shell does not need. The locale is `prefs.language` ('system' | 'en' | 'fr') resolved against
+`app.getLocale()` (pinned by `VELA_LOCALE` in tests); main rebuilds the application menu on change
+and every renderer re-renders through `useT()`. English messages are byte-identical to the
+previous hard-coded strings so the e2e suite doubles as a regression test for the extraction.

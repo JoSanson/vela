@@ -8,19 +8,24 @@ All notable changes to Vela are documented here. The format follows
 
 ### Added
 
-<<<<<<< HEAD
 - Password manager: logins are offered to be saved after a sign-in, encrypted with the OS
   keychain, and filled from a popover under the login field; Settings > Passwords.
 - Multi-window (D024): ⌘N opens a window on another Space; Spaces move between windows, overlays
   and Peek follow the active window.
-=======
 - Import from Arc (the whole sidebar: Spaces with name, emoji and colour, pinned tabs and nested
   folders in order, open tabs, favorites, plus history), Safari (bookmarks, Reading List and
   history; asks for Full Disk Access when macOS denies the read) and Firefox (bookmarks and
   history from the most recent profile), next to Chrome, Brave and Edge.
->>>>>>> worktree-agent-afe1d671262b811c8
+- Safe browsing: known phishing and malware URLs (URLhaus, OpenPhish lists bundled and refreshed
+  daily, checked locally) are stopped before they load, with an interstitial and a way through.
+- Customisable keyboard shortcuts (vela://shortcuts): click a chord to record a new one, conflicts
+  are explained, custom chords are badged and reset in one click.
+- Language setting (System / English / Français): menus, settings and internal pages follow it live.
 
-## [0.2.0] - 2026-10-11
+### Fixed
+
+- Command bar and switcher no longer lose the keyboard selection when the pointer happens to rest
+  over the list while results arrive.
 
 ## [0.2.0] - 2026-10-11
 

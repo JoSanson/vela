@@ -98,6 +98,30 @@ overlay view (see DECISIONS.md D010): command bar, Ctrl+Tab switcher, space edit
 permission prompts, update notes and the floating sidebar shown when hovering the hidden sidebar's
 edge. Peek content is a separate view stacked above the overlay.
 
+## Windows
+
+Every main window shows exactly one Space and a Space lives in one window at a time (D024).
+`WindowManager` keeps the focus order (`main` is the focused or most recently focused window),
+`TabManager` attaches each live view to the window of its Space and re-parents the single overlay
+and Peek views to the window being acted on. Activating a Space from a window that does not show
+it swaps the two windows' Spaces rather than duplicating one.
+
+## Safety and privacy features
+
+`safeBrowsing.ts` loads the bundled phishing/malware lists (`resources/safebrowsing/list.json`)
+and refreshes them daily; `blocker.ts` consults it for every main-frame request before the ad
+engine, and `TabManager` turns the cancelled load into the `vela://error/?kind=unsafe`
+interstitial (D026). `credentials.ts` is the password manager: secrets are encrypted with
+`safeStorage`, login forms are detected by the tab preload in an isolated world, and the autofill
+and save prompts are overlay views positioned under the field.
+
+## Localisation
+
+`packages/shared/src/i18n` holds typed dictionaries (English is the key set, French must cover
+it) and a dependency-free ICU subset (D027). Main exposes `ctx.i18n.t` for menus and dialogs;
+renderers call `useT()` from `lib/i18n.ts`, fed by the snapshot (`prefs.language` +
+`systemLocale`). Changing the language in Settings rebuilds the menu and re-renders every window.
+
 ## Build & release
 
 electron-vite bundles `main`, `preload` (shell/tab, single-file) and the multi-page renderer
