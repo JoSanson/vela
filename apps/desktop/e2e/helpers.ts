@@ -209,6 +209,7 @@ export async function launchVela(
       VELA_USER_DATA: userData,
       VELA_DOWNLOAD_DIR: userData,
       VELA_E2E: '1',
+      VELA_LOCALE: 'en-US',
       ELECTRON_ENABLE_LOGGING: '0',
       ...(opts.env ?? {}),
     },

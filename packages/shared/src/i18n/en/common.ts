@@ -1,0 +1,16 @@
+export const common = {
+  'common.cancel': 'Cancel',
+  'common.done': 'Done',
+  'common.ok': 'OK',
+  'common.close': 'Close',
+  'common.delete': 'Delete',
+  'common.remove': 'Remove',
+  'common.save': 'Save',
+  'common.copy': 'Copy',
+  'common.open': 'Open',
+  'common.search': 'Search',
+  'common.loading': 'Loading…',
+  'common.back': 'Back',
+  'common.retry': 'Try again',
+  'common.tabs.count': '{n, plural, one {# tab} other {# tabs}}',
+} as const;

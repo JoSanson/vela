@@ -1,7 +1,16 @@
 import { SEARCH_ENGINES } from '@vela/core';
-import type { AutoArchiveHours, ClearDataRequest, Prefs } from '@vela/shared';
+import {
+  isLocale,
+  LANGUAGE_NAMES,
+  LOCALES,
+  resolveLocale,
+  type AutoArchiveHours,
+  type ClearDataRequest,
+  type Prefs,
+} from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { useT } from '../../lib/i18n';
 import { tryInvoke, useSnapshot } from '../lib';
 import { useToast } from '../Toast';
 import { Button, Card, Row, Segmented, Select, TextInput, Toggle } from '../ui';
@@ -32,6 +41,7 @@ const CLEAR_LABELS: { key: keyof ClearDataRequest; label: string }[] = [
 export function GeneralSection() {
   const { snap, setPrefs } = useSnapshot();
   const { toast } = useToast();
+  const t = useT();
   const prefs = snap?.prefs;
   const [isDefault, setIsDefault] = useState<boolean | null>(null);
   useEffect(() => {
@@ -102,6 +112,23 @@ export function GeneralSection() {
             ]}
             onChange={(v) => update({ theme: v })}
             testId="settings-theme"
+          />
+        </Row>
+        <Row label={t('settings.language.label')} hint={t('settings.language.hint')}>
+          <Select
+            value={prefs.language}
+            options={[
+              {
+                value: 'system',
+                label: t('settings.language.system', {
+                  name: LANGUAGE_NAMES[resolveLocale('system', snap?.systemLocale ?? 'en')],
+                }),
+              },
+              ...LOCALES.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] })),
+            ]}
+            onChange={(v) => update({ language: isLocale(v) ? v : 'system' })}
+            testId="settings-language"
+            aria-label={t('settings.language.label')}
           />
         </Row>
         <Row label="Hide sidebar" hint="Start with the sidebar collapsed. Hover the left edge to peek at it.">

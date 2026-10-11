@@ -22,6 +22,7 @@ import type { AuthManager } from './auth';
 import type { CredentialsManager } from './credentials';
 import type { SafeBrowsing } from './safeBrowsing';
 import type { ExternalLinkManager } from './externalLinks';
+import type { I18n } from './i18n';
 import type { MainWindow } from './windows/mainWindow';
 import type { WindowManager } from './windows/windowManager';
 
@@ -44,6 +45,7 @@ export interface AppContext {
   external: ExternalLinkManager;
   credentials: CredentialsManager;
   safeBrowsing: SafeBrowsing;
+  i18n: I18n;
   boosts: BoostsManager;
   blocker: ContentBlocker;
   extensions: ExtensionManager;

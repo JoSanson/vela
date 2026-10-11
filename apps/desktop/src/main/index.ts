@@ -24,6 +24,7 @@ import { StateRepo } from './db/stateRepo';
 import { registerCoreHandlers } from './ipc/handlers';
 import { emit } from './ipc/typed';
 import { installMenu } from './menu';
+import { I18n } from './i18n';
 import { OverlayManager } from './overlay';
 import { PeekManager } from './peek';
 import { installPageContextMenu } from './contextMenu';
@@ -218,12 +219,13 @@ async function boot(): Promise<void> {
   const boosts = new BoostsManager(new BoostsRepo(db));
   const blocker = new ContentBlocker(prefs, userData);
   const safeBrowsing = new SafeBrowsing(prefs, userData);
+  const i18n = new I18n(prefs);
   void safeBrowsing.init();
   blocker.mainFrameGuard = (url, wc) => {
     const threat = safeBrowsing.check(url);
     if (!threat || !wc) return false;
-    // Replace the request with the interstitial; the dangerous page never starts loading.
-    setImmediate(() => void wc.loadURL(errorPageUrl('unsafe', url, threat)).catch(() => undefined));
+    // The request is cancelled; the tab's did-fail-load then shows the interstitial in its place.
+    tabs.markUnsafe(wc, url, threat);
     return true;
   };
   const extensions = new ExtensionManager(prefs, sessions);
@@ -247,6 +249,7 @@ async function boot(): Promise<void> {
     external,
     credentials,
     safeBrowsing,
+    i18n,
     boosts,
     blocker,
     extensions,
@@ -417,6 +420,13 @@ async function boot(): Promise<void> {
     }
   });
   let lastOverrides = JSON.stringify(prefs.value.shortcutOverrides);
+  let lastLocale = i18n.locale;
+  prefs.subscribe(() => {
+    if (i18n.locale !== lastLocale) {
+      lastLocale = i18n.locale;
+      installMenu(c);
+    }
+  });
   prefs.subscribe((p) => {
     const overrides = JSON.stringify(p.shortcutOverrides);
     if (overrides !== lastOverrides) {

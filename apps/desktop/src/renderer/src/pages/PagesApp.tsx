@@ -2,6 +2,7 @@ import type { CoreAction } from '@vela/core';
 import type { Prefs, ShellSnapshot } from '@vela/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { setFaviconToken } from '../components/Favicon';
+import { setUiLocale } from '../lib/i18n';
 import { applyDelta } from '@vela/core';
 import { resolveMode } from '../lib/theme';
 import { ArchivePage } from './ArchivePage';
@@ -48,6 +49,9 @@ export function PagesApp() {
   }, [page]);
 
   const [snap, setSnap] = useState<ShellSnapshot | null>(null);
+  useEffect(() => {
+    if (snap) setUiLocale(snap.prefs.language, snap.systemLocale);
+  }, [snap]);
   const [failed, setFailed] = useState(false);
   const refresh = useCallback(async (): Promise<void> => {
     const s = await tryInvoke('snapshot/get', undefined);

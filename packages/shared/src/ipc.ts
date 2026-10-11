@@ -18,6 +18,8 @@ export interface ShellSnapshot {
   faviconToken: string;
   /** Which tab (if any) this window is a "Little" window for. */
   little: { tabId: Id } | null;
+  /** OS language (BCP 47); the UI locale is `resolveLocale(prefs.language, systemLocale)`. */
+  systemLocale: string;
 }
 
 export interface Layout {

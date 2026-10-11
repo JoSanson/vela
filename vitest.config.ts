@@ -13,6 +13,14 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'shared',
+          root: './packages/shared',
+          include: ['src/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
           name: 'desktop-main',
           root: './apps/desktop',
           include: ['src/main/**/*.test.ts'],

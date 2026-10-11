@@ -37,6 +37,7 @@ export function registerCoreHandlers(ctx: AppContext): void {
       overlay: overlay.current,
       faviconToken: ctx.favicons.token,
       little: windows.littleFor(event.sender.id) ? { tabId: 'little' } : null,
+      systemLocale: ctx.i18n.systemLocale,
     };
   });
 

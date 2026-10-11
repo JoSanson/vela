@@ -1,3 +1,5 @@
+import type { LanguagePref } from './i18n';
+
 export type AutoArchiveHours = 12 | 24 | 168 | 720;
 
 export interface Prefs {
@@ -33,6 +35,8 @@ export interface Prefs {
   safeBrowsing: boolean;
   /** Custom accelerators by shortcut id (see packages/shared/src/shortcuts.ts). */
   shortcutOverrides: Record<string, string>;
+  /** UI language; 'system' follows the OS. */
+  language: LanguagePref;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -60,6 +64,7 @@ export const DEFAULT_PREFS: Prefs = {
   askWhereToSave: false,
   safeBrowsing: true,
   shortcutOverrides: {},
+  language: 'system',
 };
 
 export const SIDEBAR_MIN_WIDTH = 200;

@@ -9,6 +9,7 @@ import {
 import { create } from 'zustand';
 import { setFaviconToken } from '../components/Favicon';
 import { vela } from './api';
+import { setUiLocale } from './i18n';
 
 export interface ShellStore {
   ready: boolean;
@@ -19,6 +20,7 @@ export interface ShellStore {
   rev: number;
   windowSpaceId: Id | null;
   prefs: Prefs;
+  systemLocale: string;
   platform: Platform;
   version: string;
   little: { tabId: Id } | null;
@@ -81,8 +83,10 @@ export const useShell = create<ShellStore>((set) => ({
   siteControlOpen: false,
   toast: null,
   showToast: (toast) => set({ toast }),
+  systemLocale: 'en',
   hydrate: (snap) => {
     setFaviconToken(snap.faviconToken);
+    setUiLocale(snap.prefs.language, snap.systemLocale);
     set({
       ready: true,
       raw: snap.state,
@@ -90,6 +94,7 @@ export const useShell = create<ShellStore>((set) => ({
       rev: snap.rev,
       windowSpaceId: snap.spaceId,
       prefs: snap.prefs,
+      systemLocale: snap.systemLocale,
       platform: snap.platform,
       version: snap.version,
       little: snap.little,
@@ -100,7 +105,11 @@ export const useShell = create<ShellStore>((set) => ({
   },
   setCore: (core) => set((s) => ({ raw: core, core: viewFor(core, s.windowSpaceId) })),
   setWindowSpace: (spaceId) => set((s) => ({ windowSpaceId: spaceId, core: viewFor(s.raw, spaceId) })),
-  setPrefs: (prefs) => set({ prefs }),
+  setPrefs: (prefs) =>
+    set((s) => {
+      setUiLocale(prefs.language, s.systemLocale);
+      return { prefs };
+    }),
   setOverlay: (overlay) => set({ overlay }),
   setFullscreen: (fullscreen) => set({ fullscreen }),
   setSidebarVisible: (sidebarVisible) => set({ sidebarVisible }),

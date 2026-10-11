@@ -253,6 +253,13 @@ export class TabManager {
    * capturePage() on a WebContents that never committed, or whose navigation is parked on an
    * HTTP auth challenge, kills the browser process (Electron 44 / Chromium 152, reproduced).
    */
+  /** Main-frame URLs safe browsing refused, by WebContents: their failure becomes the interstitial. */
+  private readonly unsafe = new Map<number, { url: string; threat: string }>();
+
+  markUnsafe(wc: Electron.WebContents, url: string, threat: string): void {
+    this.unsafe.set(wc.id, { url, threat });
+  }
+
   canCapture(wc: WebContents): boolean {
     return (
       !wc.isDestroyed() && this.committed.has(wc.id) && !this.authPending.has(wc.id) && wc.getURL() !== ''
@@ -486,7 +493,14 @@ export class TabManager {
       this.layout();
     });
     wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
-      if (!isMainFrame || ERROR_IGNORED_CODES.has(code)) return;
+      if (!isMainFrame) return;
+      const unsafe = this.unsafe.get(wc.id);
+      if (unsafe && unsafe.url === url) {
+        this.unsafe.delete(wc.id);
+        void wc.loadURL(errorPageUrl('unsafe', url, unsafe.threat)).catch(() => undefined);
+        return;
+      }
+      if (ERROR_IGNORED_CODES.has(code)) return;
       const fallback = this.fallbackFor(url);
       if (fallback) {
         void wc.loadURL(fallback).catch(() => undefined);
