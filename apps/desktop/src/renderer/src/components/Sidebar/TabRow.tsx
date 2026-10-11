@@ -14,6 +14,8 @@ interface Props {
   active: boolean;
   depth?: number;
   inSplit?: boolean;
+  /** Half of a split pill: narrower, shares the row with its sibling pane. */
+  compact?: boolean;
   container: Container;
   index: number;
   onDragStart?: (e: PointerEvent<HTMLElement>, item: DragItem) => void;
@@ -24,6 +26,7 @@ export const TabRow = memo(function TabRow({
   active,
   depth = 0,
   inSplit = false,
+  compact = false,
   container,
   index,
   onDragStart,
@@ -122,8 +125,8 @@ export const TabRow = memo(function TabRow({
       data-dnd-container={JSON.stringify(container)}
       data-dnd-index={index}
       data-dnd-depth={depth}
-      className={`${styles.row} ${active ? styles.active : ''} ${inSplit ? styles.inSplit : ''} ${tab.sleeping ? styles.sleeping : ''}`}
-      style={{ paddingLeft: 8 + depth * 14 }}
+      className={`${styles.row} ${active ? styles.active : ''} ${inSplit ? styles.inSplit : ''} ${compact ? styles.compact : ''} ${tab.sleeping ? styles.sleeping : ''}`}
+      style={{ paddingLeft: compact ? 6 : 8 + depth * 14 }}
       onClick={activate}
       onDoubleClick={() => setEditing(tab.id)}
       onMouseDown={onMouseDown}

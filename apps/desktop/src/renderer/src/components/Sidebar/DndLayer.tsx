@@ -40,6 +40,17 @@ export function DndLayer({ dnd }: { dnd: DndState | null }) {
           }}
         />
       )}
+      {t?.kind === 'pair' && (
+        <div
+          className={styles.into}
+          style={{
+            transform: `translate(${t.rect.left}px, ${t.rect.top}px)`,
+            width: t.rect.width,
+            height: t.rect.height,
+          }}
+          aria-label={tr('shell.dnd.openInSplit')}
+        />
+      )}
       {t?.kind === 'into' && (
         <div
           className={styles.into}

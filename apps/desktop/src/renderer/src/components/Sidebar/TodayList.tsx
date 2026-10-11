@@ -46,6 +46,8 @@ export function TodayList({ onDragStart }: Props) {
     });
   };
   const [hintBefore, hintAfter] = t('shell.today.emptyHint', { hours: '\u0000' }).split('\u0000');
+  const panesInToday = (space.split?.panes ?? []).filter((pid) => tabs.some((x) => x.id === pid));
+  const splitToday = panesInToday.length >= 2 ? panesInToday : [];
   return (
     <div
       role="group"
@@ -82,17 +84,41 @@ export function TodayList({ onDragStart }: Props) {
         <kbd className={styles.kbd}>{modKey}T</kbd>
       </button>
       <div className={styles.list} ref={listRef}>
-        {tabs.map((tab, i) => (
-          <TabRow
-            key={tab.id}
-            tab={tab}
-            active={space.activeTabId === tab.id}
-            inSplit={!!space.split?.panes.includes(tab.id)}
-            container={container}
-            index={i}
-            onDragStart={onDragStart}
-          />
-        ))}
+        {tabs.map((tab, i) => {
+          // Today tabs open side by side share one pill (Arc's split row), placed where the first sits.
+          if (splitToday.includes(tab.id)) {
+            if (tab.id !== splitToday[0]) return null;
+            return (
+              <div key="split" className={styles.splitGroup} data-testid="split-group">
+                {splitToday.map((pid) => {
+                  const pane = tabs.find((x) => x.id === pid);
+                  return pane ? (
+                    <TabRow
+                      key={pane.id}
+                      tab={pane}
+                      active={space.activeTabId === pane.id}
+                      compact
+                      container={container}
+                      index={tabs.indexOf(pane)}
+                      onDragStart={onDragStart}
+                    />
+                  ) : null;
+                })}
+              </div>
+            );
+          }
+          return (
+            <TabRow
+              key={tab.id}
+              tab={tab}
+              active={space.activeTabId === tab.id}
+              inSplit={!!space.split?.panes.includes(tab.id)}
+              container={container}
+              index={i}
+              onDragStart={onDragStart}
+            />
+          );
+        })}
       </div>
       {tabs.length === 0 && !hasPinned && favoriteTabs(core, space.id).length === 0 && (
         <p className={styles.emptyHint}>

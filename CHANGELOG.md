@@ -21,6 +21,8 @@ All notable changes to Vela are documented here. The format follows
 - Spaces palette (⌘⇧S, the layers button next to the Space dots, Spaces menu): every Space as a
   card with its colour, emoji, name, profile and tab count, searchable and keyboard driven; the row
   of dots scrolls and keeps the active Space in view (D031).
+- Drop a tab onto another tab in the sidebar to open the two side by side; the pair then shows as
+  one split pill in the Today list, as in Arc.
 - Shortcuts aligned with Arc's defaults: ⌘⇧C copies the URL (⌘⇧⌥C as Markdown), ⌘⇧N opens a
   private window (its own throwaway profile and Space), ⌃⌘N new Space, ⌘⇧K clears the unpinned
   tabs, ⌘1…9 jump to the Nth tab, ⌃⇧+ / ⌃⇧- add and close a split, ⌃⇧1…4 focus a pane, ⌘⇧L

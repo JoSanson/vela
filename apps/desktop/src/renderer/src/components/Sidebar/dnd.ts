@@ -17,7 +17,9 @@ export type DropTarget =
   | { kind: 'into'; folderId: Id; rect: DOMRect }
   | { kind: 'favorites'; index: number; x: number; y: number; height: number }
   | { kind: 'space'; spaceId: Id; rect: DOMRect }
-  | { kind: 'split'; side: 'left' | 'right'; rect: DOMRect };
+  | { kind: 'split'; side: 'left' | 'right'; rect: DOMRect }
+  /** Dropped onto another tab: the two open side by side (Arc's gesture for a split). */
+  | { kind: 'pair'; tabId: Id; rect: DOMRect };
 
 export interface DndState {
   item: DragItem;
@@ -64,6 +66,8 @@ export function hitTest(x: number, y: number, item: DragItem, root: HTMLElement)
       if (item.type === 'folder') return null;
       return { kind: 'into', folderId: id, rect };
     }
+    if (item.type === 'tab' && type === 'tab' && rel > 0.3 && rel < 0.7)
+      return { kind: 'pair', tabId: id, rect };
     if (item.type === 'folder' && container.kind === 'today') return null;
     const after = rel >= 0.5;
     return {
@@ -145,6 +149,18 @@ export function performDrop(item: DragItem, target: DropTarget): void {
       if (item.type === 'tab')
         dispatch({ type: 'tab/move', id: item.id, to: { container: target.container, index }, now });
       else dispatch({ type: 'folder/move', id: item.id, to: { container: target.container, index } });
+      return;
+    }
+    case 'pair': {
+      // One split of exactly these two: panes that were open with the target drop out first.
+      const space = core.spaces[core.activeSpaceId];
+      if (!space || target.tabId === item.id) return;
+      for (const pane of space.split?.panes ?? []) {
+        if (pane !== target.tabId && pane !== item.id)
+          dispatch({ type: 'split/remove', spaceId: space.id, tabId: pane });
+      }
+      dispatch({ type: 'tab/activate', id: target.tabId, now });
+      dispatch({ type: 'split/add', spaceId: space.id, tabId: item.id });
       return;
     }
     case 'into': {

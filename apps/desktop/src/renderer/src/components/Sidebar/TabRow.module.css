@@ -35,6 +35,21 @@
   background: var(--surface-hover);
 }
 
+.compact {
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.compact:not(.active) {
+  background: transparent;
+}
+
+.compact:not(.active):hover {
+  background: var(--surface-hover);
+}
+
 .sleeping .title {
   color: var(--fg-muted);
 }
