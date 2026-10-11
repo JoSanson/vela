@@ -20,6 +20,7 @@ export const overlay = {
   'overlay.command.pinTab': 'Épingler / désépingler l’onglet',
   'overlay.command.archiveView': 'Onglets archivés',
   'overlay.command.clearSiteCookies': 'Effacer les cookies de ce site',
+  'overlay.toast.urlCopied': 'Lien copié',
   'overlay.toast.siteCookiesCleared':
     '{n, plural, one {# cookie effacé} other {# cookies effacés}} pour {host}',
   'overlay.command.history': 'Historique',

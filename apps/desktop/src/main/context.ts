@@ -55,7 +55,8 @@ export interface AppContext {
   /** Shows a space in a window (the focused one by default) and makes it the active space. */
   activateSpace: (id: Id, mw?: MainWindow | null) => void;
   /** ⌘N: a new main window showing a space not displayed yet (created if needed). */
-  openWindow: () => Promise<MainWindow | null>;
+  /** Opens a window on `spaceId`, else on the next Space no window shows (or a fresh one). */
+  openWindow: (spaceId?: Id) => Promise<MainWindow | null>;
   /** Wall-clock timestamps (Date.now()) of startup milestones. */
   perf: Record<string, number>;
   version: string;

@@ -23,6 +23,27 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     reserved: true,
   },
   { id: 'pinTab', label: 'Pin / unpin tab', accelerator: 'CmdOrCtrl+D', group: 'tabs', reserved: false },
+  {
+    id: 'copyUrl',
+    label: 'Copy current URL',
+    accelerator: 'CmdOrCtrl+Shift+C',
+    group: 'tabs',
+    reserved: true,
+  },
+  {
+    id: 'copyUrlMarkdown',
+    label: 'Copy current URL as Markdown',
+    accelerator: 'CmdOrCtrl+Shift+Alt+C',
+    group: 'tabs',
+    reserved: true,
+  },
+  {
+    id: 'clearToday',
+    label: 'Clear unpinned tabs',
+    accelerator: 'CmdOrCtrl+Shift+K',
+    group: 'tabs',
+    reserved: true,
+  },
   { id: 'nextTabMru', label: 'Switch to recent tab', accelerator: 'Ctrl+Tab', group: 'tabs', reserved: true },
   {
     id: 'prevTabMru',
@@ -46,6 +67,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     reserved: false,
   },
   { id: 'reload', label: 'Reload', accelerator: 'CmdOrCtrl+R', group: 'navigation', reserved: true },
+  { id: 'stop', label: 'Stop loading', accelerator: 'CmdOrCtrl+.', group: 'navigation', reserved: true },
   {
     id: 'hardReload',
     label: 'Hard reload',
@@ -76,20 +98,8 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     group: 'view',
     reserved: false,
   },
-  {
-    id: 'splitView',
-    label: 'Add split view',
-    accelerator: 'CmdOrCtrl+Shift+D',
-    group: 'view',
-    reserved: true,
-  },
-  {
-    id: 'closeSplit',
-    label: 'Close split pane',
-    accelerator: 'CmdOrCtrl+Shift+W',
-    group: 'view',
-    reserved: true,
-  },
+  { id: 'splitView', label: 'Add split view', accelerator: 'Ctrl+Shift+=', group: 'view', reserved: true },
+  { id: 'closeSplit', label: 'Close split pane', accelerator: 'Ctrl+Shift+-', group: 'view', reserved: true },
   {
     id: 'fullscreen',
     label: 'Toggle full screen',
@@ -111,12 +121,12 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     group: 'spaces',
     reserved: false,
   },
-  { id: 'newSpace', label: 'New space', accelerator: 'CmdOrCtrl+Shift+N', group: 'spaces', reserved: true },
+  { id: 'newSpace', label: 'New space', accelerator: 'Ctrl+CmdOrCtrl+N', group: 'spaces', reserved: true },
   { id: 'allSpaces', label: 'All spaces', accelerator: 'CmdOrCtrl+Shift+S', group: 'spaces', reserved: true },
   {
     id: 'archiveView',
     label: 'Archived tabs',
-    accelerator: 'CmdOrCtrl+Shift+A',
+    accelerator: 'CmdOrCtrl+Shift+L',
     group: 'spaces',
     reserved: true,
   },
@@ -124,6 +134,13 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: 'history', label: 'History', accelerator: 'CmdOrCtrl+Y', group: 'window', reserved: true },
   { id: 'settings', label: 'Settings', accelerator: 'CmdOrCtrl+,', group: 'window', reserved: true },
   { id: 'newWindow', label: 'New window', accelerator: 'CmdOrCtrl+N', group: 'window', reserved: true },
+  {
+    id: 'newPrivateWindow',
+    label: 'New private window',
+    accelerator: 'CmdOrCtrl+Shift+N',
+    group: 'window',
+    reserved: true,
+  },
   { id: 'openFile', label: 'Open file', accelerator: 'CmdOrCtrl+O', group: 'window', reserved: true },
   {
     id: 'littleWindow',
@@ -142,9 +159,30 @@ export const SPACE_SHORTCUTS: ShortcutDef[] = Array.from({ length: 9 }, (_, i) =
   reserved: false,
 }));
 
-export const UNRESERVED_SHORTCUTS: ShortcutDef[] = [...SHORTCUTS, ...SPACE_SHORTCUTS].filter(
-  (s) => !s.reserved,
-);
+/** ⌘1…9 jump to the Nth tab of the sidebar (pinned in tree order, then Today), as in Arc. */
+export const TAB_SHORTCUTS: ShortcutDef[] = Array.from({ length: 9 }, (_, i) => ({
+  id: `tab${i + 1}`,
+  label: `Go to tab ${i + 1}`,
+  accelerator: `CmdOrCtrl+${i + 1}`,
+  group: 'tabs',
+  reserved: true,
+}));
+
+/** ⌃⇧1…4 focus the Nth split pane. */
+export const SPLIT_SHORTCUTS: ShortcutDef[] = Array.from({ length: 4 }, (_, i) => ({
+  id: `split${i + 1}`,
+  label: `Focus split pane ${i + 1}`,
+  accelerator: `Ctrl+Shift+${i + 1}`,
+  group: 'view',
+  reserved: true,
+}));
+
+export const UNRESERVED_SHORTCUTS: ShortcutDef[] = [
+  ...SHORTCUTS,
+  ...SPACE_SHORTCUTS,
+  ...TAB_SHORTCUTS,
+  ...SPLIT_SHORTCUTS,
+].filter((s) => !s.reserved);
 
 export interface KeyLike {
   key: string;
@@ -199,7 +237,12 @@ export function shortcutForEvent(
 /** User overrides: shortcut id → accelerator (prefs.shortcutOverrides). */
 export type ShortcutOverrides = Record<string, string>;
 
-export const ALL_SHORTCUTS: readonly ShortcutDef[] = [...SHORTCUTS, ...SPACE_SHORTCUTS];
+export const ALL_SHORTCUTS: readonly ShortcutDef[] = [
+  ...SHORTCUTS,
+  ...SPACE_SHORTCUTS,
+  ...TAB_SHORTCUTS,
+  ...SPLIT_SHORTCUTS,
+];
 
 /** Every shortcut with the user's accelerators applied; ids and reserved flags never change. */
 export function resolveShortcuts(overrides: ShortcutOverrides = {}): ShortcutDef[] {

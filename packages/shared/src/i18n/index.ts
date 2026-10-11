@@ -108,8 +108,8 @@ export function createTranslator(locale: Locale): Translator {
 
 /** Localized label of a shortcut definition (`shortcut.<id>`, `shortcut.space` for Ctrl+1…9). */
 export function shortcutLabel(t: Translator, def: { id: string; label: string }): string {
-  const m = /^space(\d)$/.exec(def.id);
-  if (m) return t('shortcut.space', { n: m[1] ?? '' });
+  const m = /^(space|tab|split)(\d)$/.exec(def.id);
+  if (m) return t(`shortcut.${m[1] ?? 'space'}` as 'shortcut.space', { n: m[2] ?? '' });
   const key = `shortcut.${def.id}`;
   return t.has(key) ? t(key) : def.label;
 }

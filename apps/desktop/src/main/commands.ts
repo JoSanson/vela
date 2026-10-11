@@ -1,5 +1,13 @@
-import { activeSpace, createSpace, SPACE_PRESET_THEMES, type Id } from '@vela/core';
-import { dialog } from 'electron';
+import {
+  activeSpace,
+  createProfile,
+  createSpace,
+  displayTitle,
+  pinnedTree,
+  SPACE_PRESET_THEMES,
+  type Id,
+} from '@vela/core';
+import { clipboard, dialog } from 'electron';
 import { pathToFileURL } from 'node:url';
 import type { AppContext } from './context';
 import { emit } from './ipc/typed';
@@ -196,6 +204,41 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     case 'newWindow':
       void ctx.openWindow();
       return;
+    case 'newPrivateWindow': {
+      // A throwaway profile (in-memory partition) on its own Space in its own window: closing the
+      // Space drops cookies, logins and history with it.
+      const name = ctx.i18n.t('overlay.spaceEditor.privateProfile');
+      const profile = createProfile(name, '#52525b', undefined, true);
+      store.dispatch({ type: 'profile/create', profile });
+      const sp = createSpace({
+        name,
+        emoji: '🕶️',
+        theme: { from: '#3f3f46', to: '#18181b', grain: 0.08, mode: 'dark' },
+        profileId: profile.id,
+        now,
+      });
+      store.dispatch({ type: 'space/create', space: sp });
+      void ctx.openWindow(sp.id);
+      return;
+    }
+    case 'copyUrl':
+    case 'copyUrlMarkdown': {
+      const tab = activeId ? state.tabs[activeId] : undefined;
+      if (!tab || !/^https?:/i.test(tab.url)) return;
+      void clipboard.writeText(id === 'copyUrl' ? tab.url : `[${displayTitle(tab)}](${tab.url})`);
+      overlay.show('toast', { text: ctx.i18n.t('overlay.toast.urlCopied') });
+      return;
+    }
+    case 'clearToday': {
+      if (!space) return;
+      for (const tid of [...space.today]) tabs.close(tid);
+      return;
+    }
+    case 'stop': {
+      const wc = activeId ? tabs.webContents(activeId) : undefined;
+      if (wc && !wc.isDestroyed()) wc.stop();
+      return;
+    }
     case 'littleWindow': {
       const url = (payload as { url?: string } | undefined)?.url ?? 'about:blank';
       ctx.openLittle(url);
@@ -207,6 +250,24 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       return;
     }
     default: {
+      const tabN = /^tab(\d)$/.exec(id);
+      if (tabN && space) {
+        const order = [
+          ...pinnedTree(state, space.id)
+            .filter((i): i is Extract<typeof i, { kind: 'tab' }> => i.kind === 'tab')
+            .map((i) => i.tab.id),
+          ...space.today,
+        ];
+        const target = order[Number(tabN[1]) - 1];
+        if (target) store.dispatch({ type: 'tab/activate', id: target, now });
+        return;
+      }
+      const splitN = /^split(\d)$/.exec(id);
+      if (splitN && space?.split) {
+        const pane = space.split.panes[Number(splitN[1]) - 1];
+        if (pane) store.dispatch({ type: 'tab/activate', id: pane, now });
+        return;
+      }
       const m = /^space(\d)$/.exec(id);
       if (m) {
         const target = state.spaceOrder[Number(m[1]) - 1];

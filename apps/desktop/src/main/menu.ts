@@ -1,4 +1,10 @@
-import { resolveShortcuts, shortcutLabel, SPACE_SHORTCUTS } from '@vela/shared';
+import {
+  resolveShortcuts,
+  shortcutLabel,
+  SPACE_SHORTCUTS,
+  SPLIT_SHORTCUTS,
+  TAB_SHORTCUTS,
+} from '@vela/shared';
 import { app, Menu, shell, type MenuItemConstructorOptions } from 'electron';
 import { runCommand } from './commands';
 import type { AppContext } from './context';
@@ -45,6 +51,8 @@ export function installMenu(ctx: AppContext): void {
       label: t('menu.file.label'),
       submenu: [
         item('newTab'),
+        item('newWindow'),
+        item('newPrivateWindow'),
         item('littleWindow'),
         item('openFile', { label: t('menu.file.openFile') }),
         { type: 'separator' },
@@ -73,6 +81,9 @@ export function installMenu(ctx: AppContext): void {
         { role: 'delete' },
         { role: 'selectAll' },
         { type: 'separator' },
+        item('copyUrl'),
+        item('copyUrlMarkdown'),
+        { type: 'separator' },
         item('findInPage'),
       ],
     },
@@ -82,10 +93,12 @@ export function installMenu(ctx: AppContext): void {
         item('editUrl'),
         item('reload'),
         item('hardReload'),
+        item('stop'),
         { type: 'separator' },
         item('toggleSidebar'),
         item('splitView'),
         item('closeSplit'),
+        ...SPLIT_SHORTCUTS.map((s) => item(s.id)),
         item('readerMode'),
         { type: 'separator' },
         item('zoomIn'),
@@ -123,6 +136,9 @@ export function installMenu(ctx: AppContext): void {
         item('nextTab'),
         item('prevTab'),
         { type: 'separator' },
+        ...TAB_SHORTCUTS.map((s) => item(s.id)),
+        { type: 'separator' },
+        item('clearToday'),
         item('downloads'),
       ],
     },

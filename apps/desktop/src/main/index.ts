@@ -8,6 +8,7 @@ import {
   isEphemeralSpace,
   createSpace,
   SPACE_PRESET_THEMES,
+  type Id,
 } from '@vela/core';
 import { resolveShortcuts, unreservedOf, type BrowserImportSourceId } from '@vela/shared';
 import { app, crashReporter, dialog, session } from 'electron';
@@ -274,10 +275,13 @@ async function boot(): Promise<void> {
       if (mw) windows.setSpace(mw, id);
       store.dispatch({ type: 'space/activate', id, now: Date.now() });
     },
-    openWindow: async () => {
+    openWindow: async (wanted?: Id) => {
       const state = store.state;
       // A window shows a space nobody else shows: the next undisplayed one, or a fresh space.
-      let spaceId = state.spaceOrder.find((sid) => !windows.windowForSpace(sid));
+      let spaceId =
+        wanted && state.spaces[wanted]
+          ? wanted
+          : state.spaceOrder.find((sid) => !windows.windowForSpace(sid));
       if (!spaceId) {
         const preset = SPACE_PRESET_THEMES[state.spaceOrder.length % SPACE_PRESET_THEMES.length];
         const sp = createSpace({

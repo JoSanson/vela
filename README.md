@@ -76,15 +76,20 @@ Ctrl elsewhere):
 | Close tab                  | `⌘W`                |
 | Reopen closed tab          | `⌘⇧T`               |
 | Pin / unpin                | `⌘D`                |
+| Copy URL / as Markdown     | `⌘⇧C` / `⌘⇧⌥C`      |
+| Clear unpinned tabs        | `⌘⇧K`               |
+| Go to tab N                | `⌘1…9`              |
 | Switch to recent tab       | `Ctrl+Tab`          |
 | Toggle sidebar             | `⌘S`                |
-| Split view / close pane    | `⌘⇧D` / `⌘⇧W`       |
-| Find in page               | `⌘F`                |
+| Split view / close pane    | `⌃⇧+` / `⌃⇧-`       |
+| Focus split pane N         | `⌃⇧1…4`             |
+| Find in page / stop        | `⌘F` / `⌘.`         |
 | Reader mode                | `⌘⌥R`               |
 | Spaces                     | `Ctrl+1…9`, `⌘⌥←/→` |
-| New space                  | `⌘⇧N`               |
-| Archived tabs / History    | `⌘⇧A` / `⌘Y`        |
+| New space / all spaces     | `⌃⌘N` / `⌘⇧S`       |
+| Archived tabs / History    | `⌘⇧L` / `⌘Y`        |
 | Downloads                  | `⌘⇧J`               |
+| New window / private       | `⌘N` / `⌘⇧N`        |
 | Little Vela window         | `⌘⌥N`               |
 
 ## Status
