@@ -1,4 +1,5 @@
 import type { LanguagePref } from './i18n';
+import { DEFAULT_SITE_SEARCHES, type SiteSearch } from './siteSearch';
 
 export type AutoArchiveHours = 12 | 24 | 168 | 720;
 
@@ -37,6 +38,8 @@ export interface Prefs {
   shortcutOverrides: Record<string, string>;
   /** UI language; 'system' follows the OS. */
   language: LanguagePref;
+  /** Command bar keywords: `y` then Tab searches YouTube. */
+  siteSearches: SiteSearch[];
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -65,6 +68,7 @@ export const DEFAULT_PREFS: Prefs = {
   safeBrowsing: true,
   shortcutOverrides: {},
   language: 'system',
+  siteSearches: [...DEFAULT_SITE_SEARCHES],
 };
 
 export const SIDEBAR_MIN_WIDTH = 200;

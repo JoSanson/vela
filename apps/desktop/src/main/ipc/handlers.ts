@@ -1,3 +1,4 @@
+import { SEARCH_ENGINES } from '@vela/core';
 import type { ShellSnapshot } from '@vela/shared';
 import { app, dialog, session, shell } from 'electron';
 import { pathToFileURL } from 'node:url';
@@ -208,7 +209,14 @@ export function registerCoreHandlers(ctx: AppContext): void {
     stopFind(ctx, tabId, action);
     return undefined;
   });
-  handle('suggest/query', 'shell', ({ query }) => fetchSuggestions(prefs.value.searchEngineId, query));
+  handle('suggest/query', 'shell', ({ query, siteId }) =>
+    fetchSuggestions(
+      siteId
+        ? prefs.value.siteSearches.find((s) => s.id === siteId)
+        : SEARCH_ENGINES.find((e) => e.id === prefs.value.searchEngineId),
+      query,
+    ),
+  );
   handle('peek/open', 'shell', ({ url, fromTabId }) => {
     ctx.peek.open(url, fromTabId);
     return undefined;

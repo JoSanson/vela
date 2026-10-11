@@ -284,4 +284,16 @@ export const settings = {
   'settings.about.check': 'Check for updates',
   'settings.about.checkError': "Couldn't check for updates",
   'settings.about.installError': "Couldn't restart to update",
+  'settings.general.siteSearch.label': 'Quick search',
+  'settings.general.siteSearch.hint':
+    'Type a keyword then Tab in the command bar to search that site directly.',
+  'settings.general.siteSearch.keyword': 'Keyword',
+  'settings.general.siteSearch.name': 'Name',
+  'settings.general.siteSearch.url': 'Search URL, %s is the query',
+  'settings.general.siteSearch.add': 'Add site',
+  'settings.general.siteSearch.reset': 'Reset to defaults',
+  'settings.general.siteSearch.remove': 'Remove {name}',
+  'settings.general.siteSearch.problem.keyword': 'Keyword needed, without spaces.',
+  'settings.general.siteSearch.problem.duplicate': 'Keyword already used.',
+  'settings.general.siteSearch.problem.url': 'The URL must start with https:// and contain %s.',
 } as const;

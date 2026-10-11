@@ -4,6 +4,10 @@ export const overlay = {
   'overlay.commandBar.placeholderSplit': 'Search or enter URL for the new pane',
   'overlay.commandBar.badgeSplit': 'Split',
   'overlay.commandBar.searchWith': 'Search {engine}',
+  'overlay.commandBar.searchSite': 'Search {name}',
+  'overlay.commandBar.placeholderSite': 'Search {name}…',
+  'overlay.commandBar.openSite': 'Open {name}',
+  'overlay.commandBar.recentOnSite': 'Recent on {name}',
   'overlay.commandBar.openWebsite': 'Open website',
   'overlay.commandBar.commandSubtitle': 'Command',
   'overlay.commandBar.hint':

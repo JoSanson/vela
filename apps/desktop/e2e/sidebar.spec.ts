@@ -153,7 +153,7 @@ test.describe('sidebar', () => {
   test('hovering the left edge reveals a floating sidebar when hidden', async ({ vela, fixtures }) => {
     await openTab(vela, `${fixtures}/page/Hidden`);
     await vela.command('toggleSidebar');
-    await expect(vela.shell.getByTestId('sidebar-edge')).toBeAttached();
+    await expect.poll(() => layout(vela).then((l) => l.sidebarVisible)).toBe(false);
     await vela.shell.getByTestId('sidebar-edge').hover();
     const overlay = await vela.overlay();
     await expect(overlay.locator('[data-testid="sidebar"][data-floating="true"]')).toBeVisible();

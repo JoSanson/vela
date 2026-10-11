@@ -13,7 +13,9 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
   and optional isolated **profile** (separate cookies and logins).
 - **Command bar** (`⌘T` / `⌘L`): URLs with inline completion of hosts you know, search with
   suggestions, fuzzy search across open tabs, archive, full-text history and favorites, and browser
-  commands with their shortcuts, in a few milliseconds.
+  commands with their shortcuts, in a few milliseconds. Type a keyword then Tab (`y` ⇥ YouTube,
+  `p` ⇥ Perplexity, `gh` ⇥ GitHub…) to search a site directly; the list is yours to edit in
+  Settings.
 - **Split view** (2–4 panes), **Peek** for links from pinned tabs, **Little Vela** floating windows
   for links opened from other apps, **Air Traffic Control** rules that route URLs to spaces,
   **multiple windows** (one Space per window, ⌘N).

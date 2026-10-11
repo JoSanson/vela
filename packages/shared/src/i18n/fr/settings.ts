@@ -300,4 +300,16 @@ export const settings = {
   'settings.about.check': 'Rechercher des mises à jour',
   'settings.about.checkError': 'Impossible de rechercher des mises à jour',
   'settings.about.installError': 'Impossible de redémarrer pour mettre à jour',
+  'settings.general.siteSearch.label': 'Recherche rapide',
+  'settings.general.siteSearch.hint':
+    'Tapez un mot-clé puis Tab dans la barre de commande pour chercher directement sur ce site.',
+  'settings.general.siteSearch.keyword': 'Mot-clé',
+  'settings.general.siteSearch.name': 'Nom',
+  'settings.general.siteSearch.url': 'URL de recherche, %s est la requête',
+  'settings.general.siteSearch.add': 'Ajouter un site',
+  'settings.general.siteSearch.reset': 'Rétablir les valeurs par défaut',
+  'settings.general.siteSearch.remove': 'Supprimer {name}',
+  'settings.general.siteSearch.problem.keyword': 'Mot-clé requis, sans espace.',
+  'settings.general.siteSearch.problem.duplicate': 'Mot-clé déjà utilisé.',
+  'settings.general.siteSearch.problem.url': 'L’URL doit commencer par https:// et contenir %s.',
 } satisfies Record<keyof typeof en, string>;

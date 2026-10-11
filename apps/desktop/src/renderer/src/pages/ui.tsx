@@ -396,11 +396,13 @@ interface RowProps {
   hint?: string | undefined;
   children: ReactNode;
   testId?: string | undefined;
+  /** Control under the text, full width (lists, editors). */
+  stacked?: boolean | undefined;
 }
 
-export function Row({ label, hint, children, testId }: RowProps) {
+export function Row({ label, hint, children, testId, stacked = false }: RowProps) {
   return (
-    <div className={styles.row} data-testid={testId}>
+    <div className={`${styles.row} ${stacked ? styles.rowStacked : ''}`} data-testid={testId}>
       <div className={styles.rowText}>
         <span className={styles.rowLabel}>{label}</span>
         {hint && <span className={styles.rowHint}>{hint}</span>}

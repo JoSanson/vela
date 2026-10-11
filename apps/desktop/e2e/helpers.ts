@@ -115,6 +115,13 @@ export function startFixtureServer(): Promise<{ server: Server; url: string }> {
       }, 1500);
       return;
     }
+    if (p === '/dark') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(
+        '<!doctype html><title>Dark</title><body style="margin:0;background:#151826;color:#eee;font:40px sans-serif;padding:60px">Dark page</body>',
+      );
+      return;
+    }
     if (p.startsWith('/page/')) {
       const name = decodeURIComponent(p.slice(6));
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

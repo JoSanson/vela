@@ -6,6 +6,10 @@ export const overlay = {
   'overlay.commandBar.placeholderSplit': 'Rechercher ou saisir une URL pour le nouveau volet',
   'overlay.commandBar.badgeSplit': 'Partagé',
   'overlay.commandBar.searchWith': 'Rechercher sur {engine}',
+  'overlay.commandBar.searchSite': 'Rechercher sur {name}',
+  'overlay.commandBar.placeholderSite': 'Rechercher sur {name}…',
+  'overlay.commandBar.openSite': 'Ouvrir {name}',
+  'overlay.commandBar.recentOnSite': 'Récent sur {name}',
   'overlay.commandBar.openWebsite': 'Ouvrir le site',
   'overlay.commandBar.commandSubtitle': 'Commande',
   'overlay.commandBar.hint':

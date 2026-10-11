@@ -66,6 +66,8 @@ export function App() {
   const showToast = useShell((s) => s.showToast);
   const t = useT();
   const asideRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const animating = useRef(false);
 
   useEffect(() => connectStore(), []);
@@ -93,6 +95,7 @@ export function App() {
 
   useEffect(() => {
     if (!ready || animating.current) return;
+    rowRef.current?.style.setProperty('--reveal', sidebarVisible ? '1' : '0');
     vela.send('layout/set', { sidebarWidth, sidebarVisible, topStrip });
   }, [ready, sidebarWidth, sidebarVisible, topStrip]);
 
@@ -112,17 +115,24 @@ export function App() {
     const to = show ? 0 : -width;
     tween(from, to, HIDE_DURATION * 1000, {
       onUpdate: (x) => {
+        const reveal = (width + x) / width;
+        // The wrapper shrinks with the slide so the content column (empty state, find bar, the
+        // surface under the rounded page corners) moves with it instead of snapping at the end.
         el.style.transform = `translateX(${x}px)`;
+        el.style.width = `${width + x}px`;
+        rowRef.current?.style.setProperty('--reveal', reveal.toFixed(4));
         vela.send('layout/set', {
           sidebarWidth: width,
           sidebarVisible: true,
-          sidebarReveal: (width + x) / width,
+          sidebarReveal: reveal,
           topStrip: strip,
         });
       },
       onComplete: () => {
         animating.current = false;
         el.style.transform = '';
+        el.style.width = '';
+        rowRef.current?.style.setProperty('--reveal', show ? '1' : '0');
         if (!show) setSidebarVisible(false);
         vela.send('layout/set', { sidebarWidth: width, sidebarVisible: show, topStrip: strip });
       },
@@ -140,6 +150,12 @@ export function App() {
 
   useEffect(() => {
     return vela.on('ui/command', ({ id, payload }) => {
+      if (id === 'refreshDragRegions') {
+        // Chromium only re-sends draggable regions when they change: nudging a 1 px sentinel makes
+        // the shell's regions win again after a page view (which has none) reported its own.
+        const el = sentinelRef.current;
+        if (el) el.dataset.tick = el.dataset.tick === '1' ? '2' : '1';
+      }
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
       if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
@@ -241,7 +257,8 @@ export function App() {
   return (
     <div className={styles.app} data-ready={ready ? 'true' : 'false'} onDrop={onDrop} onDragOver={onDragOver}>
       <TopBar />
-      <div className={styles.row}>
+      <div ref={sentinelRef} className={`${styles.dragSentinel} drag`} aria-hidden="true" />
+      <div className={styles.row} ref={rowRef}>
         <div
           ref={asideRef}
           className={styles.asideWrap}
@@ -278,9 +295,10 @@ export function App() {
           data-testid="sidebar-edge"
         />
         <main className={styles.content} data-testid="content" data-dnd-zone="content">
+          <div className={`${styles.grip} drag`} data-testid="content-grip" />
           {findOpen && <FindBar onClose={closeFind} />}
           {!hasActive && ready && (
-            <div className={`${styles.empty} ${sidebarVisible ? '' : styles.emptyFull}`}>
+            <div className={styles.empty}>
               <div className={styles.emptyCard}>
                 <div className={styles.emptyTitle}>
                   {space?.emoji} {space?.name}

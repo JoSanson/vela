@@ -7,6 +7,19 @@
   overflow: hidden;
 }
 
+.dragSentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.dragSentinel[data-tick='2'] {
+  height: 2px;
+}
+
 .row {
   position: relative;
   display: flex;
@@ -67,10 +80,20 @@
   position: relative;
 }
 
+/* The strip above the page view: grabbing the top edge of the window moves it, as in any Mac app. */
+.grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(8px * var(--reveal, 1));
+}
+
 .empty {
   position: absolute;
-  inset: 8px 8px 8px 0;
-  border-radius: var(--radius);
+  /* --reveal is 1 with the sidebar docked, 0 hidden, and slides between the two (App.tsx). */
+  inset: calc(8px * var(--reveal, 1)) calc(8px * var(--reveal, 1)) calc(8px * var(--reveal, 1)) 0;
+  border-radius: calc(var(--radius) * var(--reveal, 1));
   background: color-mix(in oklab, var(--surface) 70%, transparent);
   display: flex;
   align-items: center;
@@ -103,11 +126,6 @@
   font-family: var(--font);
   font-size: 12px;
   color: var(--fg);
-}
-
-.emptyFull {
-  inset: 0;
-  border-radius: 0;
 }
 
 .toast {

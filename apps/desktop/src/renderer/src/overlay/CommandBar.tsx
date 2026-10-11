@@ -10,7 +10,17 @@ import {
   type Id,
   type SearchItem,
 } from '@vela/core';
-import { SHORTCUTS, type HistoryEntry, type MessageKey } from '@vela/shared';
+import {
+  matchSiteSearch,
+  SHORTCUTS,
+  siteHomeUrl,
+  siteQueryOf,
+  siteSearchBase,
+  siteSearchUrl,
+  type HistoryEntry,
+  type MessageKey,
+  type SiteSearch,
+} from '@vela/shared';
 import { isMac } from '../lib/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useHoverSelect } from '../lib/hoverSelect';
@@ -86,6 +96,9 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const [sel, setSel] = useState<{ query: string; idx: number }>({ query: '', idx: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const engine = SEARCH_ENGINES.find((e) => e.id === prefs.searchEngineId) ?? SEARCH_ENGINES[0];
+  // Site mode (`y` then Tab): the pill names the site, Enter searches it, Backspace on empty leaves.
+  const [site, setSite] = useState<SiteSearch | null>(null);
+  const sites = prefs.siteSearches;
 
   useEffect(() => {
     const el = inputRef.current;
@@ -96,9 +109,37 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
 
   // Archive and history live in main (D016): queried per keystroke, never bulk-loaded into the overlay.
   const [remote, setRemote] = useState<{ query: string; items: SearchItem[] }>({ query: '', items: [] });
+  const [recent, setRecent] = useState<{ siteId: string; query: string; items: string[] }>({
+    siteId: '',
+    query: '',
+    items: [],
+  });
+  useEffect(() => {
+    if (!site) return;
+    const q = query.trim().toLowerCase();
+    let cancelled = false;
+    void invoke('history/search', { query: hostOf(siteSearchBase(site)), limit: 40 })
+      .catch(() => [] as HistoryEntry[])
+      .then((history) => {
+        if (cancelled) return;
+        const seen = new Set<string>();
+        const items: string[] = [];
+        for (const h of history) {
+          const text = siteQueryOf(site, h.url);
+          if (!text || seen.has(text.toLowerCase())) continue;
+          if (q && !text.toLowerCase().includes(q)) continue;
+          seen.add(text.toLowerCase());
+          items.push(text);
+        }
+        setRecent({ siteId: site.id, query: q, items: items.slice(0, 6) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [site, query]);
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
+    if (site || q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
     let cancelled = false;
     const t = setTimeout(() => {
       void Promise.all([
@@ -133,7 +174,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, site]);
   const trimmed = query.trim();
   // Inline completion: typing a host prefix fills the rest, selected, so Enter opens it and typing on replaces it.
   const [inline, setInline] = useState<{ typed: string; full: string; url: string } | null>(null);
@@ -142,7 +183,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     const q = query.trim();
     const forward = q.length > lastTyped.current.length && q.startsWith(lastTyped.current);
     lastTyped.current = q;
-    if (!forward || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
+    if (site || !forward || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
       setInline(null);
       return;
     }
@@ -163,7 +204,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     setInline(
       best?.host !== undefined && best.host !== lower ? { typed: q, full: best.host, url: best.url } : null,
     );
-  }, [query, core.tabs, remote]);
+  }, [query, core.tabs, remote, site]);
   useEffect(() => {
     const el = inputRef.current;
     if (!el || inline?.typed !== query.trim()) return;
@@ -209,7 +250,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     if (!q || q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
     let cancelled = false;
     const t = setTimeout(() => {
-      void invoke('suggest/query', { query: q })
+      void invoke('suggest/query', { query: q, ...(site ? { siteId: site.id } : {}) })
         .then((r) => {
           if (!cancelled && r.query === q) setSuggestions({ query: q, list: r.suggestions.slice(0, 4) });
         })
@@ -219,11 +260,65 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, site]);
 
   const activeId = core.spaces[core.activeSpaceId]?.activeTabId ?? '';
+  const keywordSite = useMemo(() => (site ? null : matchSiteSearch(query, sites)), [site, query, sites]);
   const results = useMemo(() => {
     const q = query.trim();
+    if (site) {
+      const list: SearchItem[] = [];
+      if (q) {
+        list.push(
+          makeSearchItem({
+            id: `sitesearch:${q}`,
+            kind: 'search',
+            title: q,
+            subtitle: t('overlay.commandBar.searchSite', { name: site.name }),
+            boost: 1,
+          }),
+        );
+      } else {
+        list.push(
+          makeSearchItem({
+            id: `siteopen:${siteHomeUrl(site)}`,
+            kind: 'url',
+            title: site.name,
+            subtitle: t('overlay.commandBar.openSite', { name: site.name }),
+            boost: 1,
+          }),
+        );
+      }
+      const lower = q.toLowerCase();
+      const seen = new Set([lower]);
+      for (const text of recent.siteId === site.id && recent.query === lower ? recent.items : []) {
+        if (seen.has(text.toLowerCase())) continue;
+        seen.add(text.toLowerCase());
+        list.push(
+          makeSearchItem({
+            id: `sitesearch:${text}`,
+            kind: 'history',
+            title: text,
+            subtitle: t('overlay.commandBar.recentOnSite', { name: site.name }),
+            boost: 0,
+          }),
+        );
+      }
+      for (const text of suggestions.query === q ? suggestions.list : []) {
+        if (seen.has(text.toLowerCase())) continue;
+        seen.add(text.toLowerCase());
+        list.push(
+          makeSearchItem({
+            id: `sitesearch:${text}`,
+            kind: 'suggestion',
+            title: text,
+            subtitle: t('overlay.commandBar.searchSite', { name: site.name }),
+            boost: 0,
+          }),
+        );
+      }
+      return list.slice(0, 10);
+    }
     const ranked = rankItems(q, index, mode === 'split' ? 12 : 8).filter(
       (r) => mode !== 'split' || (!r.item.id.startsWith('cmd:') && r.item.id !== `tab:${activeId}`),
     );
@@ -245,6 +340,17 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       const strong = ranked[0] && ranked[0].score >= 0.9 && ranked[0].item.kind !== 'archived';
       if (strong) list.splice(1, 0, primary);
       else list.unshift(primary);
+      if (keywordSite) {
+        list.unshift(
+          makeSearchItem({
+            id: `site:${keywordSite.id}`,
+            kind: 'search',
+            title: t('overlay.commandBar.searchSite', { name: keywordSite.name }),
+            subtitle: acceleratorLabel('Tab'),
+            boost: 1,
+          }),
+        );
+      }
       for (const s of suggestions.query === q ? suggestions.list : []) {
         if (s.toLowerCase() === q.toLowerCase()) continue;
         list.push(
@@ -259,7 +365,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       }
     }
     return list.slice(0, 10);
-  }, [query, index, suggestions, engine, mode, activeId, t]);
+  }, [query, index, suggestions, engine, mode, activeId, t, site, recent, keywordSite]);
 
   const selected = sel.query === query ? Math.min(sel.idx, Math.max(0, results.length - 1)) : 0;
   const setSelected = (fn: number | ((s: number) => number)): void =>
@@ -267,6 +373,14 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const hover = useHoverSelect((i) => {
     if (i !== selected) setSelected(i);
   });
+
+  const enterSite = (s: SiteSearch): void => {
+    setSite(s);
+    setQuery('');
+    setInline(null);
+    setSuggestions({ query: '', list: [] });
+    inputRef.current?.focus();
+  };
 
   const run = (item: SearchItem | undefined): void => {
     if (!item) return;
@@ -286,6 +400,17 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       void invoke('overlay/hide', undefined);
     };
     switch (kind) {
+      case 'site': {
+        const s = sites.find((x) => x.id === value);
+        if (s) enterSite(s);
+        return;
+      }
+      case 'sitesearch':
+        if (site) open(siteSearchUrl(site, value));
+        return;
+      case 'siteopen':
+        open(value);
+        return;
       case 'tab':
         if (mode === 'split') dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: value });
         else dispatch({ type: 'tab/activate', id: value, now: Date.now() });
@@ -316,6 +441,17 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     // Confirming an IME conversion (CJK) must never submit or move the selection.
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     const el = inputRef.current;
+    if (e.key === 'Tab' && keywordSite) {
+      e.preventDefault();
+      enterSite(keywordSite);
+      return;
+    }
+    if (site && e.key === 'Backspace' && !query) {
+      e.preventDefault();
+      setQuery(site.keyword);
+      setSite(null);
+      return;
+    }
     const completed =
       !!inline && !!el && el.value === inline.full && el.selectionStart === inline.typed.length;
     if (completed && e.key === 'Enter') {
@@ -352,8 +488,12 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     }
   };
 
-  const placeholder =
-    mode === 'split' ? t('overlay.commandBar.placeholderSplit') : t('overlay.commandBar.placeholder');
+  const placeholder = site
+    ? t('overlay.commandBar.placeholderSite', { name: site.name })
+    : mode === 'split'
+      ? t('overlay.commandBar.placeholderSplit')
+      : t('overlay.commandBar.placeholder');
+  const tint = site ? ({ '--space-from': site.color } as React.CSSProperties) : undefined;
 
   return (
     <div
@@ -365,6 +505,16 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       <div className={styles.box}>
         <div className={styles.inputRow}>
           <Icon name={mode === 'split' ? 'split' : 'search'} size={18} className={styles.icon} />
+          {site && (
+            <span
+              className={styles.pill}
+              style={{ background: site.color }}
+              data-testid="command-site"
+              onClick={() => inputRef.current?.focus()}
+            >
+              {site.name}
+            </span>
+          )}
           <input
             ref={inputRef}
             className={styles.input}
@@ -388,7 +538,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
           {mode === 'split' && <span className={styles.badge}>{t('overlay.commandBar.badgeSplit')}</span>}
         </div>
         {results.length > 0 && (
-          <ul className={styles.results} id="cmd-results" role="listbox">
+          <ul className={styles.results} id="cmd-results" role="listbox" style={tint}>
             {results.map((item, i) => (
               <li
                 key={item.id}
@@ -401,7 +551,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
                 onClick={() => run(item)}
                 data-testid="command-result"
               >
-                <ResultIcon item={item} core={core} />
+                <ResultIcon item={item} core={core} sites={sites} />
                 <span className={styles.title}>{item.title}</span>
                 <span className={styles.subtitle}>{item.subtitle}</span>
                 {i === selected && <kbd className={styles.enter}>↵</kbd>}
@@ -420,11 +570,17 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
 function ResultIcon({
   item,
   core,
+  sites,
 }: {
   item: SearchItem;
   core: ReturnType<typeof useShell.getState>['core'];
+  sites: readonly SiteSearch[];
 }) {
   const [kind, value] = item.id.split(':', 2);
+  if (kind === 'site') {
+    const s = sites.find((x) => x.id === value);
+    return <span className={styles.dot} style={{ background: s?.color }} aria-hidden="true" />;
+  }
   if (kind === 'tab') {
     const tab = core.tabs[value ?? ''];
     if (tab) return <Favicon tab={tab} size={18} />;
@@ -434,6 +590,12 @@ function ResultIcon({
     return <Icon name={c?.icon ?? 'command'} size={16} className={styles.kindIcon} />;
   }
   const icon: IconName =
-    kind === 'archived' ? 'archive' : kind === 'history' ? 'history' : kind === 'url' ? 'globe' : 'search';
+    kind === 'archived'
+      ? 'archive'
+      : item.kind === 'history'
+        ? 'history'
+        : kind === 'url' || kind === 'siteopen'
+          ? 'globe'
+          : 'search';
   return <Icon name={icon} size={16} className={styles.kindIcon} />;
 }

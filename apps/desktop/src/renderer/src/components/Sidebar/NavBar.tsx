@@ -14,9 +14,9 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const id = tab?.id;
   return (
     <div className={`${styles.bar} drag`} data-inset={isMac && !fullscreen ? 'mac' : 'none'}>
-      <div className={`${styles.group} no-drag`}>
+      <div className={styles.group}>
         <button
-          className={styles.btn}
+          className={`${styles.btn} no-drag`}
           onClick={onToggleSidebar}
           aria-label={t('shell.navBar.hideSidebar')}
           title={t('shell.navBar.hideSidebarTitle', { shortcut: `${modKey}S` })}
@@ -24,7 +24,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Icon name="sidebar" />
         </button>
         <button
-          className={styles.btn}
+          className={`${styles.btn} no-drag`}
           disabled={!tab?.canGoBack}
           onClick={() => id && void invoke('tab/back', { tabId: id })}
           aria-label={t('shortcut.back')}
@@ -33,7 +33,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Icon name="back" />
         </button>
         <button
-          className={styles.btn}
+          className={`${styles.btn} no-drag`}
           disabled={!tab?.canGoForward}
           onClick={() => id && void invoke('tab/forward', { tabId: id })}
           aria-label={t('shortcut.forward')}
@@ -42,7 +42,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Icon name="forward" />
         </button>
         <button
-          className={styles.btn}
+          className={`${styles.btn} no-drag`}
           disabled={!tab}
           onClick={() => id && void invoke(tab?.loading ? 'tab/stop' : 'tab/reload', { tabId: id })}
           aria-label={tab?.loading ? t('shell.little.stop') : t('shortcut.reload')}

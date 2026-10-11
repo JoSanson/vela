@@ -17,7 +17,7 @@ import {
 import { paneRects, type OpenUrlRequest } from '@vela/shared';
 import { WebContentsView, type Rectangle, type WebContents } from 'electron';
 import { preloadPath } from '../context';
-import { trustPage } from '../ipc/typed';
+import { emit, trustPage } from '../ipc/typed';
 import type { HistoryRepo } from '../db/historyRepo';
 import type { PrefsStore } from '../prefs';
 import type { SessionManager } from '../sessions';
@@ -337,6 +337,20 @@ export class TabManager {
     if (current !== undefined) this.detach(id);
     mw.win.contentView.addChildView(view);
     this.attached.set(id, mw.win.id);
+    this.nudgeDrag(id);
+  }
+
+  /**
+   * A page view reports its (empty) draggable regions to the window when it attaches or navigates,
+   * which can shadow the shell's; the shell re-asserts its regions a beat later (App.tsx sentinel).
+   */
+  private nudgeDrag(id: Id): void {
+    const winId = this.attached.get(id);
+    if (winId === undefined) return;
+    setTimeout(() => {
+      const mw = this.deps.windows.windows.get(winId);
+      if (mw && !mw.win.isDestroyed()) emit(mw.win.webContents, 'ui/command', { id: 'refreshDragRegions' });
+    }, 80);
   }
 
   private detach(id: Id): void {
@@ -421,9 +435,11 @@ export class TabManager {
       canGoForward: wc.navigationHistory.canGoForward(),
     });
     wc.on('did-start-loading', () => this.patch(id, { loading: true }));
+    wc.on('did-finish-load', () => this.nudgeDrag(id));
     wc.on('did-stop-loading', () => this.patch(id, { loading: false, ...nav() }));
     wc.on('did-navigate', (_e, navigated) => {
       this.committed.add(wc.id);
+      this.nudgeDrag(id);
       // Chromium reports the inner URL for view-source: documents; keep what the tab really shows.
       const url = wc.getURL().startsWith('view-source:') ? wc.getURL() : navigated;
       // Error pages are transient: the tab keeps the URL it was trying to reach (restore retries it).

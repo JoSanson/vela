@@ -1,4 +1,3 @@
-import { SEARCH_ENGINES, type SearchEngine } from '@vela/core';
 import type { SuggestionResult } from '@vela/shared';
 import { net } from 'electron';
 
@@ -20,17 +19,22 @@ function parse(body: unknown): string[] {
   return [];
 }
 
-export async function fetchSuggestions(engineId: string, query: string): Promise<SuggestionResult> {
-  const engine: SearchEngine | undefined = SEARCH_ENGINES.find((e) => e.id === engineId) ?? SEARCH_ENGINES[0];
+/** `source` is the default engine, or a site search from the prefs (its own endpoint, if any). */
+export async function fetchSuggestions(
+  source: { id: string; suggestUrl: string | null } | undefined,
+  query: string,
+): Promise<SuggestionResult> {
   const q = query.trim();
-  if (!engine?.suggestUrl || q.length < 2) return { query, suggestions: [] };
-  const key = `${engine.id}:${q.toLowerCase()}`;
+  if (!source?.suggestUrl || !source.suggestUrl.startsWith('https://') || q.length < 2) {
+    return { query, suggestions: [] };
+  }
+  const key = `${source.id}:${q.toLowerCase()}`;
   const hit = cache.get(key);
   if (hit) return { query, suggestions: hit };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 900);
   try {
-    const res = await net.fetch(engine.suggestUrl.replace('%s', encodeURIComponent(q)), {
+    const res = await net.fetch(source.suggestUrl.replace('%s', encodeURIComponent(q)), {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });

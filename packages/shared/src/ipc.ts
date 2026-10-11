@@ -328,7 +328,7 @@ export interface IpcInvokeMap {
   'overlay/show': { req: { kind: OverlayKind; payload?: unknown }; res: undefined };
   'overlay/hide': { req: undefined; res: undefined };
 
-  'suggest/query': { req: { query: string }; res: SuggestionResult };
+  'suggest/query': { req: { query: string; siteId?: string }; res: SuggestionResult };
   'history/search': { req: { query: string; limit?: number; offset?: number }; res: HistoryEntry[] };
   'history/delete': { req: { ids?: number[]; all?: boolean; url?: string }; res: undefined };
   'archive/search': { req: { query: string; limit?: number }; res: ArchivedTab[] };

@@ -15,6 +15,7 @@ import { useT } from '../../lib/i18n';
 import { tryInvoke, useSnapshot } from '../lib';
 import { useToast } from '../Toast';
 import { Button, Card, Row, Segmented, Select, TextInput, Toggle } from '../ui';
+import { SiteSearchEditor } from './SiteSearchEditor';
 import styles from './Settings.module.css';
 
 const ARCHIVE_HOURS: AutoArchiveHours[] = [12, 24, 168, 720];
@@ -105,6 +106,14 @@ export function GeneralSection() {
             testId="settings-search-engine"
             aria-label={t('settings.general.searchEngine.label')}
           />
+        </Row>
+        <Row
+          label={t('settings.general.siteSearch.label')}
+          hint={t('settings.general.siteSearch.hint')}
+          testId="settings-site-search"
+          stacked
+        >
+          <SiteSearchEditor value={prefs.siteSearches} onChange={(v) => update({ siteSearches: v })} />
         </Row>
         <Row label={t('settings.general.appearance.label')} hint={t('settings.general.appearance.hint')}>
           <Segmented

@@ -461,6 +461,17 @@
   border-top: 1px solid var(--p-border);
 }
 
+.rowStacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.rowStacked .rowControl {
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
 .rowText {
   min-width: 0;
   display: flex;
