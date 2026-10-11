@@ -149,6 +149,7 @@ export class WindowManager {
 
   setLayout(mw: MainWindow, layout: Layout): void {
     mw.layout = layout;
+    mw.syncWindowButtons();
     this.onLayoutChange?.(mw);
   }
 

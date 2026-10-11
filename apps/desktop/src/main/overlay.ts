@@ -81,6 +81,10 @@ export class OverlayManager {
     }
     this.layout();
     emit(this.view.webContents, 'overlay/changed', this.current);
+    if (kind === 'sidebar') {
+      mw.floatingSidebar = true;
+      mw.syncWindowButtons();
+    }
     // Passive overlays (hover sidebar, prompts, update notes) must not steal keyboard focus from the page.
     if (
       kind === 'commandBar' ||
@@ -132,6 +136,10 @@ export class OverlayManager {
         () => {
           this.detachTimer = null;
           if (this.visible || host.win.isDestroyed()) return;
+          if (wasKind === 'sidebar') {
+            host.floatingSidebar = false;
+            host.syncWindowButtons();
+          }
           try {
             host.win.contentView.removeChildView(view);
           } catch {

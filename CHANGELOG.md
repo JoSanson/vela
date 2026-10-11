@@ -21,6 +21,8 @@ All notable changes to Vela are documented here. The format follows
 - Spaces palette (⌘⇧S, the layers button next to the Space dots, Spaces menu): every Space as a
   card with its colour, emoji, name, profile and tab count, searchable and keyboard driven; the row
   of dots scrolls and keeps the active Space in view (D031).
+- macOS traffic lights belong to the sidebar: hidden with it, back when it floats over the page
+  or docks again, never drawn over the page alone.
 - Floating sidebar: slides in and out on the same spring as the docked one, all the way to the
   edge, and a re-hover mid-slide brings it back without restarting; its overlay now covers only the sidebar column, so the page underneath is
   never occluded and no longer flashes when the sidebar slides away.

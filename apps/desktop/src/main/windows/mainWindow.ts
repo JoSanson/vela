@@ -90,6 +90,13 @@ export class MainWindow {
     await this.win.loadURL(rendererUrl('index'));
   }
 
+  /** The traffic lights live in the sidebar: docked, or floating over the page; never on the page alone. */
+  floatingSidebar = false;
+  syncWindowButtons(): void {
+    if (process.platform !== 'darwin' || this.win.isDestroyed()) return;
+    this.win.setWindowButtonVisibility(this.layout.sidebarVisible || this.floatingSidebar);
+  }
+
   /** Region available to tab views, in window content coordinates. */
   contentBounds(): Rectangle {
     const [w, h] = this.win.getContentSize();
