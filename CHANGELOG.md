@@ -6,6 +6,13 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Import panel: source rows keep a fixed grid (the name column collapsed under a long option
+  label); the Arc hint and the Safari Full Disk Access message are short and translated.
+- Sidebar: the toggle inside the floating sidebar docks it back; the content inset, corner radius
+  and hover edge follow the slide instead of jumping on the last frame.
+
 ## [0.3.0] - 2026-10-11
 
 ### Added

@@ -102,6 +102,10 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 12.6 Localisation (en, fr) — 36bc02e + 0c39e05 (808 keys, e2e: localization ×2, screenshot 90-settings-french)
 - [x] 12.7 Signing/notarization behind secrets (release.yml, RELEASING.md), docs (D026/D027, README, ARCHITECTURE, SECURITY), final verification on HEAD: e2e 216/216 (72 ×3), perf all ✅, packaged app smoke-launched, tag v0.3.0 on this commit
 
+## Phase 13 — Owner hands-on feedback (2026-10-11)
+- [x] 13.1 Import panel layout (name column collapsing, untranslated Safari hint) — e2e `import-layout.spec.ts` + screenshot 35-import-onboarding-fr, commit 692ebdc
+- [x] 13.2 Floating sidebar toggle docks back; continuous content geometry during the slide (unit `layout.test.ts`, e2e "docks it back", main-process sampling 16 frames x 260→4 / y 8→0 / radius 10→0 with no jump), commit 7233ad2
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x
