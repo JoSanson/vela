@@ -176,12 +176,14 @@ export interface CoreStateLike {
       id: string;
       name: string;
       emoji: string | null;
+      profileId: string | null;
       activeTabId: string | null;
       today: string[];
       pinned: string[];
       split: { panes: string[] } | null;
     }
   >;
+  profiles: Record<string, { id: string; name: string; partition: string }>;
   tabs: Record<
     string,
     {

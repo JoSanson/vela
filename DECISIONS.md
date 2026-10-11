@@ -224,3 +224,17 @@ shell does not need. The locale is `prefs.language` ('system' | 'en' | 'fr') res
 `app.getLocale()` (pinned by `VELA_LOCALE` in tests); main rebuilds the application menu on change
 and every renderer re-renders through `useT()`. English messages are byte-identical to the
 previous hard-coded strings so the e2e suite doubles as a regression test for the extraction.
+
+## D028 — Arc migration reads the browser's own encrypted stores, with the user's keychain consent
+
+Arc, Chrome, Brave and Edge keep passwords (`Login Data`) and cookies (`Cookies`) in SQLite,
+encrypted with AES-128-CBC under a key derived from a random password stored in the OS keychain
+("Arc Safe Storage"). Vela decrypts them locally: on macOS the `security` CLI asks the user once
+to allow Vela to read that keychain item; on Linux the basic backend's fixed password is used;
+Windows (DPAPI) is not supported yet. Cookies land in the Vela profile that matches the Chromium
+profile directory (names from `Local State`), so sessions never mix; passwords go through the
+same `safeStorage` store as the password manager. Nothing leaves the machine, and importing again
+reuses spaces and profiles instead of duplicating them. Favorites are imported from the profile of
+Arc's first space only, because Arc shows one profile's favorites at a time while Vela's grid is
+global; the grid folds beyond twelve with a "+N" tile.
+

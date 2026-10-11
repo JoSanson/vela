@@ -97,6 +97,32 @@ export class CredentialsManager {
     return !!this.db.prepare('SELECT 1 FROM credentials_never WHERE origin = ?').get(origin);
   }
 
+  /** Bulk insert from another browser; existing (origin, username) pairs are updated. */
+  importMany(items: { origin: string; username: string; password: string; updatedAt: number }[]): number {
+    if (!this.available) return 0;
+    const stmt = this.db.prepare(
+      `INSERT INTO credentials (id, origin, username, secret, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(origin, username) DO UPDATE SET secret = excluded.secret, updated_at = excluded.updated_at`,
+    );
+    let n = 0;
+    const run = this.db.transaction((rows: typeof items) => {
+      for (const r of rows) {
+        stmt.run(
+          crypto.randomUUID(),
+          r.origin,
+          r.username,
+          safeStorage.encryptString(r.password),
+          r.updatedAt,
+          r.updatedAt,
+        );
+        n++;
+      }
+    });
+    run(items);
+    return n;
+  }
+
   private save(origin: string, username: string, password: string): void {
     if (!this.available) return;
     const now = Date.now();

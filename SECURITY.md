@@ -92,6 +92,10 @@ Electron security checklist point by point against the code, and describes the t
 
 - **Safe browsing** never sends a URL anywhere: lists are downloaded whole and matched locally;
   a blocked site shows an interstitial and "Visit anyway" is per host, per session.
+- **Browser import of passwords and cookies**: decrypted locally with the source browser's own
+  keychain password (macOS prompts for consent, nothing is read without it); the copies of
+  `Login Data` / `Cookies` are made in a temp folder and deleted; results are written only to
+  Vela's `safeStorage`-encrypted credentials and to the matching profile's cookie jar (D028).
 - **Password manager**: secrets are encrypted with Electron `safeStorage` (Keychain / DPAPI /
   libsecret) before they reach SQLite; the login form detector runs in the preload's isolated
   world and only reports field positions, and fill values travel main → preload, never through the

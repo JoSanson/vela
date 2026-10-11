@@ -50,7 +50,7 @@ export const settings = {
   'settings.general.memorySaver.minUnit': 'min',
   'settings.general.autoPip.label': 'Image dans l’image automatique',
   'settings.general.autoPip.hint':
-    'La vidéo en cours s’ouvre dans une fenêtre flottante quand vous changez d’onglet.',
+    'Les vidéos YouTube passent dans une fenêtre flottante quand vous changez d’onglet, et reviennent quand vous y retournez.',
   'settings.general.downloads': 'Téléchargements',
   'settings.general.downloadDir.label': 'Enregistrer les fichiers dans',
   'settings.general.downloadDir.default': 'Votre dossier Téléchargements',

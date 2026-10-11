@@ -1,9 +1,10 @@
 import { displayTitle, favoriteTabs } from '@vela/core';
-import type { PointerEvent } from 'react';
+import { useState, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
 import { Favicon } from '../Favicon';
+import { Icon } from '../Icon';
 import type { DragItem } from './dnd';
 import styles from './FavoritesGrid.module.css';
 
@@ -12,12 +13,19 @@ interface Props {
   dragging: boolean;
 }
 
+/** Three rows of four; beyond that a "+N" tile unfolds the rest (dragging always shows all). */
+const MAX_VISIBLE = 12;
+
 export function FavoritesGrid({ onDragStart, dragging }: Props) {
   const core = useShell((s) => s.core);
   const t = useT();
-  const favs = favoriteTabs(core);
+  const all = favoriteTabs(core);
+  const [expanded, setExpanded] = useState(false);
   const activeId = core.spaces[core.activeSpaceId]?.activeTabId;
-  if (favs.length === 0 && !dragging) return null;
+  if (all.length === 0 && !dragging) return null;
+  const folded = all.length > MAX_VISIBLE && !expanded && !dragging;
+  const favs = folded ? all.slice(0, MAX_VISIBLE - 1) : all;
+  const hidden = all.length - favs.length;
   return (
     <div
       className={`${styles.grid} ${favs.length === 0 ? styles.emptyZone : ''}`}
@@ -25,7 +33,7 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
       aria-label={t('shell.favorites.label')}
       data-testid="favorites"
       data-dnd-zone="favorites"
-      data-dnd-count={favs.length}
+      data-dnd-count={all.length}
     >
       {favs.map((t, i) => (
         <button
@@ -56,7 +64,18 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
           {t.audible && <span className={styles.dot} aria-hidden="true" />}
         </button>
       ))}
-      {favs.length === 0 && <span className={styles.hint}>{t('shell.favorites.dropHint')}</span>}
+      {(folded || (expanded && all.length > MAX_VISIBLE && !dragging)) && (
+        <button
+          className={`${styles.cell} ${styles.more}`}
+          onClick={() => setExpanded(!expanded)}
+          aria-label={folded ? t('shell.favorites.showMore', { n: hidden }) : t('shell.favorites.showLess')}
+          title={folded ? t('shell.favorites.showMore', { n: hidden }) : t('shell.favorites.showLess')}
+          data-testid="favorites-more"
+        >
+          {folded ? `+${hidden}` : <Icon name="chevron" size={14} className={styles.up} />}
+        </button>
+      )}
+      {all.length === 0 && <span className={styles.hint}>{t('shell.favorites.dropHint')}</span>}
     </div>
   );
 }

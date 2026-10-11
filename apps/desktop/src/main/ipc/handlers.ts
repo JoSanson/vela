@@ -437,9 +437,10 @@ export function registerCoreHandlers(ctx: AppContext): void {
   });
 
   handle('import/sources', 'internal', () => detectSources());
-  handle('import/run', 'internal', ({ source, bookmarks, history, structure }) =>
-    runImport(ctx, source, bookmarks, history, structure),
+  handle('import/run', 'internal', ({ source, bookmarks, history, structure, passwords, cookies }) =>
+    runImport(ctx, source, bookmarks, history, structure, passwords, cookies),
   );
+
   handle('export/state', 'internal', () => exportState(ctx));
   handle('export/saveToFile', 'internal', () => saveExportToFile(ctx));
   handle('import/state', 'internal', ({ json }) => {

@@ -200,6 +200,10 @@ export interface BrowserImportSource {
   history: boolean;
   /** The whole sidebar (spaces, pinned tabs, folders, favorites) can be recreated (Arc only). */
   structure: boolean;
+  /** Saved logins (`Login Data`) can be decrypted on this platform. */
+  passwords: boolean;
+  /** Site sessions (`Cookies`) can be decrypted on this platform. */
+  cookies: boolean;
   /** Why the install cannot be read, translated by the UI and shown under the name. */
   error: BrowserImportSourceError | null;
 }
@@ -213,6 +217,9 @@ export interface ImportResult {
   spaces?: number;
   todayTabs?: number;
   favorites?: number;
+  profiles?: number;
+  passwords?: number;
+  cookies?: number;
   /** Set when a source could not be read; counts are then partial. */
   error?: string;
 }
@@ -362,7 +369,14 @@ export interface IpcInvokeMap {
 
   'import/sources': { req: undefined; res: BrowserImportSource[] };
   'import/run': {
-    req: { source: BrowserImportSourceId; bookmarks: boolean; history: boolean; structure?: boolean };
+    req: {
+      source: BrowserImportSourceId;
+      bookmarks: boolean;
+      history: boolean;
+      structure?: boolean;
+      passwords?: boolean;
+      cookies?: boolean;
+    };
     res: ImportResult;
   };
   'export/state': { req: undefined; res: string };

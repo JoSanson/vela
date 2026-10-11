@@ -73,6 +73,8 @@ export const shell = {
   'shell.navBar.searchOrEnterUrlTitle': 'Search or enter URL ({shortcut})',
   'shell.favorites.label': 'Favorites',
   'shell.favorites.dropHint': 'Drop here to favorite',
+  'shell.favorites.showMore': 'Show {n} more favorites',
+  'shell.favorites.showLess': 'Show fewer favorites',
   'shell.pinnedList.label': 'Pinned tabs',
   'shell.today.label': 'Today',
   'shell.today.clear': 'Clear',

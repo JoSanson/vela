@@ -314,8 +314,14 @@ async function boot(): Promise<void> {
       core,
       importer: {
         detectSources,
-        runImport: (s: BrowserImportSourceId, b: boolean, h: boolean, st?: boolean) =>
-          runImport(c, s, b, h, st),
+        runImport: (
+          s: BrowserImportSourceId,
+          b: boolean,
+          h: boolean,
+          st?: boolean,
+          pw?: boolean,
+          ck?: boolean,
+        ) => runImport(c, s, b, h, st, pw, ck),
       },
       exporter,
       reader,

@@ -240,5 +240,14 @@ export const pages = {
   'pages.import.historyNone': 'Historique (introuvable)',
   'pages.import.history': 'Historique',
   'pages.import.importing': 'Importation…',
+  'pages.import.passwords': 'Mots de passe',
+  'pages.import.cookies': 'Connexions (cookies)',
+  'pages.import.cookiesHint':
+    'Vous restez connecté aux sites que vous utilisez dans {name}. macOS demande une fois l’autorisation de lire l’entrée {name} du trousseau.',
+  'pages.import.keychainDenied':
+    'Vela n’a pas été autorisé à lire l’entrée {name} du trousseau : mots de passe et connexions n’ont pas été importés.',
+  'pages.import.profilesCount': '{n, plural, one {# profil} other {# profils}}',
+  'pages.import.passwordsCount': '{n, plural, one {# mot de passe} other {# mots de passe}}',
+  'pages.import.cookiesCount': '{n, plural, one {# cookie} other {# cookies}}',
   'pages.import.import': 'Importer',
 } satisfies Record<keyof typeof en, string>;

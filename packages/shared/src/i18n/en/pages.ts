@@ -232,5 +232,14 @@ export const pages = {
   'pages.import.historyNone': 'History (none found)',
   'pages.import.history': 'History',
   'pages.import.importing': 'Importing…',
+  'pages.import.passwords': 'Passwords',
+  'pages.import.cookies': 'Logins (cookies)',
+  'pages.import.cookiesHint':
+    'Keeps you signed in on the sites you use in {name}. macOS asks once to let Vela read the {name} keychain entry.',
+  'pages.import.keychainDenied':
+    'Vela was not allowed to read the {name} keychain entry, so passwords and logins stayed put.',
+  'pages.import.profilesCount': '{n, plural, one {# profile} other {# profiles}}',
+  'pages.import.passwordsCount': '{n, plural, one {# password} other {# passwords}}',
+  'pages.import.cookiesCount': '{n, plural, one {# cookie} other {# cookies}}',
   'pages.import.import': 'Import',
 } as const;

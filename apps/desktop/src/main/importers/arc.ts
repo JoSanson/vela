@@ -1,5 +1,6 @@
 import {
   createFolder,
+  createProfile,
   createSpace,
   createTab,
   DEFAULT_THEME,
@@ -61,6 +62,8 @@ export interface ArcSpace {
   theme: SpaceTheme | null;
   pinnedId: string | null;
   unpinnedId: string | null;
+  /** 'default' or the Chromium profile directory (`Profile 3`); favorites are per profile in Arc. */
+  profile: string;
 }
 
 export type ArcItemKind = 'tab' | 'list' | 'container' | 'split' | 'unknown';
@@ -80,6 +83,18 @@ export interface ArcSidebar {
   spaces: ArcSpace[];
   items: Map<string, ArcItem>;
   favoriteContainerIds: string[];
+  /** Top-apps containers with the profile each one belongs to, in file order. */
+  favoriteContainers: { profile: string; id: string }[];
+}
+
+/** `{ default: true }` → 'default'; `{ custom: { _0: { directoryBasename } } }` → that directory. */
+export function arcProfileKey(raw: unknown): string {
+  if (!isObj(raw)) return 'default';
+  if (raw.default) return 'default';
+  const custom = isObj(raw.custom) ? raw.custom : null;
+  const inner = custom && isObj(custom._0) ? custom._0 : custom;
+  const dir = inner ? strOrNull(inner.directoryBasename) : null;
+  return dir ?? 'default';
 }
 
 type Obj = Record<string, unknown>;
@@ -178,6 +193,7 @@ function parseSpace(raw: Obj): ArcSpace | null {
     theme: arcThemeToSpaceTheme(isObj(custom.windowTheme) ? custom.windowTheme : undefined),
     pinnedId: ids.pinned ?? newer.pinned,
     unpinnedId: ids.unpinned ?? newer.unpinned,
+    profile: arcProfileKey(raw.profile),
   };
 }
 
@@ -211,7 +227,12 @@ function parseItem(raw: Obj): ArcItem | null {
 }
 
 export function parseArcSidebar(json: unknown): ArcSidebar {
-  const empty: ArcSidebar = { spaces: [], items: new Map(), favoriteContainerIds: [] };
+  const empty: ArcSidebar = {
+    spaces: [],
+    items: new Map(),
+    favoriteContainerIds: [],
+    favoriteContainers: [],
+  };
   if (!isObj(json) || !isObj(json.sidebar)) return empty;
   const container = objects(json.sidebar.containers).find((c) => Array.isArray(c.spaces));
   if (!container) return empty;
@@ -223,10 +244,18 @@ export function parseArcSidebar(json: unknown): ArcSidebar {
   const spaces = objects(container.spaces)
     .map(parseSpace)
     .filter((s): s is ArcSpace => s !== null);
-  const favoriteContainerIds = Array.isArray(container.topAppsContainerIDs)
-    ? container.topAppsContainerIDs.filter((v): v is string => typeof v === 'string' && items.has(v))
-    : [];
-  return { spaces, items, favoriteContainerIds };
+  const favoriteContainers: { profile: string; id: string }[] = [];
+  const markers = Array.isArray(container.topAppsContainerIDs) ? container.topAppsContainerIDs : [];
+  let profile = 'default';
+  for (const entry of markers) {
+    if (typeof entry === 'string') {
+      if (items.has(entry)) favoriteContainers.push({ profile, id: entry });
+      profile = 'default';
+    } else {
+      profile = arcProfileKey(entry);
+    }
+  }
+  return { spaces, items, favoriteContainerIds: favoriteContainers.map((c) => c.id), favoriteContainers };
 }
 
 export interface ArcImportCounts {
@@ -235,6 +264,43 @@ export interface ArcImportCounts {
   today: number;
   folders: number;
   favorites: number;
+  profiles: number;
+}
+
+const PROFILE_COLORS = [
+  '#6366f1',
+  '#ec4899',
+  '#f59e0b',
+  '#10b981',
+  '#0ea5e9',
+  '#8b5cf6',
+  '#ef4444',
+  '#14b8a6',
+];
+
+/** Arc profile directory → Vela profile id (null = the default profile), reusing profiles by name. */
+export function mapArcProfiles(
+  state: CoreState,
+  sidebar: ArcSidebar,
+  names: Record<string, string>,
+): { state: CoreState; byDir: Record<string, Id | null>; created: number } {
+  let next = state;
+  const byDir: Record<string, Id | null> = { default: null, Default: null };
+  let created = 0;
+  const dirs = [...new Set(sidebar.spaces.map((s) => s.profile))].filter((d) => d !== 'default');
+  for (const dir of dirs) {
+    const name = names[dir] ?? dir;
+    const existing = Object.values(next.profiles).find((p) => p.name === name && !p.ephemeral);
+    if (existing) {
+      byDir[dir] = existing.id;
+      continue;
+    }
+    const profile = createProfile(name, PROFILE_COLORS[created % PROFILE_COLORS.length] ?? '#6366f1');
+    next = reduce(next, { type: 'profile/create', profile });
+    byDir[dir] = profile.id;
+    created++;
+  }
+  return { state: next, byDir, created };
 }
 
 /**
@@ -247,9 +313,18 @@ export function applyArcSidebar(
   state: CoreState,
   sidebar: ArcSidebar,
   now: number,
-): { state: CoreState; counts: ArcImportCounts } {
-  let next = state;
-  const counts: ArcImportCounts = { spaces: 0, pinned: 0, today: 0, folders: 0, favorites: 0 };
+  profileNames: Record<string, string> = {},
+): { state: CoreState; counts: ArcImportCounts; profiles: Record<string, Id | null> } {
+  const mapped = mapArcProfiles(state, sidebar, profileNames);
+  let next = mapped.state;
+  const counts: ArcImportCounts = {
+    spaces: 0,
+    pinned: 0,
+    today: 0,
+    folders: 0,
+    favorites: 0,
+    profiles: mapped.created,
+  };
   const visited = new Set<string>();
 
   const childrenOf = (id: string | null): ArcItem[] => {
@@ -271,15 +346,35 @@ export function applyArcSidebar(
   };
 
   sidebar.spaces.forEach((arc, i) => {
-    const space = createSpace({
-      name: arc.title || 'Space',
-      ...(arc.emoji ? { emoji: arc.emoji } : {}),
-      theme: arc.theme ?? SPACE_PRESET_THEMES[i % SPACE_PRESET_THEMES.length] ?? DEFAULT_THEME,
-      now,
-    });
-    next = reduce(next, { type: 'space/create', space });
-    counts.spaces++;
-    const seen = new Set<string>();
+    const name = arc.title || 'Space';
+    const emoji = arc.emoji ?? null;
+    const profileId = mapped.byDir[arc.profile] ?? null;
+    // Importing again (to add profiles, cookies…) must not duplicate spaces: reuse by name + emoji.
+    const existing = Object.values(next.spaces).find(
+      (s) => s.name === name && (emoji === null || s.emoji === emoji),
+    );
+    const space =
+      existing ??
+      createSpace({
+        name,
+        ...(arc.emoji ? { emoji: arc.emoji } : {}),
+        theme: arc.theme ?? SPACE_PRESET_THEMES[i % SPACE_PRESET_THEMES.length] ?? DEFAULT_THEME,
+        profileId,
+        now,
+      });
+    if (existing) {
+      if (!existing.profileId && profileId) {
+        next = reduce(next, { type: 'space/update', id: existing.id, patch: { profileId } });
+      }
+    } else {
+      next = reduce(next, { type: 'space/create', space });
+      counts.spaces++;
+    }
+    const seen = new Set<string>(
+      Object.values(next.tabs)
+        .filter((t) => t.spaceId === space.id)
+        .map((t) => t.url),
+    );
 
     const walkPinned = (parentArcId: string, parentFolderId: Id | null, depth: number): void => {
       for (const child of childrenOf(parentArcId)) {
@@ -342,7 +437,46 @@ export function applyArcSidebar(
       }
     }
   };
-  for (const id of sidebar.favoriteContainerIds) walkFavorites(id);
+  // Arc shows the favorites of the current space's profile; Vela's grid is global, so take the
+  // profile of the first space (what Arc opens on), falling back to the one most spaces use.
+  const withItems = new Set(
+    sidebar.favoriteContainers
+      .filter((c) => (sidebar.items.get(c.id)?.children.length ?? 0) > 0)
+      .map((c) => c.profile),
+  );
+  const usage = new Map<string, number>();
+  for (const space of sidebar.spaces) usage.set(space.profile, (usage.get(space.profile) ?? 0) + 1);
+  const first = sidebar.spaces[0]?.profile;
+  const chosen =
+    first !== undefined && withItems.has(first)
+      ? first
+      : ([...usage.entries()].filter(([p]) => withItems.has(p)).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+        first ??
+        'default');
+  // An earlier import may have merged every profile's favorites: drop the ones that only exist in
+  // the other profiles' containers, never anything the user favorited themselves.
+  const urlsIn = (containerId: string, acc: Set<string>, stack = new Set<string>()): Set<string> => {
+    if (stack.has(containerId)) return acc;
+    stack.add(containerId);
+    for (const childId of sidebar.items.get(containerId)?.children ?? []) {
+      const child = sidebar.items.get(childId);
+      if (!child) continue;
+      if (child.kind === 'tab' && child.url) acc.add(child.url);
+      else urlsIn(child.id, acc, stack);
+    }
+    return acc;
+  };
+  const chosenUrls = new Set<string>();
+  const otherUrls = new Set<string>();
+  for (const c of sidebar.favoriteContainers) urlsIn(c.id, c.profile === chosen ? chosenUrls : otherUrls);
+  for (const id of next.favorites) {
+    const url = next.tabs[id]?.url;
+    if (url && otherUrls.has(url) && !chosenUrls.has(url)) {
+      next = reduce(next, { type: 'tab/close', id, now });
+      favUrls.delete(url);
+    }
+  }
+  for (const c of sidebar.favoriteContainers) if (c.profile === chosen) walkFavorites(c.id);
 
-  return { state: next, counts };
+  return { state: next, counts, profiles: mapped.byDir };
 }

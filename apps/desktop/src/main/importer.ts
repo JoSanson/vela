@@ -1,4 +1,4 @@
-import type { CoreState } from '@vela/core';
+import { createProfile, hostOf, type CoreState, type Id } from '@vela/core';
 import type {
   BrowserImportSource,
   BrowserImportSourceId,
@@ -24,6 +24,15 @@ import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import type { AppContext } from './context';
 import { applyArcSidebar, parseArcSidebar, type ArcImportCounts } from './importers/arc';
+import {
+  chromiumKey,
+  cookieRowToSet,
+  loginsToCredentials,
+  profileNamesFromLocalState,
+  SAFE_STORAGE,
+  type ChromiumCookieRow,
+  type ChromiumLoginRow,
+} from './importers/chromiumSecrets';
 import { chromeBookmarksToTree, chromeTimeToMs, type ChromeBookmarks } from './importers/chromium';
 import {
   FIREFOX_BOOKMARKS_SQL,
@@ -116,11 +125,49 @@ function isDenied(err: unknown): boolean {
   return code === 'EPERM' || code === 'EACCES';
 }
 
+interface SecretFiles {
+  /** Chromium profile directory name (`Default`, `Profile 3`). */
+  dir: string;
+  logins: string | null;
+  cookies: string | null;
+}
+
 interface SourceFiles {
   bookmarks: string | null;
   history: string | null;
   structure: string | null;
   error: BrowserImportSourceError | null;
+  /** Per Chromium profile: encrypted logins and cookies (Arc, Chrome, Brave, Edge). */
+  secrets?: SecretFiles[];
+  /** Chromium `Local State` (profile display names). */
+  localState?: string | null;
+}
+
+const CHROMIUM_PROFILE_DIR_RE = /^(Default|Profile \d+)$/;
+
+/** Every Chromium profile directory under `root` that has a logins or cookies database. */
+function secretFilesUnder(root: string): SecretFiles[] {
+  let dirs: string[];
+  try {
+    dirs = readdirSync(root).filter((d) => CHROMIUM_PROFILE_DIR_RE.test(d));
+  } catch {
+    return [];
+  }
+  const out: SecretFiles[] = [];
+  for (const dir of dirs.sort()) {
+    const logins = join(root, dir, 'Login Data');
+    const cookies = join(root, dir, 'Cookies');
+    const hasLogins = existsSync(logins);
+    const hasCookies = existsSync(cookies);
+    if (hasLogins || hasCookies)
+      out.push({ dir, logins: hasLogins ? logins : null, cookies: hasCookies ? cookies : null });
+  }
+  return out;
+}
+
+/** Decryption needs the browser's keychain password: macOS prompts once, Linux uses `peanuts`. */
+export function secretsSupported(): boolean {
+  return process.platform === 'darwin' || process.platform === 'linux' || !!process.env.VELA_IMPORT_KEY;
 }
 
 function chromiumFiles(id: 'chrome' | 'brave' | 'edge'): SourceFiles {
@@ -133,11 +180,14 @@ function chromiumFiles(id: 'chrome' | 'brave' | 'edge'): SourceFiles {
       const bookmarks = join(dir, 'Bookmarks');
       const history = join(dir, 'History');
       if (existsSync(bookmarks) || existsSync(history)) {
+        const localState = join(root, 'Local State');
         return {
           bookmarks: existsSync(bookmarks) ? bookmarks : null,
           history: existsSync(history) ? history : null,
           structure: null,
           error: null,
+          secrets: secretFilesUnder(root),
+          localState: existsSync(localState) ? localState : null,
         };
       }
     }
@@ -155,11 +205,15 @@ function arcFiles(): SourceFiles {
       existsSync(f),
     );
     if (existsSync(sidebar) || history) {
+      const userData = join(root, 'User Data');
+      const localState = join(userData, 'Local State');
       return {
         bookmarks: null,
         history: history ?? null,
         structure: existsSync(sidebar) ? sidebar : null,
         error: null,
+        secrets: secretFilesUnder(userData),
+        localState: existsSync(localState) ? localState : null,
       };
     }
   }
@@ -247,6 +301,8 @@ export function detectSources(): BrowserImportSource[] {
       bookmarks: !!f.bookmarks,
       history: !!f.history,
       structure: !!f.structure,
+      passwords: secretsSupported() && !!f.secrets?.some((p) => p.logins),
+      cookies: secretsSupported() && !!f.secrets?.some((p) => p.cookies),
       error: f.error,
     };
   });
@@ -327,11 +383,167 @@ async function importChromiumHistory(ctx: AppContext, file: string): Promise<num
   );
 }
 
-function importArcSidebar(ctx: AppContext, file: string): ArcImportCounts {
+function localStateNames(file: string | null | undefined): Record<string, string> {
+  if (!file) return {};
+  try {
+    return profileNamesFromLocalState(JSON.parse(readFileSync(file, 'utf8')));
+  } catch {
+    return {};
+  }
+}
+
+function importArcSidebar(
+  ctx: AppContext,
+  file: string,
+  localState: string | null | undefined,
+): { counts: ArcImportCounts; profiles: Record<string, Id | null> } {
   const sidebar = parseArcSidebar(JSON.parse(readFileSync(file, 'utf8')));
-  const applied = applyArcSidebar(ctx.store.state, sidebar, Date.now());
-  if (applied.counts.spaces > 0) ctx.store.dispatch({ type: 'state/replace', state: applied.state });
-  return applied.counts;
+  const before = new Set(Object.keys(ctx.store.state.tabs));
+  const applied = applyArcSidebar(ctx.store.state, sidebar, Date.now(), localStateNames(localState));
+  if (applied.state !== ctx.store.state) {
+    ctx.store.dispatch({ type: 'state/replace', state: applied.state });
+    prefetchFavicons(
+      ctx,
+      Object.values(applied.state.tabs)
+        .filter((t) => !before.has(t.id) && !t.favicon)
+        .map((t) => t.id),
+    );
+  }
+  return { counts: applied.counts, profiles: applied.profiles };
+}
+
+/** The browser's OS-crypt password: `VELA_IMPORT_KEY` (tests), the macOS keychain, or `peanuts` on Linux. */
+async function safeStoragePassword(source: BrowserImportSourceId): Promise<string | null> {
+  if (process.env.VELA_IMPORT_KEY) return process.env.VELA_IMPORT_KEY;
+  const entry =
+    source === 'arc' || source === 'chrome' || source === 'brave' || source === 'edge'
+      ? SAFE_STORAGE[source]
+      : null;
+  if (!entry) return null;
+  if (process.platform === 'linux') return 'peanuts';
+  if (process.platform !== 'darwin') return null;
+  try {
+    const { stdout } = await execFileAsync('/usr/bin/security', [
+      'find-generic-password',
+      '-w',
+      '-s',
+      entry.service,
+      '-a',
+      entry.account,
+    ]);
+    const pw = stdout.trim();
+    return pw || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Vela partition for a Chromium profile directory: the default one, or the mapped/created profile. */
+function partitionForDir(
+  ctx: AppContext,
+  dir: string,
+  mapping: Record<string, Id | null>,
+  names: Record<string, string>,
+): string {
+  if (dir === 'Default' || mapping[dir] === null) return ctx.sessions.partitionFor(null);
+  const mappedId = mapping[dir];
+  if (mappedId) {
+    const p = ctx.store.state.profiles[mappedId];
+    if (p) return p.partition;
+  }
+  const name = names[dir] ?? dir;
+  const existing = Object.values(ctx.store.state.profiles).find((p) => p.name === name && !p.ephemeral);
+  if (existing) return existing.partition;
+  const profile = createProfile(name, '#6366f1');
+  ctx.store.dispatch({ type: 'profile/create', profile });
+  return profile.partition;
+}
+
+async function importChromiumPasswords(ctx: AppContext, files: SecretFiles[], key: Buffer): Promise<number> {
+  let n = 0;
+  for (const f of files) {
+    if (!f.logins) continue;
+    const rows = await withSqliteCopy(
+      f.logins,
+      (db) =>
+        db
+          .prepare(
+            'SELECT origin_url, username_value, password_value, date_last_used, date_password_modified FROM logins WHERE blacklisted_by_user = 0',
+          )
+          .all() as ChromiumLoginRow[],
+    );
+    n += ctx.credentials.importMany(loginsToCredentials(rows, key, Date.now()));
+  }
+  return n;
+}
+
+async function importChromiumCookies(
+  ctx: AppContext,
+  files: SecretFiles[],
+  key: Buffer,
+  mapping: Record<string, Id | null>,
+  names: Record<string, string>,
+): Promise<number> {
+  let n = 0;
+  const now = Date.now();
+  for (const f of files) {
+    if (!f.cookies) continue;
+    const rows = await withSqliteCopy(
+      f.cookies,
+      (db) =>
+        db
+          .prepare(
+            'SELECT host_key, name, value, encrypted_value, path, expires_utc, is_secure, is_httponly, samesite, has_expires FROM cookies',
+          )
+          .all() as ChromiumCookieRow[],
+    );
+    const ses = ctx.sessions.get(partitionForDir(ctx, f.dir, mapping, names));
+    for (const row of rows) {
+      const cookie = cookieRowToSet(row, key, now);
+      if (!cookie) continue;
+      try {
+        await ses.cookies.set(cookie);
+        n++;
+      } catch {
+        /* a few cookies (e.g. invalid domains) are rejected by Chromium */
+      }
+    }
+  }
+  return n;
+}
+
+/**
+ * Imported tabs have never been loaded, so they would show letters until first opened; fetch
+ * their icons in the background (favorites and pinned first, a few at a time).
+ */
+export function prefetchFavicons(ctx: AppContext, ids: Id[], concurrency = 4): void {
+  const order = (k: string): number => (k === 'favorite' ? 0 : k === 'pinned' ? 1 : 2);
+  const queue = ids
+    .map((id) => ctx.store.state.tabs[id])
+    .filter((t): t is NonNullable<typeof t> => !!t && /^https?:/i.test(t.url))
+    .sort((a, b) => order(a.kind) - order(b.kind))
+    .slice(0, 300);
+  const seenHost = new Set<string>();
+  const next = async (): Promise<void> => {
+    const tab = queue.shift();
+    if (!tab) return;
+    const host = hostOf(tab.url);
+    const ses = ctx.sessions.forProfile(
+      ctx.store.state.spaces[tab.spaceId ?? '']?.profileId ?? null,
+      Object.fromEntries(Object.values(ctx.store.state.profiles).map((p) => [p.id, p.partition])),
+    );
+    const icon = seenHost.has(host)
+      ? await ctx.favicons.discover(ses, tab.url)
+      : (seenHost.add(host), await ctx.favicons.discover(ses, tab.url));
+    if (icon) {
+      for (const t of Object.values(ctx.store.state.tabs)) {
+        if (!t.favicon && hostOf(t.url) === host)
+          ctx.store.dispatch({ type: 'tab/update', id: t.id, patch: { favicon: icon } });
+      }
+    }
+    await next();
+  };
+  for (let i = 0; i < concurrency; i++) void next();
 }
 
 async function importSafariBookmarks(ctx: AppContext, file: string): Promise<number> {
@@ -378,18 +590,23 @@ export async function runImport(
   bookmarks: boolean,
   history: boolean,
   structure = true,
+  passwords = false,
+  cookies = false,
 ): Promise<ImportResult> {
   const files = filesFor(source);
   const result: ImportResult = { bookmarks: 0, history: 0 };
   if (files.error) return { ...result, error: ctx.i18n.t('pages.import.safariAccess') };
+  let profileMap: Record<string, Id | null> = {};
   try {
     if (source === 'arc') {
       if (structure && files.structure) {
-        const counts = importArcSidebar(ctx, files.structure);
+        const { counts, profiles } = importArcSidebar(ctx, files.structure, files.localState);
+        profileMap = profiles;
         result.bookmarks = counts.pinned;
         result.spaces = counts.spaces;
         result.todayTabs = counts.today;
         result.favorites = counts.favorites;
+        result.profiles = counts.profiles;
       }
       if (history && files.history) result.history = await importChromiumHistory(ctx, files.history);
     } else if (source === 'safari') {
@@ -401,6 +618,15 @@ export async function runImport(
     } else {
       if (bookmarks && files.bookmarks) result.bookmarks = importChromiumBookmarks(ctx, files.bookmarks);
       if (history && files.history) result.history = await importChromiumHistory(ctx, files.history);
+    }
+    if ((passwords || cookies) && files.secrets?.length) {
+      const password = await safeStoragePassword(source);
+      if (!password)
+        return { ...result, error: ctx.i18n.t('pages.import.keychainDenied', { name: NAMES[source] }) };
+      const key = chromiumKey(password);
+      const names = localStateNames(files.localState);
+      if (passwords) result.passwords = await importChromiumPasswords(ctx, files.secrets, key);
+      if (cookies) result.cookies = await importChromiumCookies(ctx, files.secrets, key, profileMap, names);
     }
   } catch (err) {
     console.warn(`[vela import] ${source} failed:`, err);

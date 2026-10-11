@@ -43,7 +43,8 @@ export const settings = {
   'settings.general.memorySaver.minutesAria': 'Minutes before sleeping',
   'settings.general.memorySaver.minUnit': 'min',
   'settings.general.autoPip.label': 'Automatic picture-in-picture',
-  'settings.general.autoPip.hint': 'Playing video pops out into a floating window when you switch tabs.',
+  'settings.general.autoPip.hint':
+    'YouTube videos pop out into a floating window when you switch tabs, and come back when you return.',
   'settings.general.downloads': 'Downloads',
   'settings.general.downloadDir.label': 'Save files to',
   'settings.general.downloadDir.default': 'Your Downloads folder',

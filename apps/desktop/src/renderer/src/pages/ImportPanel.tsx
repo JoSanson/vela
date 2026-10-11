@@ -20,6 +20,8 @@ interface Choice {
   bookmarks: boolean;
   history: boolean;
   structure: boolean;
+  passwords: boolean;
+  cookies: boolean;
 }
 
 interface Props {
@@ -37,16 +39,22 @@ function subtitle(src: BrowserImportSource, t: Translator): string {
 }
 
 function summary(src: BrowserImportSource, r: ImportResult, t: Translator): string {
-  if (src.id === 'arc') {
-    return t('pages.import.arcSummary', {
-      spaces: r.spaces ?? 0,
-      pinned: r.bookmarks,
-      tabs: r.todayTabs ?? 0,
-      favorites: r.favorites ?? 0,
-      history: r.history,
-    });
-  }
-  return t('pages.import.summary', { bookmarks: r.bookmarks, history: r.history });
+  const base =
+    src.id === 'arc'
+      ? t('pages.import.arcSummary', {
+          spaces: r.spaces ?? 0,
+          pinned: r.bookmarks,
+          tabs: r.todayTabs ?? 0,
+          favorites: r.favorites ?? 0,
+          history: r.history,
+        })
+      : t('pages.import.summary', { bookmarks: r.bookmarks, history: r.history });
+  const extra = [
+    r.profiles ? t('pages.import.profilesCount', { n: r.profiles }) : '',
+    r.passwords ? t('pages.import.passwordsCount', { n: r.passwords }) : '',
+    r.cookies ? t('pages.import.cookiesCount', { n: r.cookies }) : '',
+  ].filter(Boolean);
+  return extra.length ? `${base} · ${extra.join(' · ')}` : base;
 }
 
 export function ImportPanel({ onImported }: Props) {
@@ -68,7 +76,7 @@ export function ImportPanel({ onImported }: Props) {
   }, []);
 
   const choiceFor = (id: string): Choice =>
-    choices[id] ?? { bookmarks: true, history: true, structure: true };
+    choices[id] ?? { bookmarks: true, history: true, structure: true, passwords: true, cookies: true };
   const setChoice = (id: string, patch: Partial<Choice>): void =>
     setChoices((prev) => ({ ...prev, [id]: { ...choiceFor(id), ...patch } }));
 
@@ -80,6 +88,8 @@ export function ImportPanel({ onImported }: Props) {
       bookmarks: c.bookmarks && src.bookmarks,
       history: c.history && src.history,
       structure: c.structure && src.structure,
+      passwords: c.passwords && src.passwords,
+      cookies: c.cookies && src.cookies,
     });
     setRunning(null);
     if (!res) {
@@ -126,7 +136,11 @@ export function ImportPanel({ onImported }: Props) {
         const done = results[src.id];
         const busy = running === src.id;
         const canRun =
-          (c.bookmarks && src.bookmarks) || (c.history && src.history) || (c.structure && src.structure);
+          (c.bookmarks && src.bookmarks) ||
+          (c.history && src.history) ||
+          (c.structure && src.structure) ||
+          (c.passwords && src.passwords) ||
+          (c.cookies && src.cookies);
         return (
           <div
             key={src.id}
@@ -188,6 +202,30 @@ export function ImportPanel({ onImported }: Props) {
                       ? t('pages.import.historyNone')
                       : t('pages.import.history')}
                   </label>
+                  {src.passwords && (
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={c.passwords}
+                        disabled={busy}
+                        onChange={(e) => setChoice(src.id, { passwords: e.target.checked })}
+                        data-testid={`import-passwords-${src.id}`}
+                      />
+                      {t('pages.import.passwords')}
+                    </label>
+                  )}
+                  {src.cookies && (
+                    <label className={styles.check} title={t('pages.import.cookiesHint', { name: src.name })}>
+                      <input
+                        type="checkbox"
+                        checked={c.cookies}
+                        disabled={busy}
+                        onChange={(e) => setChoice(src.id, { cookies: e.target.checked })}
+                        data-testid={`import-cookies-${src.id}`}
+                      />
+                      {t('pages.import.cookies')}
+                    </label>
+                  )}
                 </span>
                 <Button
                   variant="primary"
