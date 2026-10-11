@@ -37,8 +37,9 @@ All notable changes to Vela are documented here. The format follows
   brings the tab and the window back.
 - Arc import: favorites of every profile were merged into one grid; folders were duplicated on a
   second import.
-- Google sign-in refused Vela ("this browser or app may not be secure"): the user agent now
-  carries the reduced `Chrome/N.0.0.0` version like Chrome itself instead of the full build number.
+- Google sign-in refused Vela ("this browser or app may not be secure"): pages now get the
+  `window.chrome` object every Chromium browser exposes (Electron leaves it empty), and the user
+  agent carries the reduced `Chrome/N.0.0.0` version like Chrome itself (D032).
 
 ## [0.3.0] - 2026-10-11
 

@@ -1,5 +1,5 @@
 import type { IpcEventChannel, IpcEventMap, IpcInvokeChannel, IpcInvokeMap, VelaBridge } from '@vela/shared';
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 
 // Inlined on purpose: a sandboxed preload must be a single file with no shared chunks.
 const channel = (name: string): string => `vela:${name}`;
@@ -94,6 +94,43 @@ if (typeof window !== 'undefined') {
     },
     true,
   );
+}
+
+/**
+ * Every Chromium browser (Chrome, Edge, Brave, Arc) exposes `window.chrome` with `app`, `runtime`,
+ * `csi` and `loadTimes`; Electron ships it empty, and Google's sign-in refuses such a page right
+ * after the e-mail step ("this browser or app may not be secure") even with a Chrome user agent.
+ * The stubs mirror what Chrome gives an ordinary page (no extension context). Injected in the main
+ * world at document-start, before any page script, from the sandboxed preload.
+ */
+const CHROME_OBJECT = `(() => {
+  const c = window.chrome || {};
+  if (!c.app) c.app = {
+    isInstalled: false,
+    InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
+    RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' },
+    getDetails: () => null, getIsInstalled: () => false, runningState: () => 'cannot_run',
+  };
+  if (!c.runtime) c.runtime = {
+    id: undefined,
+    connect: () => { throw new TypeError('Invalid arguments'); },
+    sendMessage: () => { throw new TypeError('Invalid arguments'); },
+  };
+  if (!c.csi) c.csi = () => ({ startE: Date.now(), onloadT: Date.now(), pageT: performance.now(), tran: 15 });
+  if (!c.loadTimes) c.loadTimes = () => {
+    const t = Date.now() / 1000;
+    return {
+      requestTime: t, startLoadTime: t, commitLoadTime: t, finishDocumentLoadTime: t, finishLoadTime: t,
+      firstPaintTime: t, firstPaintAfterLoadTime: 0, navigationType: 'Other', wasFetchedViaSpdy: true,
+      wasNpnNegotiated: true, npnNegotiatedProtocol: 'h2', wasAlternateProtocolAvailable: false, connectionInfo: 'h2',
+    };
+  };
+  window.chrome = c;
+})();`;
+if (/^https?:$/.test(location?.protocol ?? '')) {
+  (process as unknown as { once(event: string, fn: () => void): void }).once('document-start', () => {
+    void webFrame.executeJavaScript(CHROME_OBJECT).catch(() => undefined);
+  });
 }
 
 /**

@@ -270,3 +270,16 @@ Spaces menu) shows every Space as a card: colour, emoji, name, profile, tab coun
 instant search over names and profiles and full keyboard navigation. Space management (rename,
 colour, profile, delete) stays in the Space editor, one right-click away from each card.
 
+## D032 — Pages see a Chromium browser, not an Electron shell
+
+Google's sign-in rejected Vela after the e-mail step ("this browser or app may not be secure").
+Probing from hidden windows (fresh sessions, fake e-mail) showed what matters: stripping the
+`Electron/` and `Vela/` tokens is not enough, the full `Chrome/152.0.7977.130` build number is a
+tell (Chrome sends `152.0.0.0` since its user-agent reduction), and above all Electron leaves
+`window.chrome` empty while every Chromium browser (Chrome, Edge, Brave, Arc) exposes `chrome.app`,
+`chrome.runtime`, `chrome.csi` and `chrome.loadTimes`. The tab preload now installs those stubs in
+the main world at document-start on http(s) pages; the client-hint brands stay honest
+(`Chromium` only, no "Google Chrome"), and `Sec-CH-UA` is left alone because Chromium refuses
+requests whose client-hint headers were rewritten. The probe scripts live outside the repo; the
+behaviour is covered by the user-agent unit test and by hand on accounts.google.com.
+
