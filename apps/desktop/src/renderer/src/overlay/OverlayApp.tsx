@@ -107,7 +107,14 @@ export function OverlayApp() {
             leaveTimer.current = null;
           }}
         >
-          <Sidebar width={sidebarWidth} onToggle={hide} floating />
+          <Sidebar
+            width={sidebarWidth}
+            onToggle={() => {
+              void invoke('command/run', { id: 'toggleSidebar' });
+              hide();
+            }}
+            floating
+          />
         </div>
       )}
     </div>

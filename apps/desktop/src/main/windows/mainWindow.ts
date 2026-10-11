@@ -1,5 +1,5 @@
 import type { Id } from '@vela/core';
-import { contentBounds, CONTENT_RADIUS, topBarHeight, type Layout } from '@vela/shared';
+import { contentBounds, contentRadius, topBarHeight, type Layout } from '@vela/shared';
 import { BrowserWindow, type Rectangle } from 'electron';
 import { preloadPath, rendererUrl } from '../context';
 import { trustShell } from '../ipc/typed';
@@ -98,6 +98,7 @@ export class MainWindow {
       height: h ?? 0,
       sidebarWidth: this.layout.sidebarWidth,
       sidebarVisible: this.layout.sidebarVisible,
+      sidebarReveal: this.layout.sidebarReveal,
       fullscreen: this.win.isFullScreen(),
       topStrip: this.layout.topStrip ?? 0,
       platform: process.platform,
@@ -105,6 +106,10 @@ export class MainWindow {
   }
 
   contentRadius(): number {
-    return this.layout.sidebarVisible && !this.win.isFullScreen() ? CONTENT_RADIUS : 0;
+    return contentRadius({
+      sidebarVisible: this.layout.sidebarVisible,
+      sidebarReveal: this.layout.sidebarReveal,
+      fullscreen: this.win.isFullScreen(),
+    });
   }
 }

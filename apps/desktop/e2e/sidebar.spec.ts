@@ -161,7 +161,31 @@ test.describe('sidebar', () => {
     await overlay.keyboard.press('Escape');
     await expect(overlay.getByTestId('overlay')).toHaveCount(0);
   });
+
+  test('the toggle in the floating sidebar docks it back', async ({ vela, fixtures }) => {
+    await openTab(vela, `${fixtures}/page/Dock`);
+    await vela.command('toggleSidebar');
+    await expect.poll(() => layout(vela).then((l) => l.sidebarVisible)).toBe(false);
+    await vela.shell.getByTestId('sidebar-edge').hover();
+    const overlay = await vela.overlay();
+    const floating = overlay.locator('[data-testid="sidebar"][data-floating="true"]');
+    await expect(floating).toBeVisible();
+    await floating.getByRole('button', { name: 'Hide sidebar' }).click();
+    await expect.poll(() => layout(vela).then((l) => l.sidebarVisible)).toBe(true);
+    await expect(overlay.getByTestId('overlay')).toHaveCount(0);
+    await expect(vela.shell.locator('[data-testid="sidebar"][data-floating="false"]')).toBeVisible();
+    await expect.poll(() => layout(vela).then((l) => l.sidebarReveal)).toBeUndefined();
+  });
 });
+
+async function layout(vela: VelaApp): Promise<{ sidebarVisible: boolean; sidebarReveal?: number }> {
+  return vela.app.evaluate(() => {
+    const g = globalThis as unknown as {
+      __vela: { ctx: { windows: { main: { layout: { sidebarVisible: boolean; sidebarReveal?: number } } } } };
+    };
+    return g.__vela.ctx.windows.main.layout;
+  });
+}
 
 test.describe('spaces', () => {
   test('creates a themed space with the editor, switches with Ctrl+2 and deletes it', async ({

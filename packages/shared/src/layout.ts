@@ -23,15 +23,30 @@ export interface ContentLayoutInput {
   height: number;
   sidebarWidth: number;
   sidebarVisible: boolean;
+  /** 0..1 while the sidebar slides; inset, radius and offset follow it so nothing jumps at the end. */
+  sidebarReveal?: number;
   fullscreen: boolean;
   topStrip: number;
   platform: string;
 }
 
+export function sidebarReveal(i: Pick<ContentLayoutInput, 'sidebarVisible' | 'sidebarReveal'>): number {
+  if (!i.sidebarVisible) return 0;
+  return Math.min(1, Math.max(0, i.sidebarReveal ?? 1));
+}
+
+export function contentRadius(
+  i: Pick<ContentLayoutInput, 'sidebarVisible' | 'sidebarReveal' | 'fullscreen'>,
+): number {
+  return i.fullscreen ? 0 : Math.round(CONTENT_RADIUS * sidebarReveal(i));
+}
+
 /** Region available to tab views, in window content coordinates. Single source of truth. */
 export function contentBounds(i: ContentLayoutInput): Rect {
-  const sidebar = i.sidebarVisible ? Math.round(i.sidebarWidth) : i.fullscreen ? 0 : HOVER_EDGE;
-  const inset = i.sidebarVisible && !i.fullscreen ? CONTENT_INSET : 0;
+  const reveal = sidebarReveal(i);
+  const shown = Math.round(i.sidebarWidth * reveal);
+  const sidebar = i.fullscreen ? shown : Math.max(HOVER_EDGE, shown);
+  const inset = i.fullscreen ? 0 : Math.round(CONTENT_INSET * reveal);
   const top = topBarHeight(i.platform) + i.topStrip;
   return {
     x: sidebar,

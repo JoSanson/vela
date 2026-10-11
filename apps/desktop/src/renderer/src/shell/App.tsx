@@ -114,8 +114,9 @@ export function App() {
       onUpdate: (x) => {
         el.style.transform = `translateX(${x}px)`;
         vela.send('layout/set', {
-          sidebarWidth: Math.max(0, width + x),
+          sidebarWidth: width,
           sidebarVisible: true,
+          sidebarReveal: (width + x) / width,
           topStrip: strip,
         });
       },
@@ -271,13 +272,11 @@ export function App() {
             }}
           />
         </div>
-        {!sidebarVisible && (
-          <div
-            className={styles.edge}
-            onMouseEnter={() => void invoke('overlay/show', { kind: 'sidebar' })}
-            data-testid="sidebar-edge"
-          />
-        )}
+        <div
+          className={styles.edge}
+          onMouseEnter={sidebarVisible ? undefined : () => void invoke('overlay/show', { kind: 'sidebar' })}
+          data-testid="sidebar-edge"
+        />
         <main className={styles.content} data-testid="content" data-dnd-zone="content">
           {findOpen && <FindBar onClose={closeFind} />}
           {!hasActive && ready && (

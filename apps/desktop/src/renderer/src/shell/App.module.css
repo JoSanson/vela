@@ -17,6 +17,7 @@
 
 .asideWrap {
   position: relative;
+  z-index: 4;
   flex: 0 0 auto;
   height: 100%;
   will-change: transform;
@@ -54,8 +55,8 @@
   top: 0;
   width: 4px;
   height: 100%;
+  /* Under the sidebar while it slides, so the last pixels never show the space gradient. */
   z-index: 3;
-  /* Reads as a page border, not as a leftover of the sidebar gradient. */
   background: var(--panel-bg);
 }
 
