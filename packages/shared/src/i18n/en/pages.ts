@@ -223,8 +223,9 @@ export const pages = {
   'pages.import.looking': 'Looking for installed browsers…',
   'pages.import.none':
     'No Arc, Chrome, Brave, Edge, Safari or Firefox data was found on this Mac. You can still import a Vela export from a file.',
-  'pages.import.structureHint':
-    'Imports the whole sidebar: every Space with its name, emoji and colour, pinned tabs and folders in order, open tabs, and favorites.',
+  'pages.import.structureHint': 'Spaces, folders, pinned and open tabs, favorites.',
+  'pages.import.safariAccess': 'Needs Full Disk Access: System Settings > Privacy & Security.',
+  'pages.import.accessDenied': 'macOS refused access to the {name} data folder.',
   'pages.import.structure': 'Recreate Spaces, pinned tabs and favorites',
   'pages.import.bookmarks': 'Bookmarks',
   'pages.import.noHistoryDb': 'No history database found',

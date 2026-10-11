@@ -1,5 +1,10 @@
 import type { CoreState } from '@vela/core';
-import type { BrowserImportSource, BrowserImportSourceId, ImportResult } from '@vela/shared';
+import type {
+  BrowserImportSource,
+  BrowserImportSourceId,
+  ImportResult,
+  BrowserImportSourceError,
+} from '@vela/shared';
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import { execFile } from 'node:child_process';
@@ -84,9 +89,6 @@ const FIREFOX: Partial<Record<NodeJS.Platform, string[]>> = {
   linux: ['.mozilla/firefox', 'snap/firefox/common/.mozilla/firefox'],
 };
 
-const SAFARI_ACCESS_HINT =
-  'Grant Vela Full Disk Access in System Settings > Privacy & Security to import from Safari.';
-
 const CHROMIUM_PROFILES = ['Default', 'Profile 1', 'Profile 2'];
 
 function bases(id: BrowserImportSourceId, platformPaths: string[]): string[] {
@@ -118,7 +120,7 @@ interface SourceFiles {
   bookmarks: string | null;
   history: string | null;
   structure: string | null;
-  error: string | null;
+  error: BrowserImportSourceError | null;
 }
 
 function chromiumFiles(id: 'chrome' | 'brave' | 'edge'): SourceFiles {
@@ -172,7 +174,7 @@ function safariFiles(): SourceFiles {
     const bookmarks = join(root, 'Bookmarks.plist');
     const history = join(root, 'History.db');
     const probes = [probe(bookmarks), probe(history)];
-    if (probes.includes('denied')) return { ...none, error: SAFARI_ACCESS_HINT };
+    if (probes.includes('denied')) return { ...none, error: 'safari-access' };
     if (probes.includes('ok')) {
       return {
         bookmarks: probes[0] === 'ok' ? bookmarks : null,
@@ -361,11 +363,11 @@ async function importFirefoxHistory(ctx: AppContext, file: string): Promise<numb
   return upsertHistory(ctx, firefoxHistoryToEntries(rows));
 }
 
-function describe(err: unknown, source: BrowserImportSourceId): string {
+function describe(ctx: AppContext, err: unknown, source: BrowserImportSourceId): string {
   if (isDenied(err)) {
     return source === 'safari'
-      ? SAFARI_ACCESS_HINT
-      : `macOS refused access to the ${NAMES[source]} data folder.`;
+      ? ctx.i18n.t('pages.import.safariAccess')
+      : ctx.i18n.t('pages.import.accessDenied', { name: NAMES[source] });
   }
   return err instanceof Error ? err.message : String(err);
 }
@@ -379,7 +381,7 @@ export async function runImport(
 ): Promise<ImportResult> {
   const files = filesFor(source);
   const result: ImportResult = { bookmarks: 0, history: 0 };
-  if (files.error) return { ...result, error: files.error };
+  if (files.error) return { ...result, error: ctx.i18n.t('pages.import.safariAccess') };
   try {
     if (source === 'arc') {
       if (structure && files.structure) {
@@ -402,7 +404,7 @@ export async function runImport(
     }
   } catch (err) {
     console.warn(`[vela import] ${source} failed:`, err);
-    return { ...result, error: describe(err, source) };
+    return { ...result, error: describe(ctx, err, source) };
   }
   ctx.prefs.set({ importedFrom: source });
   return result;

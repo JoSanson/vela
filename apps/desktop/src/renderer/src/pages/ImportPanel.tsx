@@ -27,7 +27,7 @@ interface Props {
 }
 
 function subtitle(src: BrowserImportSource, t: Translator): string {
-  if (src.error) return src.error;
+  if (src.error === 'safari-access') return t('pages.import.safariAccess');
   if (!src.available) return t('pages.import.notInstalled');
   if (src.id === 'arc') {
     return src.history ? t('pages.import.arcFound') : t('pages.import.arcNoHistory');

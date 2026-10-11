@@ -230,8 +230,10 @@ export const pages = {
   'pages.import.looking': 'Recherche des navigateurs installés…',
   'pages.import.none':
     'Aucune donnée Arc, Chrome, Brave, Edge, Safari ou Firefox trouvée sur ce Mac. Vous pouvez toujours importer un export Vela depuis un fichier.',
-  'pages.import.structureHint':
-    'Importe toute la barre latérale : chaque Espace avec son nom, son emoji et sa couleur, les onglets épinglés et dossiers dans l’ordre, les onglets ouverts et les favoris.',
+  'pages.import.structureHint': 'Espaces, dossiers, onglets épinglés et ouverts, favoris.',
+  'pages.import.safariAccess':
+    'Accès complet au disque requis : Réglages Système > Confidentialité et sécurité.',
+  'pages.import.accessDenied': 'macOS a refusé l’accès au dossier de données de {name}.',
   'pages.import.structure': 'Recréer les Espaces, onglets épinglés et favoris',
   'pages.import.bookmarks': 'Favoris',
   'pages.import.noHistoryDb': 'Aucune base d’historique trouvée',

@@ -25,6 +25,8 @@ export interface ShellSnapshot {
 export interface Layout {
   sidebarWidth: number;
   sidebarVisible: boolean;
+  /** 0..1 progress of the slide animation; omitted once the sidebar rests. */
+  sidebarReveal?: number;
   /** Height reserved at the top of the content area (find bar, reader toolbar). */
   topStrip?: number;
 }
@@ -198,9 +200,11 @@ export interface BrowserImportSource {
   history: boolean;
   /** The whole sidebar (spaces, pinned tabs, folders, favorites) can be recreated (Arc only). */
   structure: boolean;
-  /** Why the install cannot be read (for example macOS denied access), shown under the name. */
-  error: string | null;
+  /** Why the install cannot be read, translated by the UI and shown under the name. */
+  error: BrowserImportSourceError | null;
 }
+
+export type BrowserImportSourceError = 'safari-access';
 
 export interface ImportResult {
   bookmarks: number;
