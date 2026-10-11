@@ -495,7 +495,7 @@ export class TabManager {
     wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
       if (!isMainFrame) return;
       const unsafe = this.unsafe.get(wc.id);
-      if (unsafe && unsafe.url === url) {
+      if (unsafe?.url === url) {
         this.unsafe.delete(wc.id);
         void wc.loadURL(errorPageUrl('unsafe', url, unsafe.threat)).catch(() => undefined);
         return;

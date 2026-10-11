@@ -9,7 +9,7 @@ import {
   createSpace,
   SPACE_PRESET_THEMES,
 } from '@vela/core';
-import { resolveShortcuts, unreservedOf } from '@vela/shared';
+import { resolveShortcuts, unreservedOf, type BrowserImportSourceId } from '@vela/shared';
 import { app, crashReporter, dialog, session } from 'electron';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -302,7 +302,8 @@ async function boot(): Promise<void> {
       core,
       importer: {
         detectSources,
-        runImport: (s: 'chrome' | 'brave' | 'edge', b: boolean, h: boolean) => runImport(c, s, b, h),
+        runImport: (s: BrowserImportSourceId, b: boolean, h: boolean, st?: boolean) =>
+          runImport(c, s, b, h, st),
       },
       exporter,
       reader,

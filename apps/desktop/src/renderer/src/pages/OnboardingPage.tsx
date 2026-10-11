@@ -162,7 +162,8 @@ export function OnboardingPage() {
             </div>
             <p className={styles.lead}>
               Import bookmarks and history from another browser. Bookmarks become pinned tabs in your first
-              space. You can skip this and do it later from Settings.
+              space; from Arc, your Spaces, pinned tabs and favorites come along as they are. You can skip
+              this and do it later from Settings.
             </p>
             <div className={styles.importBox}>
               <ImportPanel />

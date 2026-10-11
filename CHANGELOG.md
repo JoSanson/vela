@@ -8,10 +8,17 @@ All notable changes to Vela are documented here. The format follows
 
 ### Added
 
+<<<<<<< HEAD
 - Password manager: logins are offered to be saved after a sign-in, encrypted with the OS
   keychain, and filled from a popover under the login field; Settings > Passwords.
 - Multi-window (D024): ⌘N opens a window on another Space; Spaces move between windows, overlays
   and Peek follow the active window.
+=======
+- Import from Arc (the whole sidebar: Spaces with name, emoji and colour, pinned tabs and nested
+  folders in order, open tabs, favorites, plus history), Safari (bookmarks, Reading List and
+  history; asks for Full Disk Access when macOS denies the read) and Firefox (bookmarks and
+  history from the most recent profile), next to Chrome, Brave and Edge.
+>>>>>>> worktree-agent-afe1d671262b811c8
 
 ## [0.2.0] - 2026-10-11
 

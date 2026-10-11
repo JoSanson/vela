@@ -171,6 +171,7 @@ quarantines the file and restores the newest backup (or starts fresh) with a toa
 to parse are skipped individually. Saves are diff-based upserts and retried with backoff instead of
 being dropped when the disk is full.
 
+<<<<<<< HEAD
 ## D024 — Windows show Spaces; a Space lives in one window at a time
 
 Multi-window replaces D011. Every main window displays exactly one Space; opening a Space that
@@ -181,3 +182,25 @@ views re-parented to the acting window, like a system sheet. Each renderer sees 
 as the Space of its own window (`window/space`), while main's global `activeSpaceId` follows
 focus. ⌘N opens a window on the first Space no window displays, creating one if needed.
 
+=======
+
+## D024 — Browser import: Arc keeps its structure, Safari goes through XML plists
+
+Arc's `StorableSidebar.json` is mapped 1:1 instead of being flattened into bookmarks: each Arc
+space becomes a Vela Space (name, emoji, theme derived from `primaryColorPalette.midTone` with the
+"to" stop pulled 55% towards `tintedLight`, else a preset), the pinned container becomes pinned
+tabs and nested folders in order, the unpinned container becomes today tabs, every top-apps
+container feeds the global favorites. Split views are flattened into their parent. URLs are
+deduplicated per space and across favorites. Imported today tabs keep Arc's `createdAt` but get
+`lastActiveAt = now` so auto-archive does not sweep them before the user has seen them. Arc has
+no bookmarks of its own, so its row offers "Recreate Spaces, pinned tabs and favorites" and
+history (the Chromium `User Data/Default/History`). Arc profiles are not mapped to Vela profiles.
+
+Safari's `Bookmarks.plist` is converted with `plutil -convert xml1` and read by a small XML plist
+parser rather than `-convert json`: plutil refuses to emit JSON for plists containing `<date>` or
+`<data>`, and the Reading List carries both. `~/Library/Safari` is TCC-protected: `stat` succeeds
+but `open` fails with EPERM, so detection opens the files and reports "Grant Vela Full Disk
+Access…" instead of listing Safari as available. Firefox uses the most recently modified
+`places.sqlite` across profiles; `profiles.ini` is not consulted. Every sqlite read goes through a
+temp copy including `-wal`/`-shm`/`-journal` siblings.
+>>>>>>> worktree-agent-afe1d671262b811c8
