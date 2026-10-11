@@ -157,7 +157,9 @@ function FloatingSidebar({
     const paint = (x: number): void => {
       const v = Math.max(-width, Math.min(0, x));
       el.style.transform = `translate3d(${v}px, 0, 0)`;
-      el.style.opacity = String(Math.min(1, ((v + width) / width) * 2 + 0.05));
+      // Fully transparent at the edge so the shadow never outlives the panel; fades over the last third.
+      const progress = (v + width) / width;
+      el.style.opacity = String(Math.max(0, Math.min(1, progress / 0.35)));
     };
     if (reduced) {
       s.snap(s.target);
