@@ -145,6 +145,35 @@ export function sidebarMenu(ctx: AppContext, kind: ContextMenuKind, id?: Id): Me
   if (kind === 'pinnedArea' || kind === 'today') {
     return [{ label: 'New folder', click: () => toShell(ctx, 'newFolder', {}) }];
   }
+
+  if (kind === 'urlPill') {
+    const url = space?.activeTabId ? state.tabs[space.activeTabId]?.url : undefined;
+    return [
+      {
+        label: 'Copy URL',
+        enabled: !!url,
+        click: () => {
+          if (url) void clipboard.writeText(url);
+        },
+      },
+      {
+        label: 'Paste and go',
+        click: () => {
+          void Promise.resolve(clipboard.readText()).then((text) => {
+            const pasted = text.trim();
+            if (!pasted) return;
+            if (space?.activeTabId) tabs.navigate(space.activeTabId, pasted);
+            else tabs.openUrl({ input: pasted });
+          });
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Edit URL',
+        click: () => ctx.overlay.show('commandBar', { mode: 'edit', tabId: space?.activeTabId ?? null }),
+      },
+    ];
+  }
   return [];
 }
 

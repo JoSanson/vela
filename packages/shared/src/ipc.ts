@@ -25,7 +25,7 @@ export interface Layout {
   topStrip?: number;
 }
 
-export type ContextMenuKind = 'tab' | 'folder' | 'space' | 'favorite' | 'today' | 'pinnedArea';
+export type ContextMenuKind = 'tab' | 'folder' | 'space' | 'favorite' | 'today' | 'pinnedArea' | 'urlPill';
 
 export interface LittleState {
   url: string;

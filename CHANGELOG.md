@@ -6,6 +6,10 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-11
+
+## [0.2.0] - 2026-10-11
+
 ### Added
 
 - HTTP and proxy authentication prompt; links to other apps (`zoommtg:`, `slack:`…) ask once per
@@ -16,6 +20,16 @@ All notable changes to Vela are documented here. The format follows
   browsing data, default-browser setting, download folder and ask-where-to-save, find match case,
   HTTPS-first with silent fallback, Global Privacy Control header.
 - Command bar results now include history (FTS5) and the archive on demand.
+
+### Fixed
+
+- `capturePage()` on a tab that never committed or is parked on an HTTP auth challenge killed the
+  browser process (Electron 44): switcher previews and snapshots now skip such tabs.
+- Toasts were drawn under the page view; they live in the sidebar column (or the overlay).
+- A bypassed certificate was reported as a secure connection; a navigation that became a download
+  left a blank tab; "Undo" after Clear skipped internal pages; ⌘⇧N created a space without opening
+  its editor; the split picker offered the pane you were in.
+- Content blocker `$redirect` rules no longer spam `ERR_UNSAFE_REDIRECT` in page consoles.
 
 ### Changed
 

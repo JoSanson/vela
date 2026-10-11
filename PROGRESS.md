@@ -90,8 +90,8 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 11.3 Wave C robustness: self-healing DB, diff upserts, persist retry, durable prefs, crash revival, GPU re-layout, sleep race, error-page URL, popup registry — 36095fc
 - [x] 11.4 Wave D architecture: action deltas (D019), FTS5 history, on-demand command bar, 3-OS e2e matrix, manual Electron majors — c0f830e
 - [x] 11.5 Downloads: held executables, retry; a11y labels — 061acee
-- [ ] 11.6 Verification after the stress + walkthrough reports: build, e2e 3×, perf, screenshots
-- [ ] 11.7 Second round from the walkthrough/stress findings
+- [x] 11.6 Stress fixes (FLIP burst guard, composited scroller, memo rows) — 3b4fbb4; walkthrough P0/P1 + capturePage crash guard — be1a506
+- [x] 11.7 Final verification on HEAD: e2e 64/64 (×3 incl. two clean runs), perf all ✅, tag v0.2.0 on this commit
 
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.

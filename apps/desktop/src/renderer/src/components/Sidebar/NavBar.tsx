@@ -60,6 +60,10 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         aria-label="Address and search"
         title={`Search or enter URL (${modKey}L)`}
         data-testid="url-pill"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          void invoke('menu/show', { kind: 'urlPill' });
+        }}
       >
         <span className={styles.urlText}>{tab ? prettyUrl(tab.url) : 'Search or enter URL'}</span>
         {tab && Math.abs(tab.zoom - 1) > 0.001 && (

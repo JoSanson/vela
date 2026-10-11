@@ -297,11 +297,15 @@ async function boot(): Promise<void> {
   perf.appReady = Date.now();
   const mw = await windows.createMain(theme?.from ?? '#1b1b22');
   registerCoreHandlers(c);
-  const internalPages = (): Electron.WebContents[] =>
-    tabs
+  const internalPages = (): Electron.WebContents[] => {
+    const list = tabs
       .liveTabIds()
       .map((id) => tabs.webContents(id))
       .filter((wc): wc is Electron.WebContents => !!wc && wc.getURL().startsWith('vela://'));
+    const peek = c.peek.view?.webContents;
+    if (peek && !peek.isDestroyed() && peek.getURL().startsWith('vela://')) list.push(peek);
+    return list;
+  };
   // The archive is served on demand (`archive/search`); keeping it out of the broadcast keeps every
   // navigation tick cheap even with thousands of archived tabs.
   const shellWcNow = (): Electron.WebContents | undefined => windows.main?.win.webContents;

@@ -46,15 +46,23 @@ Vela is an Electron app with three kinds of processes and one source of truth.
 ## State and data flow
 
 1. **Main owns the model.** Every mutation is a `CoreAction` dispatched to the `Store`
-   (`main/store.ts`), which runs the core reducer. Subscribers react: `TabManager.reconcile`
-   creates/attaches/detaches native views, the persist loop writes SQLite (debounced 150 ms,
-   flushed on quit), and the shell/overlay receive the new state via `state/changed` (without the
-   archive, which is queried on demand through `archive/search`, see D016).
-2. **Renderers mirror.** On load a renderer calls `snapshot/get` (state + prefs + overlay state),
-   stores it in Zustand, and applies every `state/changed`. Renderer-only UI state (sidebar width,
-   find bar, inline edits) never leaves the renderer.
-3. **Prefs** are a JSON file (`prefs.json`), broadcast via `prefs/changed`.
-4. **History, downloads, permissions, boosts, favicons** are SQLite tables queried on demand.
+   (`main/store.ts`), which runs the core reducer and bumps a revision. Subscribers react:
+   `TabManager.reconcile` creates/attaches/detaches native views, the persist loop writes SQLite
+   (debounced 150 ms, row-level upserts, retried with backoff, flushed on quit), and the actions of
+   one tick are coalesced into a single `state/changed` delta `{fromRev, rev, actions}` for the
+   shell, the overlay, every internal page and the Peek view (D019). Actions that depend on the
+   archive (`archive/*`, `state/replace`) are sent as a snapshot instead; renderers never hold the
+   archive (D016).
+2. **Renderers mirror.** On load a renderer calls `snapshot/get` (state + revision + prefs +
+   overlay state), stores it in Zustand, and replays every delta through the same pure reducer
+   (`packages/core/src/delta.ts`). A revision gap triggers a fresh `snapshot/get`. Renderer-only UI
+   state (sidebar width, find bar, inline edits) never leaves the renderer.
+3. **The database heals itself** (`main/db/database.ts`, D023): `quick_check` at open, a backup
+   before any migration and daily, quarantine + restore from the newest backup on corruption, a
+   refusal to open a schema newer than the binary, and row-by-row tolerant loads.
+4. **Prefs** are a JSON file (`prefs.json`, debounced, fsync'd, with a `.bak`), broadcast via
+   `prefs/changed`.
+5. **History (FTS5), downloads, permissions, boosts, favicons** are SQLite tables queried on demand.
 
 ## Lifecycle of a tab
 

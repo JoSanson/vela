@@ -84,5 +84,5 @@ Checkboxes here mirror PROGRESS.md (PROGRESS.md is the source of truth with comm
 - [x] 11.2 Compatibility wave (auth, PDF, print, files, private, clear data, HTTPS-first, external schemes)
 - [x] 11.3 Robustness wave (DB self-healing, crash recovery, persistence)
 - [x] 11.4 Architecture wave (action deltas, FTS history, CI matrix)
-- [ ] 11.6 Full verification
-- [ ] 11.7 Second round
+- [x] 11.6 Full verification
+- [x] 11.7 Second round

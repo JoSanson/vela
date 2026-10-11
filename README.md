@@ -11,8 +11,9 @@ bar instead of a URL bar, and an obsession with staying light. MIT licensed.
   themselves after 12 h / 24 h / 7 d / 30 d; the archive is searchable and restorable.
 - **Spaces** with their own tabs, gradient theme (+ grain, light/dark, palette from an image, glass)
   and optional isolated **profile** (separate cookies and logins).
-- **Command bar** (`⌘T` / `⌘L`): URLs, search with suggestions, fuzzy search across open tabs,
-  archive, history and favorites, and browser commands — results in a few milliseconds.
+- **Command bar** (`⌘T` / `⌘L`): URLs with inline completion of hosts you know, search with
+  suggestions, fuzzy search across open tabs, archive, full-text history and favorites, and browser
+  commands with their shortcuts, in a few milliseconds.
 - **Split view** (2–4 panes), **Peek** for links from pinned tabs, **Little Vela** floating windows
   for links opened from other apps, **Air Traffic Control** rules that route URLs to spaces.
 - **Light by design.** Idle tabs go to sleep and free their process (≈ 1 MB residual), the session

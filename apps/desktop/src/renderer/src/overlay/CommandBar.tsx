@@ -132,6 +132,42 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     };
   }, [query]);
   const trimmed = query.trim();
+  // Inline completion: typing a host prefix fills the rest, selected, so Enter opens it and typing on replaces it.
+  const [inline, setInline] = useState<{ typed: string; full: string; url: string } | null>(null);
+  const lastTyped = useRef('');
+  useEffect(() => {
+    const q = query.trim();
+    const forward = q.length > lastTyped.current.length && q.startsWith(lastTyped.current);
+    lastTyped.current = q;
+    if (!forward || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
+      setInline(null);
+      return;
+    }
+    const lower = q.toLowerCase();
+    const candidates: { host: string; url: string; weight: number }[] = [];
+    for (const t of Object.values(core.tabs)) {
+      const host = hostOf(t.url);
+      if (host.startsWith(lower)) candidates.push({ host, url: t.url, weight: 2 + t.lastActiveAt / 1e13 });
+    }
+    for (const it of remote.query === q ? remote.items : []) {
+      if (it.kind !== 'history') continue;
+      const url = it.id.slice('history:'.length);
+      const host = hostOf(url);
+      if (host.startsWith(lower)) candidates.push({ host, url: `https://${host}/`, weight: 1 + it.boost });
+    }
+    candidates.sort((a, b) => b.weight - a.weight);
+    const best = candidates[0];
+    setInline(
+      best?.host !== undefined && best.host !== lower ? { typed: q, full: best.host, url: best.url } : null,
+    );
+  }, [query, core.tabs, remote]);
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el || inline?.typed !== query.trim()) return;
+    el.value = inline.full;
+    el.setSelectionRange(inline.typed.length, inline.full.length);
+  }, [inline, query]);
+
   const remoteItems = useMemo(() => (remote.query === trimmed ? remote.items : []), [remote, trimmed]);
   const index = useMemo<SearchItem[]>(() => {
     const items: SearchItem[] = [];
@@ -269,6 +305,28 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const onKeyDown = (e: React.KeyboardEvent): void => {
     // Confirming an IME conversion (CJK) must never submit or move the selection.
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+    const el = inputRef.current;
+    const completed =
+      !!inline && !!el && el.value === inline.full && el.selectionStart === inline.typed.length;
+    if (completed && e.key === 'Enter') {
+      e.preventDefault();
+      run(
+        makeSearchItem({ id: `url:${inline.url}`, kind: 'url', title: inline.full, subtitle: '', boost: 1 }),
+      );
+      return;
+    }
+    if (completed && (e.key === 'ArrowRight' || e.key === 'End' || e.key === 'Tab')) {
+      e.preventDefault();
+      setInline(null);
+      setQuery(inline.full);
+      return;
+    }
+    if (completed && (e.key === 'Backspace' || e.key === 'Delete')) {
+      e.preventDefault();
+      setInline(null);
+      if (el) el.value = inline.typed;
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelected((s) => Math.min(results.length - 1, s + 1));
@@ -295,7 +353,11 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
             ref={inputRef}
             className={styles.input}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              // Typing over the selected completion keeps only what the user actually typed.
+              setQuery(inline?.full === v ? inline.typed : v);
+            }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             spellCheck={false}

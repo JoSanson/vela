@@ -61,7 +61,10 @@ export function App() {
 
   useEffect(() => connectStore(), []);
   useEffect(() => {
-    if (ready) vela.send('perf/mark', { name: 'sidebarInteractive', at: Date.now() });
+    if (!ready) return;
+    vela.send('perf/mark', { name: 'sidebarInteractive', at: Date.now() });
+    // Nothing should look focused until the user presses Tab.
+    (document.activeElement as HTMLElement | null)?.blur?.();
   }, [ready]);
 
   const theme = core.spaces[core.activeSpaceId]?.theme;

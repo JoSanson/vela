@@ -173,11 +173,15 @@ export class ContentBlocker {
         else callback({});
       });
       ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+        // `$redirect` filters point at data: stubs, which Chromium's webRequest refuses
+        // (ERR_UNSAFE_REDIRECT in every console): blocking outright is what the page experiences anyway.
+        const safe: typeof callback = (res) =>
+          callback(res.redirectURL?.startsWith('data:') ? { cancel: true } : res);
         // The engine loads lazily with the first session: hold the first requests until it is in.
-        if (this.engine) this.engine.onBeforeRequest(details, callback);
+        if (this.engine) this.engine.onBeforeRequest(details, safe);
         else if (this.initPromise)
           void this.initPromise.then(() =>
-            this.engine ? this.engine.onBeforeRequest(details, callback) : callback({}),
+            this.engine ? this.engine.onBeforeRequest(details, safe) : callback({}),
           );
         else callback({});
       });
