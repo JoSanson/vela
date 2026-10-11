@@ -75,6 +75,7 @@ const COMMANDS: { id: string; label: MessageKey; icon: IconName }[] = [
   { id: 'toggleSidebar', label: 'overlay.command.toggleSidebar', icon: 'sidebar' },
   { id: 'pinTab', label: 'overlay.command.pinTab', icon: 'pin' },
   { id: 'archiveView', label: 'overlay.command.archiveView', icon: 'archive' },
+  { id: 'clearSiteCookies', label: 'overlay.command.clearSiteCookies', icon: 'shield' },
   { id: 'history', label: 'overlay.command.history', icon: 'history' },
   { id: 'downloads', label: 'overlay.command.downloads', icon: 'download' },
   { id: 'settings', label: 'overlay.command.settings', icon: 'settings' },

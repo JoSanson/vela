@@ -116,7 +116,8 @@ export interface CookieToSet {
   url: string;
   name: string;
   value: string;
-  domain: string;
+  /** Only for domain cookies (`.example.com`); host-only rows set none, as Chromium stores them. */
+  domain?: string;
   path: string;
   secure: boolean;
   httpOnly: boolean;
@@ -145,7 +146,7 @@ export function cookieRowToSet(row: ChromiumCookieRow, key: Buffer, nowMs: numbe
     url: `${secure ? 'https' : 'http'}://${host}${row.path || '/'}`,
     name: row.name,
     value,
-    domain: row.host_key,
+    ...(row.host_key.startsWith('.') ? { domain: row.host_key } : {}),
     path: row.path || '/',
     secure,
     httpOnly: row.is_httponly === 1,

@@ -17,6 +17,8 @@ export const overlay = {
   'overlay.command.toggleSidebar': 'Toggle sidebar',
   'overlay.command.pinTab': 'Pin / unpin tab',
   'overlay.command.archiveView': 'Archived tabs',
+  'overlay.command.clearSiteCookies': 'Clear cookies for this site',
+  'overlay.toast.siteCookiesCleared': '{n, plural, one {# cookie} other {# cookies}} cleared for {host}',
   'overlay.command.history': 'History',
   'overlay.command.downloads': 'Downloads',
   'overlay.command.settings': 'Settings',

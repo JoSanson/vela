@@ -123,6 +123,38 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     case 'archiveView':
       tabs.openUrl({ input: 'vela://archive', noAtc: true });
       return;
+    case 'clearSiteCookies': {
+      // Every cookie the current page's host would send (its own and its parent domains'), in this
+      // tab's own session only, then a fresh load: the way out of a broken sign-in state.
+      const wc = activeId ? tabs.webContents(activeId) : undefined;
+      if (!wc || wc.isDestroyed()) return;
+      let host: string;
+      try {
+        host = new URL(wc.getURL()).hostname;
+      } catch {
+        return;
+      }
+      if (!host) return;
+      const labels = host.split('.');
+      const domains = labels.map((_, i) => labels.slice(i).join('.')).filter((d) => d.includes('.'));
+      void (async () => {
+        const seen = new Set<string>();
+        for (const d of domains.length ? domains : [host]) {
+          for (const c of await wc.session.cookies.get({ domain: d })) {
+            const key = `${c.domain}|${c.path}|${c.name}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const url = `${c.secure ? 'https' : 'http'}://${(c.domain ?? '').replace(/^\./, '')}${c.path ?? '/'}`;
+            await wc.session.cookies.remove(url, c.name).catch(() => undefined);
+          }
+        }
+        if (!wc.isDestroyed()) wc.reload();
+        overlay.show('toast', {
+          text: ctx.i18n.t('overlay.toast.siteCookiesCleared', { host, n: seen.size }),
+        });
+      })();
+      return;
+    }
     case 'downloads':
       toShell('toggleDownloads');
       return;

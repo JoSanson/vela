@@ -516,6 +516,9 @@ async function importChromiumCookies(
       const cookie = cookieRowToSet(row, key, now);
       if (!cookie) continue;
       try {
+        // Importing again must replace, never pile up: a cookie of the same name already stored for
+        // that URL (an earlier import, or a stale value) goes first.
+        await ses.cookies.remove(cookie.url, cookie.name).catch(() => undefined);
         await ses.cookies.set(cookie);
         n++;
       } catch {

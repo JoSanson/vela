@@ -37,6 +37,10 @@ All notable changes to Vela are documented here. The format follows
   brings the tab and the window back.
 - Arc import: favorites of every profile were merged into one grid; folders were duplicated on a
   second import.
+- Cookie import: host-only cookies (no leading dot) were turned into domain cookies, which broke
+  Google's "cookie settings" check and dropped `__Host-` cookies; importing again now replaces a
+  cookie instead of stacking a second one. New command "Clear cookies for this site" (⌘T) wipes
+  the current site's cookies in the Space's session and reloads.
 - Google sign-in refused Vela ("this browser or app may not be secure"): pages now get the
   `window.chrome` object every Chromium browser exposes (Electron leaves it empty), and the user
   agent carries the reduced `Chrome/N.0.0.0` version like Chrome itself (D032).

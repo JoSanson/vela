@@ -102,6 +102,14 @@ describe('Chromium secrets', () => {
       url: 'http://example.com/',
       sameSite: 'unspecified',
     });
+    // Host-only cookies (no leading dot) must not become domain cookies: `__Host-` ones would be refused.
+    const hostOnly = cookieRowToSet(
+      { ...row, host_key: 'accounts.example.com', name: '__Host-GAPS', encrypted_value: null, value: 'x' },
+      key,
+      now,
+    );
+    expect(hostOnly).toMatchObject({ url: 'https://accounts.example.com/', name: '__Host-GAPS', value: 'x' });
+    expect(hostOnly).not.toHaveProperty('domain');
   });
 
   it('reads profile display names from Local State', () => {
