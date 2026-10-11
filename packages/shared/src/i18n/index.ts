@@ -7,7 +7,10 @@ export type LanguagePref = 'system' | Locale;
 export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
 export type Params = Record<string, string | number>;
-export type Translator = ((key: MessageKey, params?: Params) => string) & { locale: Locale };
+export type Translator = ((key: MessageKey, params?: Params) => string) & {
+  locale: Locale;
+  has: (key: string) => key is MessageKey;
+};
 
 export const LANGUAGE_NAMES: Record<Locale, string> = { en: 'English', fr: 'Français' };
 
@@ -98,6 +101,15 @@ export function createTranslator(locale: Locale): Translator {
     return params ? formatMessage(locale, template, params) : template;
   }) as Translator;
   t.locale = locale;
+  t.has = (key: string): key is MessageKey => key in en;
   CACHE.set(locale, t);
   return t;
+}
+
+/** Localized label of a shortcut definition (`shortcut.<id>`, `shortcut.space` for Ctrl+1…9). */
+export function shortcutLabel(t: Translator, def: { id: string; label: string }): string {
+  const m = /^space(\d)$/.exec(def.id);
+  if (m) return t('shortcut.space', { n: m[1] ?? '' });
+  const key = `shortcut.${def.id}`;
+  return t.has(key) ? t(key) : def.label;
 }

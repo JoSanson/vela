@@ -37,3 +37,4 @@ export function useLocale(): Locale {
 
 export const t: Translator = ((key, params) => current(key, params)) as Translator;
 Object.defineProperty(t, 'locale', { get: () => current.locale });
+t.has = (key: string): key is MessageKey => current.has(key);
