@@ -30,22 +30,27 @@ test('content blocker blocks listed requests, counts them, and can be disabled p
         }))
         .catch(() => null);
     await expect.poll(adState).toEqual({ tracked: false, width: 0 });
-    const stats = await vela.app.evaluate((_e, tabId) => {
-      const g = globalThis as unknown as {
-        __vela: {
-          ctx: {
-            tabs: { webContents: (i: string) => Electron.WebContents | undefined };
-            blocker: {
-              stats: (u: string, w: number | undefined) => { blockedOnTab: number; enabledForHost: boolean };
+    const readStats = () =>
+      vela.app.evaluate((_e, tabId) => {
+        const g = globalThis as unknown as {
+          __vela: {
+            ctx: {
+              tabs: { webContents: (i: string) => Electron.WebContents | undefined };
+              blocker: {
+                stats: (
+                  u: string,
+                  w: number | undefined,
+                ) => { blockedOnTab: number; enabledForHost: boolean };
+              };
             };
           };
         };
-      };
-      const wc = g.__vela.ctx.tabs.webContents(tabId);
-      return g.__vela.ctx.blocker.stats(wc?.getURL() ?? '', wc?.id);
-    }, id);
-    expect(stats.blockedOnTab).toBeGreaterThanOrEqual(2);
-    expect(stats.enabledForHost).toBe(true);
+        const wc = g.__vela.ctx.tabs.webContents(tabId);
+        return g.__vela.ctx.blocker.stats(wc?.getURL() ?? '', wc?.id);
+      }, id);
+    // Counters are bumped as each blocked request is reported, not when the page settles.
+    await expect.poll(async () => (await readStats()).blockedOnTab).toBeGreaterThanOrEqual(2);
+    expect((await readStats()).enabledForHost).toBe(true);
 
     await vela.app.evaluate(() => {
       const g = globalThis as unknown as {

@@ -11,8 +11,13 @@ const windowCount = (vela: VelaApp): Promise<number> =>
 
 /** A screen point beside the window, inside the display: "dropped on the desktop". */
 async function pointOutside(vela: VelaApp): Promise<{ x: number; y: number }> {
-  return vela.app.evaluate(({ BrowserWindow, screen }) => {
-    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+  return vela.app.evaluate(({ screen }) => {
+    // Vela's own main window: on an unfocused runner the focused/first BrowserWindow may be another one.
+    const win = (
+      globalThis as unknown as {
+        __vela: { ctx: { windows: { main: { win: Electron.BrowserWindow } | null } } };
+      }
+    ).__vela.ctx.windows.main?.win;
     const area = screen.getPrimaryDisplay().workArea;
     // Runners may open it maximized: leave room on its right first.
     const width = Math.min(900, Math.floor(area.width / 2));
