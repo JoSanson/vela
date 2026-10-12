@@ -54,14 +54,16 @@ Vela is the answer to "what now?":
 ## Lighter than Arc, measured
 
 <p align="center">
-  <a href="docs/BENCHMARK.md"><img src="docs/benchmark/arc-vs-vela.svg" alt="Benchmark, lower is better. Launch: Arc 2116 ms, Vela 237 ms. Memory with 1 tab + 10 real sites: Arc 3902 MB, Vela 2635 MB, Vela with its built-in blocker 2052 MB. Idle CPU: Arc 82.2 %, Vela 58.6 %, Vela with blocker 9.7 %. Tab switch: Arc 12.0 ms, Vela 6.5 ms." width="100%"></a>
+  <a href="docs/BENCHMARK.md"><img src="docs/benchmark/arc-vs-vela.svg" alt="Benchmark, lower is better. Launch: Arc 2058 ms, Vela 271 ms. Memory with 1 tab + 10 real sites: Arc 3149 MB, Vela 1967 MB, Vela with its built-in blocker 1576 MB. Idle CPU with the app in front: Arc 111 %, Vela 44.6 %, Vela with blocker 5.9 %. Tab switch: Arc 12 ms, Vela 3 ms." width="100%"></a>
 </p>
 
 Same Mac, same pages, same probes, both browsers driven by the same script: launch timed by the
 macOS WindowServer, memory read as `phys_footprint` over every process (what Activity Monitor
 shows), CPU from the kernel's per-process counters, tab switch from a real `⌘⌥↓` keystroke to the
-next painted frame. "Vela" bars run with the content blocker **off**, so both browsers download
-exactly the same thing. Page loads are a tie: it is the same Blink engine underneath.
+next painted frame. Both are driven by the same raw DevTools Protocol script, with no test framework
+attached. "Vela" bars run with Vela's content blocker **off**, so both browsers download exactly the
+same thing (Arc's own blocker was not filtering during the runs). Page loads are a tie: it is the
+same Blink engine underneath.
 
 Full method, raw numbers, caveats and the script to run it on your own machine:
 [docs/BENCHMARK.md](docs/BENCHMARK.md). Disagree with a number? Run it and open an issue.
@@ -116,7 +118,7 @@ checked locally, rebindable shortcuts, English and French UI.
 | Split view, Peek, Little window | ✅ | ✅ |
 | Boosts, Air Traffic Control, auto PiP | ✅ | ✅ |
 | One-click import of your Arc sidebar and passwords | n/a | ✅ |
-| Built-in content blocker | ❌ | ✅ |
+| Built-in content blocker | ✅ | ✅ |
 | Linux | ❌ | ✅ |
 | Open source | ❌ | ✅ GPL-3.0 |
 | New features | frozen since May 2025 | shipping |

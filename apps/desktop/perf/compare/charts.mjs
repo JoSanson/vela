@@ -33,7 +33,7 @@ const panels = [
     ],
   },
   {
-    title: 'Idle CPU, same 11 tabs',
+    title: 'Idle CPU, same tabs, app in front',
     unit: '% of a core',
     rows: [
       { who: 'Arc', v: M.Arc.cpuFg.pct },

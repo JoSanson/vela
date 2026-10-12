@@ -65,8 +65,7 @@ const PAGE_METRICS = `(async () => {
   };
 })()`;
 
-// Arc: visibilitychange→visible, then the next committed frame. Vela's detached views never report
-// hidden (nor get focus), so its driver hooks TabManager.onVisibilityChange in main instead.
+// visibilitychange→visible in the page, then the next committed frame. Same probe in both browsers.
 const SWITCH_PROBE = `(() => {
   window.__sw = [];
   const mark = () => {

@@ -127,6 +127,7 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 14.4 Arc import keeps per-profile favorites; spring catch-up; typecheck green — 1a0d857
 - [x] 14.5 Renderers replay actions in reduction order (split row and handles were lost) — 1ed1625
 - [x] 14.6 Chrome Web Store + chrome.* APIs + sidebar extension buttons, e2e webstore.spec.ts, 16/20 top extensions (D036) — 32e5b91
+- [x] 14.8 Benchmark rerun with both browsers on raw CDP (Playwright kept Vela's tabs visible; the two "bugs" it showed were artifacts) — see git log
 - [ ] 14.7 Push, public repo, v0.4.0 release — needs `gh auth refresh -s workflow` (D013)
 
 ## DoD checklist
