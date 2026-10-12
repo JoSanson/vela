@@ -6,6 +6,8 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-12
+
 ### Added
 
 - Windows work like Arc's (D037): a Space can be open in several windows, each with a Today of its

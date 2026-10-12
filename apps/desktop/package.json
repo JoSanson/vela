@@ -1,7 +1,7 @@
 {
   "name": "@vela/desktop",
   "productName": "Vela",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Vela — the open-source Arc browser alternative: Chromium-based, Spaces, vertical tabs, command bar",
   "author": "Jordane Sanson",
   "license": "GPL-3.0-or-later",
