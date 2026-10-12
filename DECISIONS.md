@@ -363,8 +363,11 @@ ubuntu-latest, which says nothing about the product. Supersedes the Linux half o
 
 `site/` holds the marketing site (one landing page in English, French and Spanish). One HTML
 template plus `src/i18n/{en,fr,es}.json`, rendered by `site/build.mjs` (no dependency) into `dist/`,
-`/fr/` and `/es/` with hreflang, sitemap and robots. The hero "video" is the real shell redrawn in
-HTML/CSS and scripted scene by scene (`assets/site.js`): sharp at any size, ~60 KB, translated, and
-it pauses off screen; reduced motion shows a still frame. Fonts (Funnel Display / Funnel Sans, OFL)
-are self-hosted so a visit calls no third party except the GitHub stars count. Vercel serves it with
+`/fr/` and `/es/` with hreflang, sitemap and robots. The hero is a rendered film (`site/film/`):
+real pages captured headless (`capture.mjs`), a Vela window built in HTML whose every frame is a
+pure function of time (`film.js`), rendered at 120 fps and blended to 60 fps for motion blur
+(`render.mjs`). The film carries no language; the six scene captions stay in HTML, translated and
+synced to the video's time, and the page sky follows the Space on screen. Reduced motion shows a
+still frame. Fonts (Funnel Display / Funnel Sans, OFL) are self-hosted so a visit calls no third
+party except the GitHub stars count. Vercel serves it with
 root directory `site`; the build fails if the CSP hash for the one inline script drifts.

@@ -159,173 +159,21 @@
         </div>
 
         <div class="stage-wrap" data-stage-wrap>
-          <figure class="stage" data-hero-stage>
-            <div class="vm-fit" data-fit>
-              <div class="vm" data-vm data-autoplay="true" role="img" aria-label="{{attr:a11y.demo}}">
-                <div class="vm-win">
-                  <aside class="vm-side">
-                    <div class="vm-side-bg"></div>
-                    <div class="vm-top">
-                      <span class="vm-lights"><i></i><i></i><i></i></span>
-                      <span class="vm-icons"
-                        ><b class="ic ic-side"></b><b class="ic ic-back"></b><b class="ic ic-fwd"></b
-                        ><b class="ic ic-reload"></b
-                      ></span>
-                    </div>
-                    <div class="vm-url"><span data-url>{{demo.url}}</span><b class="ic ic-shield"></b></div>
-                    <div class="vm-favs">
-                      <span class="fav" style="--c: #2b2d42">N</span
-                      ><span class="fav" style="--c: #e8590c">F</span
-                      ><span class="fav" style="--c: #2f6fdf">M</span
-                      ><span class="fav" style="--c: #0f9d76">C</span>
-                      <span class="fav" style="--c: #d6336c">P</span
-                      ><span class="fav" style="--c: #7048e8">L</span
-                      ><span class="fav" style="--c: #f59f00">S</span
-                      ><span class="fav" style="--c: #1c7ed6">D</span>
-                    </div>
-                    <div class="vm-spaces">
-                      <div class="vm-track">
-                        <section class="vm-space" data-space="0">
-                          <h3 class="vm-space-name"><span>💼</span>{{demo.spaces.0}}</h3>
-                          <div class="vm-label">{{demo.pinnedLabel}}</div>
-                          <div class="row folder"><b class="ic ic-folder"></b>{{demo.folder}}</div>
-                          <div class="row in" data-tab="roadmap">
-                            <i class="fi" style="--c: #7048e8">R</i>{{demo.tabs.roadmap}}
-                          </div>
-                          <div class="row in" data-tab="docs">
-                            <i class="fi" style="--c: #2b2d42">N</i>{{demo.tabs.docs}}
-                          </div>
-                          <div class="vm-sep"></div>
-                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
-                          <div class="vm-today">
-                            <div class="row grow" data-tab="orbit">
-                              <i class="fi" style="--c: #5b6cff">O</i>{{demo.tabs.orbit}}
-                            </div>
-                            <div class="row active" data-tab="review">
-                              <i class="fi" style="--c: #d6336c">D</i>{{demo.tabs.review}}
-                            </div>
-                            <div class="row" data-tab="inbox">
-                              <i class="fi" style="--c: #2f6fdf">M</i>{{demo.tabs.inbox}}
-                            </div>
-                            <div class="row old" data-tab="pr">
-                              <i class="fi" style="--c: #24292f">G</i>{{demo.tabs.pr}}
-                            </div>
-                            <div class="row old" data-tab="type">
-                              <i class="fi" style="--c: #e8590c">T</i>{{demo.tabs.type}}
-                            </div>
-                          </div>
-                        </section>
-                        <section class="vm-space" data-space="1">
-                          <h3 class="vm-space-name"><span>🎨</span>{{demo.spaces.1}}</h3>
-                          <div class="vm-label">{{demo.pinnedLabel}}</div>
-                          <div class="row"><i class="fi" style="--c: #e8590c">P</i>{{demo.tabs.palette}}</div>
-                          <div class="vm-sep"></div>
-                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
-                          <div class="row active">
-                            <i class="fi" style="--c: #d6336c">M</i>{{demo.tabs.moodboard}}
-                          </div>
-                          <div class="row"><i class="fi" style="--c: #2b2d42">T</i>{{demo.tabs.type}}</div>
-                        </section>
-                        <section class="vm-space" data-space="2">
-                          <h3 class="vm-space-name"><span>🏡</span>{{demo.spaces.2}}</h3>
-                          <div class="vm-label">{{demo.pinnedLabel}}</div>
-                          <div class="row"><i class="fi" style="--c: #0f9d76">C</i>{{demo.tabs.recipe}}</div>
-                          <div class="vm-sep"></div>
-                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
-                          <div class="row active">
-                            <i class="fi" style="--c: #1c7ed6">L</i>{{demo.tabs.trip}}
-                          </div>
-                        </section>
-                      </div>
-                    </div>
-                    <div class="vm-bar">
-                      <span class="sp" data-dot="0">💼</span><span class="sp" data-dot="1"></span
-                      ><span class="sp" data-dot="2"></span>
-                      <b class="ic ic-plus"></b>
-                    </div>
-                  </aside>
-
-                  <div class="vm-page">
-                    <div class="pane pane-a">
-                      <div class="site">
-                        <div class="site-nav"><i></i><b></b><b></b><b></b><em></em></div>
-                        <p class="site-kicker">{{demo.page.kicker}}</p>
-                        <p class="site-title">{{demo.page.title}}</p>
-                        <div class="site-lines"><b></b><b></b><b style="width: 62%"></b></div>
-                        <div class="site-art"><i></i><i></i><i></i></div>
-                        <div class="site-cols">
-                          <div><b></b><b></b><b></b></div>
-                          <div><b></b><b></b><b></b></div>
-                          <div class="link"><b></b><b></b><b></b></div>
-                        </div>
-                      </div>
-                      <div class="site site-orbit">
-                        <div class="site-nav"><i class="o"></i><b></b><b></b><b></b><em></em></div>
-                        <p class="site-kicker">Orbit</p>
-                        <p class="site-title">Design system</p>
-                        <div class="swatches"><i></i><i></i><i></i><i></i><i></i></div>
-                        <div class="site-cols">
-                          <div><b></b><b></b></div>
-                          <div><b></b><b></b></div>
-                          <div><b></b><b></b></div>
-                        </div>
-                      </div>
-                      <div class="site site-studio">
-                        <div class="site-nav"><i class="s"></i><b></b><b></b><em></em></div>
-                        <p class="site-kicker">Studio</p>
-                        <p class="site-title">{{demo.tabs.moodboard}}</p>
-                        <div class="mood"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                      </div>
-                      <div class="site site-home">
-                        <div class="trip-art"></div>
-                        <p class="site-kicker">Lisboa</p>
-                        <p class="site-title">{{demo.tabs.trip}}</p>
-                        <div class="site-lines"><b></b><b style="width: 74%"></b></div>
-                      </div>
-                    </div>
-                    <div class="pane pane-b">
-                      <div class="site site-mail">
-                        <div class="mail-row u"><i></i><b></b><b class="s"></b></div>
-                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
-                        <div class="mail-row u"><i></i><b></b><b class="s"></b></div>
-                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
-                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
-                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
-                      </div>
-                    </div>
-                    <div class="peek">
-                      <div class="peek-bar"><i></i><i></i><b></b></div>
-                      <p class="site-kicker">Orbit</p>
-                      <p class="peek-title">{{demo.page.peekTitle}}</p>
-                      <div class="peek-scale"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                      <div class="site-lines"><b></b><b style="width: 70%"></b></div>
-                    </div>
-                    <div class="cmd">
-                      <div class="cmd-field">
-                        <b class="ic ic-search"></b><span class="cmd-q" data-q></span
-                        ><span class="cmd-c">{{demo.completion}}</span><span class="caret"></span>
-                      </div>
-                      <div class="cmd-row sel">
-                        <i class="fi" style="--c: #5b6cff">O</i><span>{{demo.rows.open}}</span><kbd>↵</kbd>
-                      </div>
-                      <div class="cmd-row">
-                        <b class="ic ic-tab"></b><span>{{demo.rows.switch}} · {{demo.tabs.review}}</span>
-                      </div>
-                      <div class="cmd-row"><b class="ic ic-search"></b><span>{{demo.rows.search}}</span></div>
-                    </div>
-                    <div class="kbd-flash" aria-hidden="true"><kbd>⌘</kbd><kbd>T</kbd></div>
-                  </div>
-                </div>
-
-                <div class="ghost">
-                  <div class="ghost-side"></div>
-                  <div class="ghost-page"><b></b><b></b><b style="width: 60%"></b><i></i></div>
-                </div>
-                <div class="toast"><b class="ic ic-check"></b>{{demo.toast}}</div>
-                <div class="drag-row"><i class="fi" style="--c: #d6336c">D</i>{{demo.tabs.review}}</div>
-                <div class="cursor"></div>
-              </div>
-            </div>
+          <figure class="stage film" data-hero-stage>
+            <video
+              class="film-video"
+              data-film
+              muted
+              loop
+              playsinline
+              preload="auto"
+              poster="/assets/video/vela-hero-poster.jpg"
+              aria-label="{{attr:a11y.demo}}"
+            >
+              <source src="/assets/video/vela-hero-960.mp4" type="video/mp4" media="(max-width: 760px)" />
+              <source src="/assets/video/vela-hero.mp4" type="video/mp4" />
+              <source src="/assets/video/vela-hero.webm" type="video/webm" />
+            </video>
           </figure>
 
           <div class="tour" role="group" aria-label="Tour">
@@ -480,7 +328,18 @@
             </ol>
             <div class="rail-visual">
               <div class="rail-sticky">
-                <div class="vm-fit" data-fit data-clone-of="hero"></div>
+                <video
+                  class="film-video"
+                  data-rail-film
+                  muted
+                  playsinline
+                  preload="none"
+                  poster="/assets/video/vela-hero-poster.jpg"
+                  aria-hidden="true"
+                >
+                  <source src="/assets/video/vela-hero.mp4" type="video/mp4" />
+                  <source src="/assets/video/vela-hero.webm" type="video/webm" />
+                </video>
               </div>
             </div>
           </div>

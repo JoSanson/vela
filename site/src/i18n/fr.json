@@ -12,7 +12,7 @@
     "close": "Fermer le menu",
     "language": "Langue",
     "home": "Accueil Vela",
-    "demo": "Visite animée de Vela : changement de Space, barre de commande, vue partagée, Peek et un onglet glissé dans une nouvelle fenêtre.",
+    "demo": "Film du produit : de vraies pages dans Vela, qui change de Space, ouvre la barre de commande, partage la vue, ouvre un Peek, détache un onglet dans une nouvelle fenêtre et range Aujourd'hui.",
     "pause": "Mettre la visite en pause",
     "play": "Relancer la visite"
   },
@@ -38,38 +38,6 @@
     "other": "Tous les téléchargements"
   },
   "demo": {
-    "url": "orbit.design/review",
-    "spaces": ["Travail", "Studio", "Maison"],
-    "pinnedLabel": "Épinglés",
-    "todayLabel": "Aujourd'hui",
-    "newTab": "Nouvel onglet",
-    "tabs": {
-      "roadmap": "Roadmap T4",
-      "review": "Revue design",
-      "inbox": "Boîte de réception",
-      "docs": "Docs Northwind",
-      "pr": "Pull request #482",
-      "palette": "Palettes de couleurs",
-      "moodboard": "Moodboard printemps",
-      "type": "Spécimens typo",
-      "trip": "Week-end à Lisbonne",
-      "recipe": "Tomates rôties",
-      "orbit": "Orbit · Design system"
-    },
-    "folder": "Lancement",
-    "query": "orbit",
-    "completion": ".design",
-    "rows": {
-      "switch": "Aller à l'onglet",
-      "open": "orbit.design",
-      "search": "Rechercher « orbit » sur le web"
-    },
-    "page": {
-      "kicker": "Revue design",
-      "title": "Livrer la version calme.",
-      "peekTitle": "Tokens d'espacement"
-    },
-    "toast": "Déplacé dans une nouvelle fenêtre",
     "captions": {
       "spaces": "Un Space pour chaque partie de votre vie",
       "command": "Une barre de commande, pas une barre d'adresse",

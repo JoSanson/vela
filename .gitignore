@@ -13,3 +13,7 @@ e2e-artifacts/
 .env
 
 .claude/worktrees/
+
+# Film renders and live page captures (regenerate with site/film/*.mjs)
+site/film/out/
+site/film/captures/

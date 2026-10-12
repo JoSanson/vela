@@ -12,7 +12,7 @@
     "close": "Close menu",
     "language": "Language",
     "home": "Vela home",
-    "demo": "Animated tour of Vela: switching Spaces, the command bar, split view, Peek and a tab dragged out into a new window.",
+    "demo": "Product film: real pages in Vela while it switches Spaces, opens the command bar, splits the view, peeks at a link, tears a tab into a new window and tidies Today.",
     "pause": "Pause the tour",
     "play": "Play the tour"
   },
@@ -38,38 +38,6 @@
     "other": "All downloads"
   },
   "demo": {
-    "url": "orbit.design/review",
-    "spaces": ["Work", "Studio", "Home"],
-    "pinnedLabel": "Pinned",
-    "todayLabel": "Today",
-    "newTab": "New tab",
-    "tabs": {
-      "roadmap": "Q4 roadmap",
-      "review": "Design review",
-      "inbox": "Inbox",
-      "docs": "Northwind docs",
-      "pr": "Pull request #482",
-      "palette": "Colour palettes",
-      "moodboard": "Moodboard, spring",
-      "type": "Type specimens",
-      "trip": "Weekend in Lisbon",
-      "recipe": "Slow-roasted tomatoes",
-      "orbit": "Orbit · Design system"
-    },
-    "folder": "Launch",
-    "query": "orbit",
-    "completion": ".design",
-    "rows": {
-      "switch": "Switch to tab",
-      "open": "orbit.design",
-      "search": "Search the web for “orbit”"
-    },
-    "page": {
-      "kicker": "Design review",
-      "title": "Ship the calm version.",
-      "peekTitle": "Spacing tokens"
-    },
-    "toast": "Moved to a new window",
     "captions": {
       "spaces": "Spaces for every part of your life",
       "command": "A command bar, not a URL bar",

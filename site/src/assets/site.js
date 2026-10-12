@@ -39,7 +39,7 @@
   });
 
   /* ---------- Scroll-linked values (one rAF per frame) ---------- */
-  const heroFit = $('[data-hero-stage] .vm-fit');
+  const heroFit = $('[data-hero-stage]');
   let ticking = false;
   const onScroll = () => {
     if (ticking) return;
@@ -115,375 +115,146 @@
     for (const el of $$('.hero .rv')) el.classList.add('in');
   });
 
-  /* ---------- The live Vela mock ---------- */
-  const SPACE_HUES = [285, 16, 192];
-  const ORDER = ['spaces', 'command', 'split', 'peek', 'tear', 'tidy'];
-  const DURATIONS = { spaces: 7000, command: 6200, split: 5600, peek: 5200, tear: 6800, tidy: 5400 };
-  const FLAGS = [
-    'is-cmd',
-    'is-typed',
-    'is-complete',
-    'is-newtab',
-    'is-split',
-    'is-drag',
-    'is-peek',
-    'is-ghost',
-    'is-torn',
-    'is-toast',
-    'is-tidy',
-    'is-press',
-  ];
-  const i18n = JSON.parse($('#i18n-demo')?.textContent || '{}');
-
-  // Keep each mock (drawn at 1280×800) scaled to its box.
-  const fitIO = new ResizeObserver((entries) => {
-    for (const e of entries) {
-      const vm = $('.vm', e.target);
-      if (vm) vm.style.setProperty('--k', String(e.contentRect.width / 1280));
-    }
-  });
-
-  class Mock {
-    constructor(vm, { onSpace } = {}) {
-      this.vm = vm;
-      this.gen = 0;
-      this.onSpace = onSpace;
-      this.q = $('[data-q]', vm);
-      this.drag = $('.drag-row', vm);
-      this.ghost = $('.ghost', vm);
-      fitIO.observe(vm.parentElement);
-    }
-    // Position of an element's centre in the mock's own 1280×800 coordinates.
-    at(sel, dx = 0, dy = 0) {
-      const el = typeof sel === 'string' ? $(sel, this.vm) : sel;
-      const k = this.vm.getBoundingClientRect().width / 1280 || 1;
-      const a = this.vm.getBoundingClientRect();
-      const b = el.getBoundingClientRect();
-      return [(b.left - a.left + b.width / 2) / k + dx, (b.top - a.top + b.height / 2) / k + dy];
-    }
-    cursor([x, y]) {
-      this.vm.style.setProperty('--cx', `${x}px`);
-      this.vm.style.setProperty('--cy', `${y}px`);
-    }
-    set(flag, on) {
-      this.vm.classList.toggle(flag, on);
-    }
-    space(i) {
-      this.vm.dataset.space = String(i);
-      this.vm.style.setProperty('--si', String(i));
-      this.onSpace?.(i);
-    }
-    base(flags = []) {
-      for (const f of FLAGS) this.set(f, flags.includes(f));
-      if (this.q) this.q.textContent = '';
-      this.space(0);
-    }
-    async press(wait) {
-      this.set('is-press', true);
-      await wait(140);
-      this.set('is-press', false);
-    }
-    // Runs one scene; resolves false if cancelled by a newer run.
-    async run(name) {
-      const gen = ++this.gen;
-      const wait = (ms) =>
-        new Promise((res, rej) =>
-          setTimeout(() => (gen === this.gen ? res() : rej(new Error('cancel'))), ms),
-        );
-      try {
-        await SCENES[name](this, wait);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    stop() {
-      this.gen++;
-    }
-    // Reduced motion: jump straight to a scene's meaningful frame.
-    show(name) {
-      this.stop();
-      const end = {
-        spaces: () => this.base(),
-        command: () => this.base(['is-cmd', 'is-typed', 'is-complete']),
-        split: () => this.base(['is-newtab', 'is-split']),
-        peek: () => this.base(['is-newtab', 'is-split', 'is-peek']),
-        tear: () => this.base(['is-newtab', 'is-ghost', 'is-torn']),
-        tidy: () => this.base(['is-tidy']),
-      }[name];
-      end?.();
-      if (name === 'command' && this.q) this.q.textContent = i18n.query || 'orbit';
-      if (name === 'spaces') this.space(1);
-      if (name === 'tear') {
-        this.vm.style.setProperty('--gx', '860px');
-        this.vm.style.setProperty('--gy', '300px');
-      }
-      this.cursor([1130, 720]);
-    }
-  }
-
+  /* ---------- The film: hero and feature rail ---------- */
+  // Scene ranges in the rendered film (site/film/film.js), in seconds.
   const SCENES = {
-    async spaces(m, wait) {
-      m.base();
-      await wait(500);
-      for (const i of [1, 2, 0]) {
-        m.cursor(m.at(`.sp[data-dot="${i}"]`, 4, 6));
-        await wait(1100);
-        await m.press(wait);
-        m.space(i);
-        await wait(i === 0 ? 1100 : 900);
-      }
-      m.cursor([1110, 700]);
-      await wait(900);
-    },
-    async command(m, wait) {
-      m.base();
-      m.cursor(m.at('.vm-page', 120, 120));
-      await wait(500);
-      m.set('is-cmd', true);
-      await wait(800);
-      const q = i18n.query || 'orbit';
-      for (let i = 1; i <= q.length; i++) {
-        m.q.textContent = q.slice(0, i);
-        if (i === 1) m.set('is-typed', true);
-        await wait(110);
-      }
-      await wait(250);
-      m.set('is-complete', true);
-      m.cursor(m.at('.cmd-row.sel', 140, 4));
-      await wait(1300);
-      await m.press(wait);
-      m.set('is-cmd', false);
-      m.set('is-typed', false);
-      m.set('is-complete', false);
-      m.set('is-newtab', true);
-      await wait(400);
-      m.q.textContent = '';
-      m.cursor([1110, 700]);
-      await wait(1500);
-    },
-    async split(m, wait) {
-      m.base(['is-newtab']);
-      const row = $('.row[data-tab="review"]', m.vm);
-      const start = m.at(row, -40, 0);
-      m.cursor(start);
-      await wait(1100);
-      m.drag.innerHTML = row.innerHTML;
-      m.vm.style.setProperty('--dx', `${start[0] - 30}px`);
-      m.vm.style.setProperty('--dy', `${start[1] - 18}px`);
-      m.set('is-press', true);
-      await wait(120);
-      m.set('is-drag', true);
-      const target = m.at('.vm-page', 230, -40);
-      m.cursor(target);
-      m.vm.style.setProperty('--dx', `${target[0] - 30}px`);
-      m.vm.style.setProperty('--dy', `${target[1] - 18}px`);
-      await wait(1150);
-      m.set('is-press', false);
-      m.set('is-drag', false);
-      m.set('is-split', true);
-      await wait(600);
-      m.cursor([1110, 700]);
-      await wait(2400);
-    },
-    async peek(m, wait) {
-      m.base(['is-newtab', 'is-split']);
-      await wait(300);
-      m.cursor(m.at('.site-orbit .site-cols div:last-child', -30, -6));
-      await wait(1150);
-      await m.press(wait);
-      m.set('is-peek', true);
-      await wait(700);
-      m.cursor([1060, 720]);
-      await wait(2300);
-      m.set('is-peek', false);
-      await wait(700);
-    },
-    async tear(m, wait) {
-      m.base(['is-newtab']);
-      const row = $('.row[data-tab="orbit"]', m.vm);
-      const start = m.at(row, -30, 0);
-      m.cursor(start);
-      await wait(1100);
-      m.drag.innerHTML = row.innerHTML;
-      m.vm.style.setProperty('--dx', `${start[0] - 30}px`);
-      m.vm.style.setProperty('--dy', `${start[1] - 18}px`);
-      m.set('is-press', true);
-      await wait(120);
-      m.set('is-drag', true);
-      const out = [980, 330];
-      m.cursor(out);
-      m.vm.style.setProperty('--dx', `${out[0] - 30}px`);
-      m.vm.style.setProperty('--dy', `${out[1] - 18}px`);
-      m.vm.style.setProperty('--gx', `${out[0] - 120}px`);
-      m.vm.style.setProperty('--gy', `${out[1] - 40}px`);
-      await wait(700);
-      m.set('is-drag', false);
-      m.set('is-ghost', true);
-      await wait(500);
-      m.cursor([1020, 360]);
-      m.vm.style.setProperty('--gx', '860px');
-      m.vm.style.setProperty('--gy', '300px');
-      await wait(700);
-      m.set('is-press', false);
-      m.set('is-torn', true);
-      m.set('is-toast', true);
-      await wait(600);
-      m.cursor([1130, 730]);
-      await wait(2300);
-      m.set('is-toast', false);
-      await wait(800);
-    },
-    async tidy(m, wait) {
-      m.base();
-      await wait(900);
-      m.set('is-tidy', true);
-      await wait(3600);
-      m.set('is-tidy', false);
-      await wait(900);
-    },
+    spaces: [1.6, 6.2],
+    command: [6.2, 10.7],
+    split: [10.7, 14.5],
+    peek: [14.5, 17.3],
+    tear: [17.3, 21.1],
+    tidy: [21.1, 23.9],
+  };
+  const ORDER = Object.keys(SCENES);
+  const SPACE_HUES = [285, 16, 192];
+  const quint = (x) => (x < 0.5 ? 16 * x ** 5 : 1 - Math.pow(-2 * x + 2, 5) / 2);
+  const span = (t, a, b) => quint(Math.min(1, Math.max(0, (t - a) / (b - a))));
+  // Same Space moves as the film, so the page sky takes the colour of the Space on screen.
+  const spaceAt = (t) => {
+    if (t < 3.75) return span(t, 2.3, 2.95);
+    if (t < 5.2) return 1 + span(t, 3.75, 4.4);
+    return 2 - 2 * span(t, 5.2, 5.95);
+  };
+  const hueAt = (t) => {
+    const sp = spaceAt(t);
+    const i = Math.min(Math.floor(sp), 1);
+    return SPACE_HUES[i] + (SPACE_HUES[i + 1] - SPACE_HUES[i]) * (sp - i);
+  };
+  let hueSource = null;
+  // A seek before the metadata arrives is dropped by the browser: wait for it.
+  const seek = (video, t) => {
+    if (video.readyState >= 1) video.currentTime = t;
+    else video.addEventListener('loadedmetadata', () => (video.currentTime = t), { once: true });
+  };
+  const followHue = (video) => {
+    if (hueSource === video) root.style.setProperty('--hue', hueAt(video.currentTime).toFixed(1));
   };
 
-  /* ---------- Hero tour ---------- */
-  const heroVM = $('[data-hero-stage] .vm');
+  const film = $('[data-film]');
   const tour = $('.tour');
-  const steps = $$('[data-goto]', tour);
-  const toggle = $('[data-toggle]', tour);
-  let heroVisible = true;
-  let paused = false;
-  let current = 0;
-  const hueOwner = { el: null };
-  const setHue = (owner) => (i) => {
-    if (hueOwner.el === owner) root.style.setProperty('--hue', String(SPACE_HUES[i]));
-  };
+  if (film && tour) {
+    const steps = $$('[data-goto]', tour);
+    const toggle = $('[data-toggle]', tour);
+    let userPaused = reduced;
+    let visible = true;
+    hueSource = film;
 
-  const hero = heroVM ? new Mock(heroVM, { onSpace: setHue(heroVM) }) : null;
-  hueOwner.el = heroVM;
+    const syncTour = () => {
+      const t = film.currentTime;
+      steps.forEach((b, i) => {
+        const [a, z] = SCENES[ORDER[i]];
+        const on = t >= a && t < z;
+        b.toggleAttribute('aria-current', on);
+        if (on) b.setAttribute('aria-current', 'step');
+        b.classList.toggle('is-done', t >= z);
+        const fill = $('.tour-bar i', b);
+        fill.style.transform = `scaleX(${Math.min(1, Math.max(0, (t - a) / (z - a)))})`;
+      });
+      followHue(film);
+    };
+    const frame = () => {
+      syncTour();
+      if (!film.paused) requestAnimationFrame(frame);
+    };
+    film.addEventListener('play', () => requestAnimationFrame(frame));
+    film.addEventListener('seeked', syncTour);
 
-  const markStep = (i) => {
-    steps.forEach((b, j) => {
-      b.toggleAttribute('aria-current', false);
-      b.classList.toggle('is-done', j < i);
-      b.style.removeProperty('--dur');
-    });
-    const b = steps[i];
-    if (!b) return;
-    // Restart the progress fill.
-    b.style.setProperty('--dur', `${DURATIONS[ORDER[i]]}ms`);
-    void b.offsetWidth;
-    b.setAttribute('aria-current', 'step');
-  };
-
-  const playFrom = async (i) => {
-    if (!hero) return;
-    current = i;
-    while (!paused && heroVisible && !document.hidden) {
-      markStep(current);
-      const done = await hero.run(ORDER[current]);
-      if (!done) return;
-      current = (current + 1) % ORDER.length;
-    }
-  };
-
-  if (hero) {
-    if (reduced) {
-      hero.show('split');
-      markStep(2);
-      paused = true;
-      toggle.hidden = true;
-    } else {
-      hero.base();
-      hero.cursor([1110, 700]);
-    }
-    steps.forEach((b, i) =>
-      b.addEventListener('click', () => {
-        if (reduced) {
-          hero.show(ORDER[i]);
-          markStep(i);
-          return;
-        }
-        hero.stop();
-        paused = false;
-        tour.classList.remove('is-paused');
-        toggle.classList.remove('is-paused');
-        toggle.setAttribute('aria-label', toggle.dataset.labelPause);
-        void playFrom(i);
-      }),
-    );
-    toggle.addEventListener('click', () => {
-      paused = !paused;
+    const setPaused = (paused) => {
+      userPaused = paused;
       tour.classList.toggle('is-paused', paused);
       toggle.classList.toggle('is-paused', paused);
       toggle.setAttribute('aria-label', paused ? toggle.dataset.labelPlay : toggle.dataset.labelPause);
-      if (paused) hero.stop();
-      else void playFrom(current);
-    });
-    const heroIO = new IntersectionObserver(
-      ([e]) => {
-        const was = heroVisible;
-        heroVisible = e.isIntersecting;
-        if (heroVisible) hueOwner.el = heroVM;
-        if (heroVisible && !was && !paused && !reduced) void playFrom(current);
-        if (!heroVisible) hero.stop();
-      },
-      { threshold: 0.15 },
+      if (paused) film.pause();
+      else if (visible) void film.play().catch(() => undefined);
+    };
+    toggle.addEventListener('click', () => setPaused(!userPaused));
+    steps.forEach((b, i) =>
+      b.addEventListener('click', () => {
+        seek(film, SCENES[ORDER[i]][0] + 0.01);
+        hueSource = film;
+        if (!reduced) setPaused(false);
+        else syncTour();
+      }),
     );
-    heroIO.observe(heroVM.parentElement);
+    if (reduced) {
+      setPaused(true);
+      seek(film, SCENES.split[0] + 1.6);
+    }
+    new IntersectionObserver(
+      ([e]) => {
+        visible = e.isIntersecting;
+        if (visible) hueSource = film;
+        if (visible && !userPaused) void film.play().catch(() => undefined);
+        else film.pause();
+      },
+      { threshold: 0.2 },
+    ).observe(film);
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) hero.stop();
-      else if (heroVisible && !paused && !reduced) void playFrom(current);
+      if (document.hidden) film.pause();
+      else if (visible && !userPaused) void film.play().catch(() => undefined);
     });
   }
 
-  /* ---------- Features rail drives a second copy of the mock ---------- */
-  const railFit = $('[data-clone-of="hero"]');
-  if (railFit && heroVM) {
-    const clone = heroVM.cloneNode(true);
-    clone.removeAttribute('aria-label');
-    clone.removeAttribute('role');
-    clone.setAttribute('aria-hidden', 'true');
-    railFit.appendChild(clone);
-    const rail = new Mock(clone, { onSpace: setHue(clone) });
-    rail.base();
-    rail.cursor([1110, 700]);
-    let active = null;
-    let railLoop = 0;
+  // The rail loops the film on the scene of the item in focus.
+  const railFilm = $('[data-rail-film]');
+  if (railFilm) {
     const items = $$('[data-rail] .rail-item');
-    const activate = async (item) => {
-      if (active === item) return;
-      active = item;
-      hueOwner.el = clone;
+    let range = SCENES.spaces;
+    let inView = false;
+    const loop = () => {
+      if (
+        railFilm.readyState >= 1 &&
+        (railFilm.currentTime >= range[1] || railFilm.currentTime < range[0] - 0.2)
+      )
+        railFilm.currentTime = range[0];
+      followHue(railFilm);
+      if (!railFilm.paused) requestAnimationFrame(loop);
+    };
+    railFilm.addEventListener('play', () => requestAnimationFrame(loop));
+    const activate = (item) => {
       for (const it of items) it.classList.toggle('is-active', it === item);
-      const scene = item.dataset.scene;
-      if (reduced) {
-        rail.show(scene);
-        return;
-      }
-      const loop = ++railLoop;
-      while (loop === railLoop) {
-        const ok = await rail.run(scene);
-        if (!ok || loop !== railLoop) return;
-        await new Promise((r) => setTimeout(r, 900));
-      }
+      range = SCENES[item.dataset.scene] ?? SCENES.spaces;
+      hueSource = railFilm;
+      seek(railFilm, reduced ? range[0] + (range[1] - range[0]) * 0.6 : range[0]);
+      if (!reduced && inView) void railFilm.play().catch(() => undefined);
     };
     const railIO = new IntersectionObserver(
       (entries) => {
-        for (const e of entries) if (e.isIntersecting) void activate(e.target);
+        for (const e of entries) if (e.isIntersecting) activate(e.target);
       },
       { rootMargin: '-45% 0px -45% 0px' },
     );
     for (const it of items) {
       railIO.observe(it);
-      it.addEventListener('click', () => void activate(it));
+      it.addEventListener('click', () => activate(it));
     }
-    const sectionIO = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) {
-        railLoop++;
-        rail.stop();
-        active = null;
-      }
-    });
-    sectionIO.observe($('#features'));
+    new IntersectionObserver(([e]) => {
+      inView = e.isIntersecting;
+      if (inView) {
+        railFilm.preload = 'auto';
+        if (!reduced) void railFilm.play().catch(() => undefined);
+      } else railFilm.pause();
+    }).observe(railFilm);
   }
 
   /* ---------- GitHub stars, shown once there are enough to mean something ---------- */

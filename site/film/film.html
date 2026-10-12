@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vela film</title>
+    <style>
+      @font-face {
+        font-family: 'Funnel Display';
+        src: url('../src/assets/fonts/FunnelDisplay-normal.woff2') format('woff2');
+        font-weight: 300 800;
+      }
+      :root {
+        --ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0e0b1c;
+      }
+      #stage {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        perspective: 2600px;
+        perspective-origin: 50% 40%;
+      }
+      #sky {
+        position: absolute;
+        inset: -60px;
+      }
+      #stars {
+        position: absolute;
+        inset: -60px;
+      }
+      #glow {
+        position: absolute;
+        left: -10%;
+        right: -10%;
+        bottom: -420px;
+        height: 1000px;
+        border-radius: 50%;
+        filter: blur(40px);
+      }
+      #grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 50;
+      }
+      #cam {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 0;
+        height: 0;
+        transform-style: preserve-3d;
+      }
+
+      /* ---------- a Vela window ---------- */
+      .win {
+        position: absolute;
+        width: 1520px;
+        height: 950px;
+        left: 0;
+        top: 0;
+        border-radius: 22px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        font-family: var(--ui);
+        color: #1b1726;
+        -webkit-font-smoothing: antialiased;
+        box-shadow:
+          0 0 0 1px rgba(236, 232, 255, 0.28),
+          0 60px 160px -30px rgba(4, 2, 14, 0.9),
+          0 30px 100px -50px var(--glowc, rgba(170, 130, 255, 0.6));
+      }
+      .side {
+        position: relative;
+        padding: 14px 12px 12px 14px;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .side-bg {
+        position: absolute;
+        inset: 0;
+      }
+      .side > :not(.side-bg) {
+        position: relative;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 32px;
+        padding: 0 4px;
+      }
+      .lights {
+        display: flex;
+        gap: 9px;
+      }
+      .lights i {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+      .lights i:nth-child(2) {
+        background: #febc2e;
+      }
+      .lights i:nth-child(3) {
+        background: #28c840;
+      }
+      .navi {
+        display: flex;
+        gap: 16px;
+        opacity: 0.5;
+      }
+      .navi svg {
+        width: 17px;
+        height: 17px;
+      }
+      .url {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 42px;
+        margin: 12px 0 14px;
+        padding: 0 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.62);
+        font-size: 15px;
+        color: #2a2536;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .url svg {
+        flex: none;
+        width: 15px;
+        height: 15px;
+        color: #2f9e57;
+      }
+      .favs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .fav {
+        display: grid;
+        place-items: center;
+        height: 52px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.46);
+      }
+      .fav img {
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+      }
+      .spaces {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        margin: 0 -2px;
+      }
+      .track {
+        display: flex;
+        width: 300%;
+        height: 100%;
+      }
+      .space {
+        width: 33.3333%;
+        padding: 0 2px;
+      }
+      .sname {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 14px;
+        padding: 0 9px;
+        font-size: 16px;
+        font-weight: 650;
+      }
+      .label {
+        margin: 0 9px 5px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        opacity: 0.5;
+      }
+      .row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        height: 38px;
+        padding: 0 11px;
+        border-radius: 10px;
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .row img {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+      }
+      .row.in {
+        padding-left: 32px;
+      }
+      .row .fold {
+        width: 17px;
+        height: 17px;
+        opacity: 0.6;
+      }
+      .row.dim {
+        opacity: 0.55;
+      }
+      .row.on {
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 1px 2px rgba(20, 14, 40, 0.1);
+      }
+      .sep {
+        height: 1px;
+        margin: 11px 11px;
+        background: rgba(20, 14, 40, 0.1);
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 13px;
+        height: 36px;
+        margin-top: 6px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: rgba(30, 20, 50, 0.28);
+      }
+      .page {
+        position: relative;
+        margin: 11px 11px 11px 0;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fbfbfd;
+        box-shadow: 0 1px 3px rgba(20, 14, 40, 0.16);
+      }
+      .shot {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: 0 0;
+        background-repeat: no-repeat;
+        background-color: #fbfbfd;
+      }
+      .pane-b {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 50%;
+        overflow: hidden;
+        border-left: 1px solid rgba(20, 14, 40, 0.1);
+        background: #fbfbfd;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(22, 14, 44, 0.32);
+      }
+      .peek {
+        position: absolute;
+        left: 9%;
+        right: 9%;
+        top: 6%;
+        bottom: 6%;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #fbfbfd;
+        box-shadow:
+          0 0 0 1px rgba(20, 14, 40, 0.1),
+          0 50px 120px -20px rgba(16, 8, 40, 0.6);
+      }
+      .peek .shot {
+        top: 34px;
+      }
+      .peek-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px;
+        background: #f2f1f7;
+        border-bottom: 1px solid rgba(20, 14, 40, 0.08);
+        font-size: 13px;
+        color: #4a4458;
+      }
+      .peek-bar i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(20, 14, 40, 0.18);
+      }
+      .peek-bar span {
+        margin-left: 10px;
+      }
+
+      /* command bar */
+      .cmd {
+        position: absolute;
+        left: 50%;
+        top: 13%;
+        width: 760px;
+        margin-left: -380px;
+        padding: 10px;
+        border-radius: 20px;
+        background: rgba(252, 251, 255, 0.97);
+        box-shadow:
+          0 0 0 1px rgba(20, 14, 40, 0.08),
+          0 2px 8px rgba(20, 14, 40, 0.1),
+          0 50px 120px -10px rgba(16, 8, 40, 0.45);
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        height: 64px;
+        padding: 0 18px;
+        font-size: 25px;
+        color: #1b1726;
+      }
+      .field svg {
+        width: 22px;
+        height: 22px;
+        margin-right: 16px;
+        opacity: 0.4;
+      }
+      .comp {
+        background: rgba(91, 108, 255, 0.24);
+        border-radius: 3px;
+      }
+      .caret {
+        width: 2px;
+        height: 28px;
+        margin-left: 1px;
+        background: #5b6cff;
+      }
+      .crow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        height: 54px;
+        padding: 0 16px;
+        border-radius: 12px;
+        font-size: 17px;
+        color: #2a2536;
+      }
+      .crow img {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+      }
+      .crow small {
+        color: #8a8496;
+        font-size: 15px;
+      }
+      .crow.sel {
+        background: rgba(91, 108, 255, 0.14);
+      }
+      .crow kbd {
+        margin-left: auto;
+        padding: 3px 9px;
+        border-radius: 7px;
+        border: 1px solid rgba(20, 14, 40, 0.14);
+        border-bottom-width: 2px;
+        font: 600 13px var(--ui);
+        color: #4a4458;
+      }
+      .crow svg {
+        width: 20px;
+        height: 20px;
+        opacity: 0.45;
+      }
+
+      /* keycaps that teach the shortcut */
+      .keys {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: flex;
+        gap: 16px;
+      }
+      .key {
+        display: grid;
+        place-items: center;
+        width: 116px;
+        height: 116px;
+        border-radius: 26px;
+        background: linear-gradient(180deg, #fdfcff, #e9e6f4);
+        box-shadow:
+          inset 0 -6px 0 rgba(20, 14, 40, 0.1),
+          0 30px 60px -16px rgba(8, 4, 24, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.5);
+        font: 600 54px var(--ui);
+        color: #1b1726;
+      }
+
+      .drag {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        width: 270px;
+        height: 42px;
+        padding: 0 13px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow:
+          0 0 0 1px rgba(20, 14, 40, 0.06),
+          0 22px 46px -14px rgba(16, 8, 40, 0.55);
+        font: 15px var(--ui);
+        color: #1b1726;
+        white-space: nowrap;
+      }
+      .drag img {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+      }
+      .cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 34px;
+        filter: drop-shadow(0 4px 8px rgba(10, 6, 30, 0.45));
+      }
+      .lockup {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        font-family: 'Funnel Display', var(--ui);
+        font-weight: 600;
+        font-size: 120px;
+        letter-spacing: -0.045em;
+        color: #f4f1ff;
+        white-space: nowrap;
+      }
+      .lockup img {
+        width: 132px;
+        height: 132px;
+        border-radius: 32px;
+        box-shadow: 0 24px 80px -10px rgba(130, 110, 255, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="sky" width="2040" height="1200"></canvas>
+      <canvas id="stars" width="2040" height="1200"></canvas>
+      <div id="glow"></div>
+      <div id="cam"></div>
+      <div class="lockup" id="lockup"><img src="../src/assets/img/logo.svg" alt="" />Vela</div>
+      <div id="grain"></div>
+    </div>
+    <script src="film.js"></script>
+  </body>
+</html>

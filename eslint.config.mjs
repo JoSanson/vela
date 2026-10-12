@@ -102,12 +102,17 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    files: ['site/src/assets/**/*.js'],
+    files: ['site/src/assets/**/*.js', 'site/film/*.js'],
     languageOptions: { globals: { ...globals.browser } },
   },
   {
     files: ['site/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // Node scripts that hand callbacks to a headless page.
+    files: ['site/film/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
     files: ['apps/desktop/e2e/fixtures/**/*.js'],

@@ -12,7 +12,7 @@
     "close": "Cerrar el menú",
     "language": "Idioma",
     "home": "Inicio de Vela",
-    "demo": "Recorrido animado por Vela: cambio de Space, barra de comandos, vista dividida, Peek y una pestaña arrastrada a una ventana nueva.",
+    "demo": "Película del producto: páginas reales en Vela mientras cambia de Space, abre la barra de comandos, divide la vista, abre un Peek, saca una pestaña a una ventana nueva y ordena Hoy.",
     "pause": "Pausar el recorrido",
     "play": "Reanudar el recorrido"
   },
@@ -38,38 +38,6 @@
     "other": "Todas las descargas"
   },
   "demo": {
-    "url": "orbit.design/review",
-    "spaces": ["Trabajo", "Estudio", "Casa"],
-    "pinnedLabel": "Fijadas",
-    "todayLabel": "Hoy",
-    "newTab": "Nueva pestaña",
-    "tabs": {
-      "roadmap": "Roadmap T4",
-      "review": "Revisión de diseño",
-      "inbox": "Bandeja de entrada",
-      "docs": "Docs de Northwind",
-      "pr": "Pull request #482",
-      "palette": "Paletas de color",
-      "moodboard": "Moodboard de primavera",
-      "type": "Muestras tipográficas",
-      "trip": "Fin de semana en Lisboa",
-      "recipe": "Tomates asados",
-      "orbit": "Orbit · Design system"
-    },
-    "folder": "Lanzamiento",
-    "query": "orbit",
-    "completion": ".design",
-    "rows": {
-      "switch": "Ir a la pestaña",
-      "open": "orbit.design",
-      "search": "Buscar «orbit» en la web"
-    },
-    "page": {
-      "kicker": "Revisión de diseño",
-      "title": "Lanzar la versión en calma.",
-      "peekTitle": "Tokens de espaciado"
-    },
-    "toast": "Movida a una ventana nueva",
     "captions": {
       "spaces": "Un Space para cada parte de tu vida",
       "command": "Una barra de comandos, no una barra de direcciones",
