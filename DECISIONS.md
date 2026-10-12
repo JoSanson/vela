@@ -305,3 +305,15 @@ No Arc logo, screenshot of Arc's UI or asset anywhere; the app's branding and UI
 (the importer's source list is the one place the UI says "Arc").
 Why: comparative, nominative use is what every "X alternative" project does and is what people
 search for; the notice and the absence of marks keep it from implying endorsement.
+
+## D035 — GPL-3.0-or-later, with the name and logo reserved
+Context: the owner does not want Vela forked into a closed, paid product; Chrome extension APIs
+that Electron lacks are best covered by electron-chrome-extensions, which is GPL-3.0 (or a paid
+proprietary licence). The repository had never been published and has a single author, so the
+licence could change at no cost.
+Choice: the whole project moves from MIT to GPL-3.0-or-later. TRADEMARKS.md reserves the "Vela"
+name and logo: forks must rebrand. Contributions are accepted under the same licence
+(inbound = outbound, stated in CONTRIBUTING.md).
+Why: copyleft keeps every distributed fork open source, which removes the business case for a
+closed commercial copy while staying OSI open source (the positioning and contributors need that).
+The trademark policy, not the licence, is what stops a look-alike "Vela" from riding the brand.

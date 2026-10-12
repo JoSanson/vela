@@ -225,17 +225,21 @@ export const settings = {
   'settings.boosts.deleteQuestion': 'Delete the boost for {host}?',
 
   'settings.extensions.desc.before':
-    'Load unpacked Chrome extensions (Manifest V3). Content scripts, service workers, storage, popups and most runtime APIs work; the exact subset is documented in',
+    'Install Chrome extensions from the Chrome Web Store (open it and click “Add to Chrome”), or load unpacked ones. Content scripts, service workers, storage, popups and most runtime APIs work; the exact subset is documented in',
   'settings.extensions.desc.after': '. Extensions apply to every space and profile.',
   'settings.extensions.loaded': 'Loaded {name} {version}',
   'settings.extensions.loadError': 'No extension loaded: pick a folder containing manifest.json',
   'settings.extensions.noPopup': 'This extension has no popup',
   'settings.extensions.load': 'Load unpacked…',
   'settings.extensions.empty.title': 'No extensions',
-  'settings.extensions.empty.hint': 'Pick a folder that contains a manifest.json.',
+  'settings.extensions.empty.hint':
+    'Open the Chrome Web Store and click “Add to Chrome”, or load a folder that contains a manifest.json.',
   'settings.extensions.col.extension': 'Extension',
   'settings.extensions.col.version': 'Version',
-  'settings.extensions.col.folder': 'Folder',
+  'settings.extensions.col.source': 'Source',
+  'settings.extensions.store': 'Chrome Web Store',
+  'settings.extensions.source.webstore': 'Chrome Web Store',
+  'settings.extensions.updates': 'Web Store extensions update themselves.',
   'settings.extensions.popup': 'Popup',
 
   'settings.import.exportError': "Couldn't export your data",
@@ -253,7 +257,7 @@ export const settings = {
   'settings.import.import.button': 'Import…',
 
   'settings.about.unknown': 'unknown',
-  'settings.about.tagline': 'An Arc-inspired browser built on Chromium. MIT licensed.',
+  'settings.about.tagline': 'A Chromium browser built around Spaces, the sidebar and the command bar. Free and open source (GPL-3.0).',
   'settings.about.platform': 'Platform',
   'settings.about.updates': 'Updates',
   'settings.about.status.unavailable.title': 'Updates unavailable',

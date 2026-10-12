@@ -84,6 +84,12 @@ Issues labelled [`good first issue`](https://github.com/JoSanson/vela/labels/goo
 are scoped, have pointers to the files involved, and a maintainer will answer within a few days.
 Comment on one to claim it so two people do not do the same work.
 
+## Licence
+
+Vela is free software under the [GPL-3.0](LICENSE). By opening a pull request you agree that your
+contribution is released under the same licence. The Vela name and logo are reserved, see
+[TRADEMARKS.md](TRADEMARKS.md).
+
 ## Security issues
 
 Do not open a public issue. Use a private advisory: the repository's **Security** tab → **Report a

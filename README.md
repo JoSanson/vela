@@ -15,7 +15,7 @@
   <a href="https://github.com/JoSanson/vela/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/JoSanson/vela/total?color=7a5cff"></a>
   <a href="https://github.com/JoSanson/vela/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/JoSanson/vela/ci.yml?branch=main&label=CI"></a>
   <a href="apps/desktop/package.json"><img alt="Electron version" src="https://img.shields.io/github/package-json/dependency-version/JoSanson/vela/dev/electron?filename=apps%2Fdesktop%2Fpackage.json&label=engine"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-9A5BFF"></a>
+  <a href="LICENSE"><img alt="GPL-3.0 license" src="https://img.shields.io/badge/license-GPL--3.0-9A5BFF"></a>
   <a href="CONTRIBUTING.md"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-1baf7a"></a>
 </p>
 
@@ -44,8 +44,8 @@ Vela is the answer to "what now?":
 - **It feels like home.** Sidebar, Spaces, favorites, pinned folders, Today tabs that archive
   themselves, `⌘T` command bar, Peek, split view, Little windows, Boosts, Air Traffic Control. The
   shortcuts you already have in your fingers work.
-- **It cannot be shelved.** MIT licensed, built in the open. No company can freeze it, and anyone can
-  fork it.
+- **It cannot be shelved.** GPL-3.0, built in the open. No company can freeze it or turn it into a
+  closed product: every version of Vela, and of any fork, stays open source.
 - **It stays fresh.** A bot checks for a new Chromium (via Electron) every 6 hours, runs the whole
   test suite and ships a release on its own. You get engine and security updates without waiting
   for anyone.
@@ -114,7 +114,7 @@ checked locally, rebindable shortcuts, English and French UI.
 | One-click import of your Arc sidebar and passwords | n/a | ✅ |
 | Built-in content blocker | ❌ | ✅ |
 | Linux | ❌ | ✅ |
-| Open source | ❌ | ✅ MIT |
+| Open source | ❌ | ✅ GPL-3.0 |
 | New features | frozen since May 2025 | shipping |
 | Chrome extensions | ✅ Web Store | ⚠️ unpacked MV3 ([help wanted](docs/EXTENSIONS.md)) |
 | Netflix / DRM video (Widevine) | ✅ | ❌ not yet ([help wanted](https://github.com/JoSanson/vela/issues?q=is%3Aissue+label%3Aarc-parity)) |
@@ -212,7 +212,7 @@ first, and that is what Arc users are used to. If you prefer Gecko, Zen is a gre
 without maintaining a fork of 30 million lines. The shell idles at ~110 MB; see the benchmark.
 
 **Will it keep being updated?** Engine updates are automated (a check every 6 hours, full CI, then
-a release). Features ship in regular releases. And because it is MIT, the project does not depend on any one
+a release). Features ship in regular releases. And because it is GPL-3.0, the project does not depend on any one
 person or company.
 
 **Does it phone home?** No telemetry, no account. Crash dumps stay on your disk. Update checks hit
@@ -230,5 +230,5 @@ If Vela is useful to you, a star helps other Arc users find it.
 
 <sub>Vela is an independent open-source project, not affiliated with, endorsed by or connected to
 The Browser Company or Atlassian. "Arc" and "Dia" are trademarks of their respective owners and are
-used here only to describe compatibility and compare features. MIT licensed, see
-[LICENSE](LICENSE).</sub>
+used here only to describe compatibility and compare features. Vela is free software under the
+[GPL-3.0](LICENSE); the Vela name and logo are reserved, see [TRADEMARKS.md](TRADEMARKS.md).</sub>
