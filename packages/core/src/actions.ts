@@ -31,6 +31,7 @@ export type TabPatch = Partial<
     | 'zoom'
     | 'scrollY'
     | 'homeUrl'
+    | 'profileId'
   >
 >;
 

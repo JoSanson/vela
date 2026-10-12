@@ -24,7 +24,7 @@ export interface ContentLayoutInput {
   sidebarWidth: number;
   sidebarVisible: boolean;
   /** 0..1 while the sidebar slides; inset, radius and offset follow it so nothing jumps at the end. */
-  sidebarReveal?: number;
+  sidebarReveal?: number | undefined;
   fullscreen: boolean;
   topStrip: number;
   platform: string;

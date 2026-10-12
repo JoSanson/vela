@@ -444,6 +444,19 @@ export function applyArcSidebar(
   // claimed by the first profile whose container lists their URL instead of being duplicated.
   const favKey = (profileId: Id | null, url: string): string => `${profileId ?? ''}\n${url}`;
   const favByKey = new Map<string, Id>();
+  // Only favorites from an earlier import can be claimed, and never ones Arc's default profile still
+  // lists: the same site can be a favorite in two profiles, as two favorites.
+  const earlier = new Set(next.favorites);
+  const defaultUrls = new Set<string>();
+  const collected = new Set<string>();
+  const collectUrls = (arcId: string): void => {
+    const item = sidebar.items.get(arcId);
+    if (!item || collected.has(arcId)) return;
+    collected.add(arcId);
+    if (item.kind === 'tab' && item.url) defaultUrls.add(item.url);
+    for (const c of item.children) collectUrls(c);
+  };
+  for (const c of sidebar.favoriteContainers) if (!mapped.byDir[c.profile]) collectUrls(c.id);
   for (const id of next.favorites) {
     const t = next.tabs[id];
     if (t) favByKey.set(favKey(t.profileId ?? null, t.url), id);
@@ -456,7 +469,7 @@ export function applyArcSidebar(
       }
       if (!child.url || !isWebUrl(child.url) || favByKey.has(favKey(profileId, child.url))) continue;
       const legacy = profileId ? favByKey.get(favKey(null, child.url)) : undefined;
-      if (legacy) {
+      if (legacy && earlier.has(legacy) && !defaultUrls.has(child.url)) {
         next = reduce(next, { type: 'tab/update', id: legacy, patch: { profileId } });
         favByKey.delete(favKey(null, child.url));
         favByKey.set(favKey(profileId, child.url), legacy);

@@ -34,9 +34,13 @@ export class Spring {
     this.damping = 2 * params.dampingRatio * omega;
   }
 
-  /** Advances the simulation by `dt` seconds (sub-stepped at 60 Hz for stability). */
+  /**
+   * Advances the simulation by `dt` seconds (sub-stepped at 60 Hz for stability). A stalled frame
+   * catches up with real time, so the motion never lags behind the clock; deltas beyond 1 s (the
+   * window was hidden) are capped to bound the work.
+   */
   step(dt: number): number {
-    let remaining = Math.min(dt, 0.25);
+    let remaining = Math.min(dt, 1);
     while (remaining > 0) {
       const h = Math.min(MAX_STEP, remaining);
       const accel = -this.stiffness * (this.value - this.target) - this.damping * this.velocity;
