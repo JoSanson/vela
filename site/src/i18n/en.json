@@ -1,0 +1,225 @@
+{
+  "lang": "en",
+  "locale": "en_US",
+  "meta": {
+    "title": "Vela · The open-source Arc browser alternative",
+    "description": "Spaces, vertical tabs and the command bar you loved in Arc. Open source, lighter, and still shipping. Free for macOS and Windows.",
+    "ogAlt": "Vela, the open-source Arc alternative: a browser window with a vertical sidebar of Spaces and tabs."
+  },
+  "a11y": {
+    "skip": "Skip to content",
+    "menu": "Menu",
+    "close": "Close menu",
+    "language": "Language",
+    "home": "Vela home",
+    "demo": "Animated tour of Vela: switching Spaces, the command bar, split view, Peek and a tab dragged out into a new window.",
+    "pause": "Pause the tour",
+    "play": "Play the tour"
+  },
+  "nav": {
+    "features": "Features",
+    "benchmark": "Benchmark",
+    "import": "Import",
+    "open": "Open source",
+    "faq": "FAQ",
+    "download": "Download"
+  },
+  "hero": {
+    "eyebrow": "Free and open source",
+    "eyebrowLink": "v0.5 is out",
+    "title": "Your internet,<br>calm again.",
+    "lead": "Vela is the open-source home for everything you loved in Arc: Spaces, vertical tabs, the command bar. Lighter, faster, and it keeps shipping.",
+    "note": "macOS, Apple silicon and Intel · Windows · Imports your Arc sidebar in one click"
+  },
+  "cta": {
+    "mac": "Download for macOS",
+    "win": "Download for Windows",
+    "github": "Star on GitHub",
+    "other": "All downloads"
+  },
+  "demo": {
+    "url": "orbit.design/review",
+    "spaces": ["Work", "Studio", "Home"],
+    "pinnedLabel": "Pinned",
+    "todayLabel": "Today",
+    "newTab": "New tab",
+    "tabs": {
+      "roadmap": "Q4 roadmap",
+      "review": "Design review",
+      "inbox": "Inbox",
+      "docs": "Northwind docs",
+      "pr": "Pull request #482",
+      "palette": "Colour palettes",
+      "moodboard": "Moodboard, spring",
+      "type": "Type specimens",
+      "trip": "Weekend in Lisbon",
+      "recipe": "Slow-roasted tomatoes",
+      "orbit": "Orbit · Design system"
+    },
+    "folder": "Launch",
+    "query": "orbit",
+    "completion": ".design",
+    "rows": {
+      "switch": "Switch to tab",
+      "open": "orbit.design",
+      "search": "Search the web for “orbit”"
+    },
+    "page": {
+      "kicker": "Design review",
+      "title": "Ship the calm version.",
+      "peekTitle": "Spacing tokens"
+    },
+    "toast": "Moved to a new window",
+    "captions": {
+      "spaces": "Spaces for every part of your life",
+      "command": "A command bar, not a URL bar",
+      "split": "Split view, side by side",
+      "peek": "Peek at a link without leaving",
+      "tear": "Drag a tab out for its own window",
+      "tidy": "Today tabs tidy themselves up"
+    }
+  },
+  "proof": {
+    "kicker": "Measured, not claimed",
+    "title": "Lighter than Arc. By a lot.",
+    "lead": "Same Mac, same pages, the same script driving both browsers. Shorter bars win.",
+    "rows": {
+      "launch": "Launch to a window on screen",
+      "memory": "Memory with 11 real tabs",
+      "cpu": "Idle CPU, app in front",
+      "switch": "Switching tabs"
+    },
+    "faster": "faster",
+    "less": "less",
+    "foot": "Vela runs with its built-in content blocker on, as it ships. Method, raw numbers and the script to run it yourself:",
+    "link": "the full benchmark"
+  },
+  "features": {
+    "kicker": "Everything in its place",
+    "title": "The Arc you know, still moving.",
+    "items": {
+      "spaces": {
+        "title": "Spaces",
+        "body": "Work, studio, home. Each Space keeps its own tabs and colour, and can have its own profile, logins and cookies. Swipe between them."
+      },
+      "command": {
+        "title": "Command bar",
+        "body": "One field for open tabs, history, the archive and the web, answered in a few milliseconds. Type y then Tab to search YouTube."
+      },
+      "split": {
+        "title": "Split view and Peek",
+        "body": "Drop a tab onto another to read them side by side. Links from pinned tabs open in a Peek you can keep or dismiss."
+      },
+      "windows": {
+        "title": "Windows that follow you",
+        "body": "Drag a tab out of the window to give it one of its own, on the same Space, with its own Today."
+      },
+      "tidy": {
+        "title": "Tabs that tidy up",
+        "body": "Today tabs you stopped using archive themselves after 12 hours, a day, a week or a month. The archive is searchable, so nothing is lost."
+      }
+    },
+    "more": "Also built in: Boosts, Air Traffic Control, Little windows, reader mode, picture in picture, a content blocker, a password manager and rebindable shortcuts."
+  },
+  "real": {
+    "kicker": "Not a mockup",
+    "title": "This is the real thing.",
+    "lead": "Screenshots of Vela as it ships today.",
+    "alts": {
+      "hero": "Vela with a Work Space: favorites grid, a pinned folder and Today tabs beside a web page.",
+      "command": "Vela's command bar listing open tabs, history and search suggestions.",
+      "split": "Two pages side by side in Vela's split view.",
+      "spaces": "A second Space in Vela with its own warm colour theme."
+    }
+  },
+  "import": {
+    "kicker": "Moving day, in one click",
+    "title": "Bring your whole Arc with you.",
+    "lead": "On first launch Vela offers to import everything. Run it again later and it merges instead of duplicating.",
+    "button": "Import from Arc",
+    "done": "Imported",
+    "items": [
+      "Spaces, with their names, emoji and colours",
+      "Profiles attached to the same Spaces",
+      "Favorites, per profile",
+      "Pinned tabs and nested folders",
+      "Your full history, searchable",
+      "Passwords and cookies, so you stay logged in",
+      "Your Chrome Web Store extensions, reinstalled in one click"
+    ],
+    "other": "Coming from Chrome, Brave, Edge, Safari or Firefox? Those imports are there too.",
+    "guide": "Read the migration guide"
+  },
+  "extensions": {
+    "title": "Your extensions come too.",
+    "lead": "Install them straight from the Chrome Web Store. 16 of the 20 most used work today.",
+    "link": "See the full list"
+  },
+  "open": {
+    "kicker": "Open, for good",
+    "title": "Nobody can freeze it.",
+    "lead": "Vela is GPL-3.0 and built in the open. Every version, and every fork, stays open source.",
+    "points": {
+      "privacy": {
+        "title": "No account. No telemetry.",
+        "body": "Crash reports stay on your disk. Passwords live in your system keychain. Safe Browsing is checked on your machine."
+      },
+      "fresh": {
+        "title": "A fresh Chromium, on its own.",
+        "body": "A bot checks for a new engine every 6 hours, runs the whole test suite and ships the release."
+      },
+      "yours": {
+        "title": "Yours to read and change.",
+        "body": "TypeScript and Electron, every decision written down, end-to-end tests on macOS and Windows. Issues and pull requests welcome."
+      }
+    },
+    "cta": "Read the code"
+  },
+  "faq": {
+    "title": "Questions, answered.",
+    "items": [
+      {
+        "q": "Is Arc dead?",
+        "a": "Not dead, frozen. The Browser Company stopped building new Arc features in May 2025 to focus on Dia. Arc still gets Chromium security patches. If you are happy with Arc as it is, keep it. Vela is for when you want it to keep moving."
+      },
+      {
+        "q": "Is Vela a fork of Arc?",
+        "a": "No. Arc is closed source, so there is nothing to fork. Vela is written from scratch and borrows ideas, not code, names or assets."
+      },
+      {
+        "q": "Is it really free?",
+        "a": "Yes, and it will stay that way. Vela is GPL-3.0: no subscription, no account, no paid tier."
+      },
+      {
+        "q": "Do my Chrome extensions work?",
+        "a": "Install them from the Chrome Web Store. Of the 20 most used, 16 work fully or with minor glitches, each tested by hand. Ad blockers rely on an API Electron lacks, so Vela's built-in blocker does that job."
+      },
+      {
+        "q": "Does it phone home?",
+        "a": "No telemetry and no account. Crash dumps stay on your disk. The only call home is the update check, made to GitHub Releases."
+      },
+      {
+        "q": "Will it keep being updated?",
+        "a": "Engine updates are automated: a check every 6 hours, the full test suite, then a release. Features ship in regular releases. And because it is GPL-3.0, Vela does not depend on any one person or company."
+      }
+    ]
+  },
+  "final": {
+    "title": "Set sail.",
+    "lead": "Free, open source, and yours. Download Vela and bring your Spaces with you."
+  },
+  "footer": {
+    "tagline": "The open-source Arc browser alternative.",
+    "product": "Product",
+    "project": "Project",
+    "releases": "Releases",
+    "changelog": "Changelog",
+    "benchmark": "Benchmark",
+    "migrate": "Migrating from Arc",
+    "extensions": "Extensions",
+    "license": "License, GPL-3.0",
+    "security": "Security",
+    "contribute": "Contribute",
+    "notice": "Vela is an independent open-source project. It is not affiliated with, endorsed by or connected to The Browser Company or Atlassian. Arc is a trademark of its owner, named here only to describe compatibility."
+  }
+}

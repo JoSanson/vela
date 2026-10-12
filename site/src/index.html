@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="{{$lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{attr:meta.title}}</title>
+    <meta name="description" content="{{attr:meta.description}}" />
+    <meta name="theme-color" content="#120f24" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="{{$url}}" />
+    {{$alternates}}
+    <link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vela" />
+    <meta property="og:title" content="{{attr:meta.title}}" />
+    <meta property="og:description" content="{{attr:meta.description}}" />
+    <meta property="og:url" content="{{$url}}" />
+    <meta property="og:locale" content="{{locale}}" />
+    <meta property="og:image" content="{{$siteUrl}}/assets/img/og-{{$lang}}.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="{{attr:meta.ogAlt}}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="preload"
+      href="/assets/fonts/FunnelDisplay-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/FunnelSans-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/assets/site.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Vela",
+        "applicationCategory": "BrowserApplication",
+        "operatingSystem": "macOS, Windows",
+        "description": {{json:meta.description}},
+        "inLanguage": "{{$lang}}",
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "downloadUrl": "https://github.com/JoSanson/vela/releases/latest",
+        "codeRepository": "https://github.com/JoSanson/vela"
+      }
+    </script>
+    <script>
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">{{a11y.skip}}</a>
+
+    <div class="sky" aria-hidden="true">
+      <canvas class="sky-stars"></canvas>
+      <div class="sky-glow"></div>
+      <div class="sky-grain"></div>
+    </div>
+
+    <header class="nav" data-nav>
+      <div class="nav-inner">
+        <a class="brand" href="{{$home}}" aria-label="{{attr:a11y.home}}">
+          <img src="/assets/img/logo.svg" alt="" width="28" height="28" />
+          <span>Vela</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#features">{{nav.features}}</a>
+          <a href="#benchmark">{{nav.benchmark}}</a>
+          <a href="#import">{{nav.import}}</a>
+          <a href="#open-source">{{nav.open}}</a>
+          <a href="#faq">{{nav.faq}}</a>
+        </nav>
+        <div class="nav-end">
+          <div class="langs" role="group" aria-label="{{attr:a11y.language}}">{{$langLinks}}</div>
+          <a class="gh" href="https://github.com/JoSanson/vela" aria-label="GitHub">
+            <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.71 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
+              />
+            </svg>
+            <span class="gh-stars" data-stars hidden></span>
+          </a>
+          <a class="btn btn-sm btn-primary" href="https://github.com/JoSanson/vela/releases/latest"
+            >{{nav.download}}</a
+          >
+          <button class="burger" type="button" aria-expanded="false" aria-controls="sheet" data-burger>
+            <span class="sr" data-label-open>{{a11y.menu}}</span
+            ><span class="sr" data-label-close hidden>{{a11y.close}}</span> <i></i><i></i>
+          </button>
+        </div>
+      </div>
+      <div class="sheet" id="sheet" hidden data-sheet>
+        <a href="#features">{{nav.features}}</a>
+        <a href="#benchmark">{{nav.benchmark}}</a>
+        <a href="#import">{{nav.import}}</a>
+        <a href="#open-source">{{nav.open}}</a>
+        <a href="#faq">{{nav.faq}}</a>
+        <div class="sheet-langs" role="group" aria-label="{{attr:a11y.language}}">{{$langLinks}}</div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="wrap hero-copy">
+          <a class="pill rv" href="https://github.com/JoSanson/vela/releases/latest">
+            <span class="pill-dot" aria-hidden="true"></span>{{hero.eyebrow}}<span
+              class="pill-sep"
+              aria-hidden="true"
+            ></span
+            ><span class="pill-link">{{hero.eyebrowLink}}</span>
+          </a>
+          <h1 id="hero-title" class="display rv d1">{{hero.title}}</h1>
+          <p class="lead rv d2">{{hero.lead}}</p>
+          <div class="hero-side">
+            <div class="ctas rv d3">
+              <a
+                class="btn btn-primary"
+                href="https://github.com/JoSanson/vela/releases/latest"
+                data-download
+                data-label-mac="{{attr:cta.mac}}"
+                data-label-win="{{attr:cta.win}}"
+              >
+                <svg class="os os-mac" viewBox="0 0 17 20" width="15" height="18" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 2 5.8 1.1 7.3c-1.9 3.2-.5 8 1.3 10.6.9 1.3 1.9 2.7 3.3 2.7 1.3-.1 1.8-.9 3.4-.9s2 .9 3.4.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.9-1.1-3-4.3ZM11.5 3c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.4Z"
+                  />
+                </svg>
+                <svg class="os os-win" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M0 2.3 6.5 1.4v6.2H0Zm7.3-1L16 0v7.6H7.3ZM0 8.4h6.5v6.2L0 13.7Zm7.3 0H16V16l-8.7-1.2Z"
+                  />
+                </svg>
+                <span data-label>{{cta.mac}}</span>
+              </a>
+              <a class="btn btn-ghost" href="https://github.com/JoSanson/vela">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M8 .25a.75.75 0 0 1 .67.42l1.88 3.8 4.2.6a.75.75 0 0 1 .41 1.28l-3.04 2.96.72 4.18a.75.75 0 0 1-1.09.79L8 12.31l-3.75 1.97a.75.75 0 0 1-1.09-.79l.72-4.18L.84 6.35a.75.75 0 0 1 .41-1.28l4.2-.6L7.33.67A.75.75 0 0 1 8 .25Z"
+                  />
+                </svg>
+                {{cta.github}}
+              </a>
+            </div>
+            <p class="note rv d3">{{hero.note}}</p>
+          </div>
+        </div>
+
+        <div class="stage-wrap" data-stage-wrap>
+          <figure class="stage" data-hero-stage>
+            <div class="vm-fit" data-fit>
+              <div class="vm" data-vm data-autoplay="true" role="img" aria-label="{{attr:a11y.demo}}">
+                <div class="vm-win">
+                  <aside class="vm-side">
+                    <div class="vm-side-bg"></div>
+                    <div class="vm-top">
+                      <span class="vm-lights"><i></i><i></i><i></i></span>
+                      <span class="vm-icons"
+                        ><b class="ic ic-side"></b><b class="ic ic-back"></b><b class="ic ic-fwd"></b
+                        ><b class="ic ic-reload"></b
+                      ></span>
+                    </div>
+                    <div class="vm-url"><span data-url>{{demo.url}}</span><b class="ic ic-shield"></b></div>
+                    <div class="vm-favs">
+                      <span class="fav" style="--c: #2b2d42">N</span
+                      ><span class="fav" style="--c: #e8590c">F</span
+                      ><span class="fav" style="--c: #2f6fdf">M</span
+                      ><span class="fav" style="--c: #0f9d76">C</span>
+                      <span class="fav" style="--c: #d6336c">P</span
+                      ><span class="fav" style="--c: #7048e8">L</span
+                      ><span class="fav" style="--c: #f59f00">S</span
+                      ><span class="fav" style="--c: #1c7ed6">D</span>
+                    </div>
+                    <div class="vm-spaces">
+                      <div class="vm-track">
+                        <section class="vm-space" data-space="0">
+                          <h3 class="vm-space-name"><span>💼</span>{{demo.spaces.0}}</h3>
+                          <div class="vm-label">{{demo.pinnedLabel}}</div>
+                          <div class="row folder"><b class="ic ic-folder"></b>{{demo.folder}}</div>
+                          <div class="row in" data-tab="roadmap">
+                            <i class="fi" style="--c: #7048e8">R</i>{{demo.tabs.roadmap}}
+                          </div>
+                          <div class="row in" data-tab="docs">
+                            <i class="fi" style="--c: #2b2d42">N</i>{{demo.tabs.docs}}
+                          </div>
+                          <div class="vm-sep"></div>
+                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
+                          <div class="vm-today">
+                            <div class="row grow" data-tab="orbit">
+                              <i class="fi" style="--c: #5b6cff">O</i>{{demo.tabs.orbit}}
+                            </div>
+                            <div class="row active" data-tab="review">
+                              <i class="fi" style="--c: #d6336c">D</i>{{demo.tabs.review}}
+                            </div>
+                            <div class="row" data-tab="inbox">
+                              <i class="fi" style="--c: #2f6fdf">M</i>{{demo.tabs.inbox}}
+                            </div>
+                            <div class="row old" data-tab="pr">
+                              <i class="fi" style="--c: #24292f">G</i>{{demo.tabs.pr}}
+                            </div>
+                            <div class="row old" data-tab="type">
+                              <i class="fi" style="--c: #e8590c">T</i>{{demo.tabs.type}}
+                            </div>
+                          </div>
+                        </section>
+                        <section class="vm-space" data-space="1">
+                          <h3 class="vm-space-name"><span>🎨</span>{{demo.spaces.1}}</h3>
+                          <div class="vm-label">{{demo.pinnedLabel}}</div>
+                          <div class="row"><i class="fi" style="--c: #e8590c">P</i>{{demo.tabs.palette}}</div>
+                          <div class="vm-sep"></div>
+                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
+                          <div class="row active">
+                            <i class="fi" style="--c: #d6336c">M</i>{{demo.tabs.moodboard}}
+                          </div>
+                          <div class="row"><i class="fi" style="--c: #2b2d42">T</i>{{demo.tabs.type}}</div>
+                        </section>
+                        <section class="vm-space" data-space="2">
+                          <h3 class="vm-space-name"><span>🏡</span>{{demo.spaces.2}}</h3>
+                          <div class="vm-label">{{demo.pinnedLabel}}</div>
+                          <div class="row"><i class="fi" style="--c: #0f9d76">C</i>{{demo.tabs.recipe}}</div>
+                          <div class="vm-sep"></div>
+                          <div class="row new"><b class="ic ic-plus"></b>{{demo.newTab}}</div>
+                          <div class="row active">
+                            <i class="fi" style="--c: #1c7ed6">L</i>{{demo.tabs.trip}}
+                          </div>
+                        </section>
+                      </div>
+                    </div>
+                    <div class="vm-bar">
+                      <span class="sp" data-dot="0">💼</span><span class="sp" data-dot="1"></span
+                      ><span class="sp" data-dot="2"></span>
+                      <b class="ic ic-plus"></b>
+                    </div>
+                  </aside>
+
+                  <div class="vm-page">
+                    <div class="pane pane-a">
+                      <div class="site">
+                        <div class="site-nav"><i></i><b></b><b></b><b></b><em></em></div>
+                        <p class="site-kicker">{{demo.page.kicker}}</p>
+                        <p class="site-title">{{demo.page.title}}</p>
+                        <div class="site-lines"><b></b><b></b><b style="width: 62%"></b></div>
+                        <div class="site-art"><i></i><i></i><i></i></div>
+                        <div class="site-cols">
+                          <div><b></b><b></b><b></b></div>
+                          <div><b></b><b></b><b></b></div>
+                          <div class="link"><b></b><b></b><b></b></div>
+                        </div>
+                      </div>
+                      <div class="site site-orbit">
+                        <div class="site-nav"><i class="o"></i><b></b><b></b><b></b><em></em></div>
+                        <p class="site-kicker">Orbit</p>
+                        <p class="site-title">Design system</p>
+                        <div class="swatches"><i></i><i></i><i></i><i></i><i></i></div>
+                        <div class="site-cols">
+                          <div><b></b><b></b></div>
+                          <div><b></b><b></b></div>
+                          <div><b></b><b></b></div>
+                        </div>
+                      </div>
+                      <div class="site site-studio">
+                        <div class="site-nav"><i class="s"></i><b></b><b></b><em></em></div>
+                        <p class="site-kicker">Studio</p>
+                        <p class="site-title">{{demo.tabs.moodboard}}</p>
+                        <div class="mood"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      </div>
+                      <div class="site site-home">
+                        <div class="trip-art"></div>
+                        <p class="site-kicker">Lisboa</p>
+                        <p class="site-title">{{demo.tabs.trip}}</p>
+                        <div class="site-lines"><b></b><b style="width: 74%"></b></div>
+                      </div>
+                    </div>
+                    <div class="pane pane-b">
+                      <div class="site site-mail">
+                        <div class="mail-row u"><i></i><b></b><b class="s"></b></div>
+                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
+                        <div class="mail-row u"><i></i><b></b><b class="s"></b></div>
+                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
+                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
+                        <div class="mail-row"><i></i><b></b><b class="s"></b></div>
+                      </div>
+                    </div>
+                    <div class="peek">
+                      <div class="peek-bar"><i></i><i></i><b></b></div>
+                      <p class="site-kicker">Orbit</p>
+                      <p class="peek-title">{{demo.page.peekTitle}}</p>
+                      <div class="peek-scale"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      <div class="site-lines"><b></b><b style="width: 70%"></b></div>
+                    </div>
+                    <div class="cmd">
+                      <div class="cmd-field">
+                        <b class="ic ic-search"></b><span class="cmd-q" data-q></span
+                        ><span class="cmd-c">{{demo.completion}}</span><span class="caret"></span>
+                      </div>
+                      <div class="cmd-row sel">
+                        <i class="fi" style="--c: #5b6cff">O</i><span>{{demo.rows.open}}</span><kbd>↵</kbd>
+                      </div>
+                      <div class="cmd-row">
+                        <b class="ic ic-tab"></b><span>{{demo.rows.switch}} · {{demo.tabs.review}}</span>
+                      </div>
+                      <div class="cmd-row"><b class="ic ic-search"></b><span>{{demo.rows.search}}</span></div>
+                    </div>
+                    <div class="kbd-flash" aria-hidden="true"><kbd>⌘</kbd><kbd>T</kbd></div>
+                  </div>
+                </div>
+
+                <div class="ghost">
+                  <div class="ghost-side"></div>
+                  <div class="ghost-page"><b></b><b></b><b style="width: 60%"></b><i></i></div>
+                </div>
+                <div class="toast"><b class="ic ic-check"></b>{{demo.toast}}</div>
+                <div class="drag-row"><i class="fi" style="--c: #d6336c">D</i>{{demo.tabs.review}}</div>
+                <div class="cursor"></div>
+              </div>
+            </div>
+          </figure>
+
+          <div class="tour" role="group" aria-label="Tour">
+            <button
+              class="tour-play"
+              type="button"
+              data-toggle
+              aria-label="{{attr:a11y.pause}}"
+              data-label-pause="{{attr:a11y.pause}}"
+              data-label-play="{{attr:a11y.play}}"
+            >
+              <i></i><i></i>
+            </button>
+            <ol class="tour-steps">
+              <li>
+                <button type="button" data-goto="spaces">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.spaces}}</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-goto="command">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.command}}</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-goto="split">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.split}}</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-goto="peek">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.peek}}</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-goto="tear">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.tear}}</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-goto="tidy">
+                  <span class="tour-bar"><i></i></span><span class="tour-cap">{{demo.captions.tidy}}</span>
+                </button>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Benchmark -->
+      <section class="proof" id="benchmark" aria-labelledby="proof-title">
+        <div class="wrap">
+          <div class="head rv">
+            <p class="kicker">{{proof.kicker}}</p>
+            <h2 id="proof-title" class="h2">{{proof.title}}</h2>
+            <p class="sub">{{proof.lead}}</p>
+          </div>
+          <dl class="bars">
+            <div class="bar-row rv" style="--arc: 1; --vela: 0.1317">
+              <dt>{{proof.rows.launch}}</dt>
+              <dd>
+                <span class="bar arc"
+                  ><span class="who">Arc</span
+                  ><span class="track"><i></i><span class="val">2058 ms</span></span></span
+                >
+                <span class="bar vela"
+                  ><span class="who">Vela</span
+                  ><span class="track"><i></i><span class="val">271 ms</span></span></span
+                >
+                <span class="gain">7.6× {{proof.faster}}</span>
+              </dd>
+            </div>
+            <div class="bar-row rv d1" style="--arc: 1; --vela: 0.5005">
+              <dt>{{proof.rows.memory}}</dt>
+              <dd>
+                <span class="bar arc"
+                  ><span class="who">Arc</span
+                  ><span class="track"><i></i><span class="val">3149 MB</span></span></span
+                >
+                <span class="bar vela"
+                  ><span class="who">Vela</span
+                  ><span class="track"><i></i><span class="val">1576 MB</span></span></span
+                >
+                <span class="gain">−50% {{proof.less}}</span>
+              </dd>
+            </div>
+            <div class="bar-row rv d2" style="--arc: 1; --vela: 0.0532">
+              <dt>{{proof.rows.cpu}}</dt>
+              <dd>
+                <span class="bar arc"
+                  ><span class="who">Arc</span
+                  ><span class="track"><i></i><span class="val">111%</span></span></span
+                >
+                <span class="bar vela"
+                  ><span class="who">Vela</span
+                  ><span class="track"><i></i><span class="val">5.9%</span></span></span
+                >
+                <span class="gain">−95% {{proof.less}}</span>
+              </dd>
+            </div>
+            <div class="bar-row rv d3" style="--arc: 1; --vela: 0.25">
+              <dt>{{proof.rows.switch}}</dt>
+              <dd>
+                <span class="bar arc"
+                  ><span class="who">Arc</span
+                  ><span class="track"><i></i><span class="val">12 ms</span></span></span
+                >
+                <span class="bar vela"
+                  ><span class="who">Vela</span
+                  ><span class="track"><i></i><span class="val">3 ms</span></span></span
+                >
+                <span class="gain">4× {{proof.faster}}</span>
+              </dd>
+            </div>
+          </dl>
+          <p class="fine rv">
+            {{proof.foot}}
+            <a href="https://github.com/JoSanson/vela/blob/main/docs/BENCHMARK.md">{{proof.link}}</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- Features: sticky rail + the same live mock, driven by the rail -->
+      <section class="features" id="features" aria-labelledby="features-title">
+        <div class="wrap">
+          <div class="head rv">
+            <p class="kicker">{{features.kicker}}</p>
+            <h2 id="features-title" class="h2">{{features.title}}</h2>
+          </div>
+          <div class="rail-grid">
+            <ol class="rail" data-rail>
+              <li class="rail-item" data-scene="spaces">
+                <h3><span class="n">01</span>{{features.items.spaces.title}}</h3>
+                <p>{{features.items.spaces.body}} <kbd>Ctrl</kbd><kbd>1…9</kbd></p>
+              </li>
+              <li class="rail-item" data-scene="command">
+                <h3><span class="n">02</span>{{features.items.command.title}}</h3>
+                <p>{{features.items.command.body}} <kbd>⌘</kbd><kbd>T</kbd></p>
+              </li>
+              <li class="rail-item" data-scene="split">
+                <h3><span class="n">03</span>{{features.items.split.title}}</h3>
+                <p>{{features.items.split.body}} <kbd>⌃</kbd><kbd>⇧</kbd><kbd>+</kbd></p>
+              </li>
+              <li class="rail-item" data-scene="tear">
+                <h3><span class="n">04</span>{{features.items.windows.title}}</h3>
+                <p>{{features.items.windows.body}}</p>
+              </li>
+              <li class="rail-item" data-scene="tidy">
+                <h3><span class="n">05</span>{{features.items.tidy.title}}</h3>
+                <p>{{features.items.tidy.body}} <kbd>⌘</kbd><kbd>⇧</kbd><kbd>L</kbd></p>
+              </li>
+            </ol>
+            <div class="rail-visual">
+              <div class="rail-sticky">
+                <div class="vm-fit" data-fit data-clone-of="hero"></div>
+              </div>
+            </div>
+          </div>
+          <p class="more rv">{{features.more}}</p>
+        </div>
+      </section>
+
+      <!-- Real screenshots -->
+      <section class="real" aria-labelledby="real-title">
+        <div class="wrap">
+          <div class="head rv">
+            <p class="kicker">{{real.kicker}}</p>
+            <h2 id="real-title" class="h2">{{real.title}}</h2>
+            <p class="sub">{{real.lead}}</p>
+          </div>
+        </div>
+        <div class="shots" tabindex="0" aria-label="{{attr:real.title}}">
+          <figure class="shot rv">
+            <img
+              src="/assets/img/hero-1600.webp"
+              srcset="/assets/img/hero-1000.webp 1000w, /assets/img/hero-1600.webp 1600w"
+              sizes="(max-width: 760px) 86vw, 64vw"
+              width="1600"
+              height="1000"
+              alt="{{attr:real.alts.hero}}"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <figure class="shot rv d1">
+            <img
+              src="/assets/img/command-bar-1600.webp"
+              srcset="/assets/img/command-bar-1000.webp 1000w, /assets/img/command-bar-1600.webp 1600w"
+              sizes="(max-width: 760px) 86vw, 64vw"
+              width="1600"
+              height="1000"
+              alt="{{attr:real.alts.command}}"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <figure class="shot rv d2">
+            <img
+              src="/assets/img/split-view-1600.webp"
+              srcset="/assets/img/split-view-1000.webp 1000w, /assets/img/split-view-1600.webp 1600w"
+              sizes="(max-width: 760px) 86vw, 64vw"
+              width="1600"
+              height="1000"
+              alt="{{attr:real.alts.split}}"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <figure class="shot rv d3">
+            <img
+              src="/assets/img/spaces-1600.webp"
+              srcset="/assets/img/spaces-1000.webp 1000w, /assets/img/spaces-1600.webp 1600w"
+              sizes="(max-width: 760px) 86vw, 64vw"
+              width="1600"
+              height="1000"
+              alt="{{attr:real.alts.spaces}}"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <!-- Import -->
+      <section class="import" id="import" aria-labelledby="import-title">
+        <div class="wrap import-grid">
+          <div class="import-copy rv">
+            <p class="kicker">{{import.kicker}}</p>
+            <h2 id="import-title" class="h2">{{import.title}}</h2>
+            <p class="sub">{{import.lead}}</p>
+            <p class="fine">
+              {{import.other}}
+              <a href="https://github.com/JoSanson/vela/blob/main/docs/MIGRATING-FROM-ARC.md"
+                >{{import.guide}}</a
+              >.
+            </p>
+          </div>
+          <div class="mover rv d1" data-mover>
+            <div class="mover-head">
+              <span class="mover-from" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="mover-arrow" aria-hidden="true"></span>
+              <img src="/assets/img/logo.svg" alt="" width="34" height="34" />
+              <span class="mover-btn"
+                ><span class="mb-idle">{{import.button}}</span
+                ><span class="mb-done"><b class="ic ic-check"></b>{{import.done}}</span></span
+              >
+            </div>
+            <ul class="mover-list">
+              {{#each import.items}}
+              <li style="--i:{{@index}}"><span class="tick" aria-hidden="true"></span>{{.}}</li>
+              {{/each}}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Extensions -->
+      <section class="exts" aria-labelledby="exts-title">
+        <div class="wrap exts-head rv">
+          <h2 id="exts-title" class="h3">{{extensions.title}}</h2>
+          <p class="sub">
+            {{extensions.lead}}
+            <a href="https://github.com/JoSanson/vela/blob/main/docs/EXTENSIONS.md">{{extensions.link}}</a>.
+          </p>
+        </div>
+        <div class="marquee" aria-hidden="true">
+          <div class="marquee-track">
+            <span>1Password</span><span>Dark Reader</span><span>Vimium</span><span>Bitwarden</span
+            ><span>Grammarly</span><span>Notion Web Clipper</span><span>Raindrop.io</span
+            ><span>React Developer Tools</span><span>Wappalyzer</span><span>JSON Formatter</span
+            ><span>Return YouTube Dislike</span><span>Momentum</span> <span>1Password</span
+            ><span>Dark Reader</span><span>Vimium</span><span>Bitwarden</span><span>Grammarly</span
+            ><span>Notion Web Clipper</span><span>Raindrop.io</span><span>React Developer Tools</span
+            ><span>Wappalyzer</span><span>JSON Formatter</span><span>Return YouTube Dislike</span
+            ><span>Momentum</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Open source -->
+      <section class="open" id="open-source" aria-labelledby="open-title">
+        <div class="wrap open-grid">
+          <div class="open-copy">
+            <p class="kicker rv">{{open.kicker}}</p>
+            <h2 id="open-title" class="h2 rv d1">{{open.title}}</h2>
+            <p class="sub rv d2">{{open.lead}}</p>
+            <a class="btn btn-ghost rv d3" href="https://github.com/JoSanson/vela">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.71 1.23 1.88.87 2.34.67.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"
+                />
+              </svg>
+              {{open.cta}}
+            </a>
+          </div>
+          <ul class="points">
+            <li class="rv">
+              <h3>{{open.points.privacy.title}}</h3>
+              <p>{{open.points.privacy.body}}</p>
+            </li>
+            <li class="rv d1">
+              <h3>{{open.points.fresh.title}}</h3>
+              <p>{{open.points.fresh.body}}</p>
+            </li>
+            <li class="rv d2">
+              <h3>{{open.points.yours.title}}</h3>
+              <p>{{open.points.yours.body}}</p>
+            </li>
+          </ul>
+          <pre
+            class="term rv d2"
+            aria-label="Build from source"
+          ><code><span class="p">$</span> git clone https://github.com/JoSanson/vela
+<span class="p">$</span> cd vela &amp;&amp; pnpm install
+<span class="p">$</span> pnpm dev</code></pre>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="faq" id="faq" aria-labelledby="faq-title">
+        <div class="wrap faq-grid">
+          <h2 id="faq-title" class="h2 rv">{{faq.title}}</h2>
+          <div class="qa">
+            {{#each faq.items}}
+            <details class="rv">
+              <summary><span>{{q}}</span><i aria-hidden="true"></i></summary>
+              <div class="answer"><p>{{a}}</p></div>
+            </details>
+            {{/each}}
+          </div>
+        </div>
+      </section>
+
+      <!-- Final -->
+      <section class="final" aria-labelledby="final-title">
+        <svg class="constellation" viewBox="0 0 600 340" aria-hidden="true">
+          <g class="c-lines">
+            <path d="M70 250 L160 196 L248 214 L322 150 L410 168 L470 98 L548 74" />
+            <path d="M248 214 L272 292 L366 300 L410 168" />
+            <path d="M322 150 L300 70" />
+          </g>
+          <g class="c-stars">
+            <circle cx="70" cy="250" r="2.4" />
+            <circle cx="160" cy="196" r="3.2" />
+            <circle cx="248" cy="214" r="2.6" />
+            <circle cx="322" cy="150" r="4.2" />
+            <circle cx="410" cy="168" r="3" />
+            <circle cx="470" cy="98" r="2.8" />
+            <circle cx="548" cy="74" r="3.6" />
+            <circle cx="272" cy="292" r="2.2" />
+            <circle cx="366" cy="300" r="2.8" />
+            <circle cx="300" cy="70" r="2.4" />
+          </g>
+        </svg>
+        <div class="wrap final-copy">
+          <h2 id="final-title" class="display rv">{{final.title}}</h2>
+          <p class="lead rv d1">{{final.lead}}</p>
+          <div class="ctas rv d2">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/JoSanson/vela/releases/latest"
+              data-download
+              data-label-mac="{{attr:cta.mac}}"
+              data-label-win="{{attr:cta.win}}"
+            >
+              <svg class="os os-mac" viewBox="0 0 17 20" width="15" height="18" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 2 5.8 1.1 7.3c-1.9 3.2-.5 8 1.3 10.6.9 1.3 1.9 2.7 3.3 2.7 1.3-.1 1.8-.9 3.4-.9s2 .9 3.4.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.9-1.1-3-4.3ZM11.5 3c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 2-1.1 3.1 1.1.1 2.3-.6 3-1.4Z"
+                />
+              </svg>
+              <svg class="os os-win" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M0 2.3 6.5 1.4v6.2H0Zm7.3-1L16 0v7.6H7.3ZM0 8.4h6.5v6.2L0 13.7Zm7.3 0H16V16l-8.7-1.2Z"
+                />
+              </svg>
+              <span data-label>{{cta.mac}}</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/JoSanson/vela/releases">{{cta.other}}</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="{{$home}}" aria-label="{{attr:a11y.home}}"
+            ><img src="/assets/img/logo.svg" alt="" width="28" height="28" /><span>Vela</span></a
+          >
+          <p>{{footer.tagline}}</p>
+          <div class="langs" role="group" aria-label="{{attr:a11y.language}}">{{$langLinks}}</div>
+        </div>
+        <nav aria-label="{{attr:footer.product}}">
+          <h3>{{footer.product}}</h3>
+          <a href="https://github.com/JoSanson/vela/releases">{{footer.releases}}</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/CHANGELOG.md">{{footer.changelog}}</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/docs/BENCHMARK.md">{{footer.benchmark}}</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/docs/MIGRATING-FROM-ARC.md"
+            >{{footer.migrate}}</a
+          >
+          <a href="https://github.com/JoSanson/vela/blob/main/docs/EXTENSIONS.md">{{footer.extensions}}</a>
+        </nav>
+        <nav aria-label="{{attr:footer.project}}">
+          <h3>{{footer.project}}</h3>
+          <a href="https://github.com/JoSanson/vela">GitHub</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/CONTRIBUTING.md">{{footer.contribute}}</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/LICENSE">{{footer.license}}</a>
+          <a href="https://github.com/JoSanson/vela/blob/main/SECURITY.md">{{footer.security}}</a>
+        </nav>
+      </div>
+      <div class="wrap">
+        <p class="notice">{{footer.notice}}</p>
+        <p class="copy">© {{$year}} Vela</p>
+      </div>
+    </footer>
+
+    <script type="application/json" id="i18n-demo">
+      {{json:demo}}
+    </script>
+    <script src="/assets/site.js" defer></script>
+  </body>
+</html>

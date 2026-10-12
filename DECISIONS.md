@@ -358,3 +358,13 @@ Choice: no Linux builds, e2e or docs. electron-builder, ci.yml and release.yml b
 x64) and Windows (x64); e2e runs on macOS and Windows; the importer drops its Linux paths and the
 `peanuts` keyring fallback. Tooling jobs (quality, CodeQL, audit, engine watch) still run on
 ubuntu-latest, which says nothing about the product. Supersedes the Linux half of D009.
+
+## D039 — The website lives in site/, static and dependency-free
+
+`site/` holds the marketing site (one landing page in English, French and Spanish). One HTML
+template plus `src/i18n/{en,fr,es}.json`, rendered by `site/build.mjs` (no dependency) into `dist/`,
+`/fr/` and `/es/` with hreflang, sitemap and robots. The hero "video" is the real shell redrawn in
+HTML/CSS and scripted scene by scene (`assets/site.js`): sharp at any size, ~60 KB, translated, and
+it pauses off screen; reduced motion shows a still frame. Fonts (Funnel Display / Funnel Sans, OFL)
+are self-hosted so a visit calls no third party except the GitHub stars count. Vercel serves it with
+root directory `site`; the build fails if the CSP hash for the one inline script drifts.
