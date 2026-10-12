@@ -6,6 +6,29 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Windows work like Arc's (D037): a Space can be open in several windows, each with a Today of its
+  own; favorites, pinned tabs and folders are shared, and a favorite or pinned tab open in two
+  windows has its own page in each. ⌘N opens a new window on the same Space.
+- Drag a tab out of the window: a snapshot follows the cursor, and dropping it opens a new window
+  on the same Space where it lands, or moves the tab into the Vela window under the cursor.
+- ⌘-click a favorite or a pinned tab to open its page as a new Today tab (⌘⇧-click: in the
+  background); the favorite stays where it is.
+- Favorites whose page is open show a small dot under their icon, like apps running in the Dock.
+- Extension bar between the address field and the favorites: pinned extensions as tiles, the rest
+  behind a puzzle tile where they can be pinned and reordered.
+- Downloads view: the downloads replace the sidebar, grouped by day; Escape or Back returns to the
+  tabs.
+- After an Arc import, Arc's Chrome Web Store extensions are listed, already checked, and installed
+  again in one click.
+
+### Changed
+
+- A download no longer opens the downloads view by itself: its button shows the progress and a
+  toast confirms it started.
+- Closing a window moves its Today tabs to the top of its Space's Today in the other windows.
+
 ## [0.4.0] - 2026-10-12
 
 ### Added

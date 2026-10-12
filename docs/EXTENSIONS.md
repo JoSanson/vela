@@ -9,8 +9,9 @@ uses ("Read and change all your data on all websites"…), and installs it only 
 
 - Installed extensions are available in **every Space and profile**.
 - They **update themselves** (checked at launch and every 5 hours).
-- Their buttons appear in the **sidebar**, next to back / forward / reload: click one for its
-  popup; badges and icons update live.
+- Their buttons appear in the **extension bar** of the sidebar, between the address field and the
+  favorites: click one for its popup; badges and icons update live. New extensions are pinned
+  there; the puzzle tile lists them all to pin, unpin or reorder.
 - Remove them from Settings → Extensions or from their Web Store page.
 
 **Unpacked.** Settings → Extensions → *Load unpacked…* and pick the folder that contains

@@ -94,18 +94,19 @@ imports are there too. Step by step, and the shortcut cheat sheet:
     <td width="50%"><img src="docs/images/command-bar.png" alt="Command bar with tabs, history and search suggestions"><br><b>Command bar.</b> <code>⌘T</code> searches open tabs, favorites, history (full text), the archive and browser commands in a few milliseconds. <code>y</code> ⇥ YouTube, <code>gh</code> ⇥ GitHub, your own keywords.</td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/split-view.png" alt="Two pages side by side in split view"><br><b>Split view</b> with 2 to 4 panes, <b>Peek</b> for links from pinned tabs, <b>Little Vela</b> windows for links opened from other apps.</td>
+    <td width="50%"><img src="docs/images/split-view.png" alt="Two pages side by side in split view"><br><b>Split view</b> with 2 to 4 panes, <b>Peek</b> for links from pinned tabs, <b>Little Vela</b> windows for links opened from other apps. Drag a tab out of the window to give it a window of its own.</td>
     <td width="50%"><img src="docs/images/spaces.png" alt="A second Space with its own warm colour theme"><br><b>Spaces</b> with their own tabs, gradient theme (grain, light/dark, palette from an image, glass) and an optional isolated <b>profile</b>.</td>
   </tr>
 </table>
 
 **Chrome extensions** install from the Chrome Web Store in one click ("Add to Vela"), update
-themselves and get their buttons in the sidebar: 1Password, Dark Reader, Vimium, Bitwarden,
+themselves and get their buttons in the sidebar's extension bar: 1Password, Dark Reader, Vimium, Bitwarden,
 Grammarly… ([compatibility list](docs/EXTENSIONS.md)).
 
 Also built in: password manager (OS keychain, never leaves your machine), content blocker, auto
 picture-in-picture, Boosts (per-site CSS/JS and a Zap element picker), reader mode, Air Traffic
-Control rules that route links to the right Space, multiple windows, private Spaces, safe browsing
+Control rules that route links to the right Space, multiple windows on the same Space (each with
+its own Today, as in Arc), private Spaces, safe browsing
 checked locally, rebindable shortcuts, English and French UI.
 
 ## Arc and Vela, feature by feature
@@ -116,6 +117,7 @@ checked locally, rebindable shortcuts, English and French UI.
 | Spaces with themes, Profiles | ✅ | ✅ |
 | Command bar, tab search, auto-archive | ✅ | ✅ |
 | Split view, Peek, Little window | ✅ | ✅ |
+| Several windows per Space, drag a tab out into a new window | ✅ | ✅ |
 | Boosts, Air Traffic Control, auto PiP | ✅ | ✅ |
 | One-click import of your Arc sidebar and passwords | n/a | ✅ |
 | Built-in content blocker | ✅ | ✅ |
