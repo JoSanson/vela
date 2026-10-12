@@ -120,6 +120,15 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [ ] 13.13 Arc-aligned shortcuts (copy URL, private window, ⌘1…9, split ⌃⇧+/-, ⌃⌘N, ⌘⇧K, ⌘⇧L, ⌘.) — typecheck + lint green; shortcut unit tests to extend and run when test runs resume.
 - [ ] 13.12 Sealed Spaces (D030): command bar scoped to the Space, history per Space (`history_spaces`, migration 4), Arc history per profile→Spaces — verification pending (test runs suspended).
 
+## 14 Launch as the open-source Arc alternative (0.4.0)
+- [x] 14.1 Arc vs Vela benchmark harness + results (perf/compare, docs/BENCHMARK.md) — c301e45
+- [x] 14.2 Launch docs: README, migration guide, contributing, code of conduct, issue templates, screenshots, demo, social preview — a056349
+- [x] 14.3 GPL-3.0-or-later + TRADEMARKS.md (D035) — 708bd72
+- [x] 14.4 Arc import keeps per-profile favorites; spring catch-up; typecheck green — 1a0d857
+- [x] 14.5 Renderers replay actions in reduction order (split row and handles were lost) — 1ed1625
+- [x] 14.6 Chrome Web Store + chrome.* APIs + sidebar extension buttons, e2e webstore.spec.ts, 16/20 top extensions (D036) — 32e5b91
+- [ ] 14.7 Push, public repo, v0.4.0 release — needs `gh auth refresh -s workflow` (D013)
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x

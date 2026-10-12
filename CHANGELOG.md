@@ -6,6 +6,8 @@ All notable changes to Vela are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-12
+
 ### Added
 
 - Chrome Web Store: open it from Settings → Extensions and click "Add to Vela". A prompt lists what
