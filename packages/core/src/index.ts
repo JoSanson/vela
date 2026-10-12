@@ -5,6 +5,6 @@ export * from './reducer';
 export * from './selectors';
 export * from './url';
 export * from './atc';
-export * from './search';
+export * from './omnibox';
 export * from './privacy';
 export * from './delta';

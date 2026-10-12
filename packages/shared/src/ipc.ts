@@ -1,4 +1,4 @@
-import type { ArchivedTab, CoreAction, CoreState, Id, TabKind, StateDelta } from '@vela/core';
+import type { ArchivedTab, CoreAction, CoreState, Id, InputUse, TabKind, StateDelta } from '@vela/core';
 import type { Prefs } from './prefs';
 
 export type Platform = 'darwin' | 'win32' | 'linux';
@@ -178,6 +178,18 @@ export interface Boost {
   zapped: string[];
   font: string | null;
   updatedAt: number;
+}
+
+/** Everything the command bar needs from main for one keystroke, in one round trip. */
+export interface OmniboxData {
+  query: string;
+  history: HistoryEntry[];
+  /** Past picks whose input starts with the query (adaptive history). */
+  inputs: InputUse[];
+  /** Archived tabs matching the query. */
+  archived: ArchivedTab[];
+  /** Most recently closed tabs, newest first (shown when nothing is typed). */
+  closed: ArchivedTab[];
 }
 
 export interface SuggestionResult {
@@ -366,6 +378,10 @@ export interface IpcInvokeMap {
     res: HistoryEntry[];
   };
   'history/delete': { req: { ids?: number[]; all?: boolean; url?: string }; res: undefined };
+  /** Command bar data for the Space (its root when given an instance), sealed per Space (D030). */
+  'omnibox/query': { req: { query: string; spaceId: Id }; res: OmniboxData };
+  /** The user picked `url` (or a `cmd:` / `space:` id) after typing `input`. */
+  'omnibox/learn': { req: { input: string; url: string; spaceId: Id }; res: undefined };
   'archive/search': { req: { query: string; limit?: number; spaceId?: Id }; res: ArchivedTab[] };
 
   'downloads/list': { req: undefined; res: DownloadItemState[] };

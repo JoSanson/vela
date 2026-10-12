@@ -1,4 +1,4 @@
-import { SEARCH_ENGINES } from '@vela/core';
+import { isEphemeralSpace, normalizeText, rootSpaceId, SEARCH_ENGINES, tokenize } from '@vela/core';
 import type { ShellSnapshot } from '@vela/shared';
 import { app, dialog, session, shell } from 'electron';
 import { pathToFileURL } from 'node:url';
@@ -261,6 +261,39 @@ export function registerCoreHandlers(ctx: AppContext): void {
   );
   handle('history/delete', 'internal', (opts) => {
     ctx.history.delete(opts);
+    return undefined;
+  });
+  handle('omnibox/query', 'internal', ({ query, spaceId }) => {
+    const sid = rootSpaceId(store.state, spaceId);
+    const input = tokenize(query).join(' ');
+    const now = Date.now();
+    const inputs = isEphemeralSpace(store.state, sid) ? [] : ctx.history.inputs(input, sid);
+    const tokens = tokenize(query);
+    const archive = store.state.archive.filter((a) => a.spaceId === sid);
+    const archived = tokens.length
+      ? archive
+          .filter((a) => {
+            const hay = normalizeText(`${a.title} ${a.url}`);
+            return tokens.every((t) => hay.includes(t));
+          })
+          .slice(0, 20)
+      : [];
+    return {
+      query,
+      history: ctx.history.omniCandidates(
+        query,
+        sid,
+        now,
+        inputs.map((i) => i.url).filter((u) => /^https?:/i.test(u)),
+      ),
+      inputs,
+      archived,
+      closed: archive.filter((a) => a.reason === 'closed').slice(0, 5),
+    };
+  });
+  handle('omnibox/learn', 'internal', ({ input, url, spaceId }) => {
+    const sid = rootSpaceId(store.state, spaceId);
+    if (!isEphemeralSpace(store.state, sid)) ctx.history.learnInput(tokenize(input).join(' '), url, sid);
     return undefined;
   });
   handle('archive/search', 'internal', ({ query, limit, spaceId }) => {

@@ -119,6 +119,24 @@ migrations.push({
   },
 });
 
+// What the user typed in the command bar and then picked (Firefox's adaptive history): the
+// strongest signal for ranking. Sealed per Space like the history it learns from (D030).
+migrations.push({
+  version: 5,
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE input_history (
+        input TEXT NOT NULL,
+        url TEXT NOT NULL,
+        space_id TEXT NOT NULL,
+        use_count REAL NOT NULL,
+        last_used INTEGER NOT NULL,
+        PRIMARY KEY (space_id, input, url)
+      );
+    `);
+  },
+});
+
 export const LATEST_SCHEMA = migrations[migrations.length - 1]?.version ?? 0;
 
 export function migrate(db: Database): number {

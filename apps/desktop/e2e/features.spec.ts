@@ -896,22 +896,20 @@ test.describe('daily-driver compatibility', () => {
       .toBe('completed');
   });
 
-  test('the command bar completes a known host inline', async ({ vela, fixtures }) => {
+  test('the command bar completes a known host inline, port included', async ({ vela, fixtures }) => {
     const first = await vela.openTab(`${fixtures}/page/Complete`);
+    const host = new URL(fixtures).host;
     await vela.command('newTab');
     const overlay = await vela.overlay();
     const input = overlay.getByTestId('command-input');
     await input.pressSequentially('127', { delay: 30 });
-    await expect(input).toHaveValue('127.0.0.1');
+    await expect(input).toHaveValue(host);
     const selection = await input.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd]);
-    expect(selection).toEqual([3, '127.0.0.1'.length]);
+    expect(selection).toEqual([3, host.length]);
     await input.press('Enter');
     await vela.overlayHidden();
     await expect
-      .poll(
-        async () =>
-          Object.values((await vela.state()).tabs).filter((t) => t.url.includes('/page/Complete')).length,
-      )
+      .poll(async () => Object.values((await vela.state()).tabs).filter((t) => t.url.includes(host)).length)
       .toBe(2);
     expect((await vela.state()).tabs[first]).toBeDefined();
   });

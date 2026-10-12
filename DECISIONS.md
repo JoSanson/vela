@@ -371,3 +371,30 @@ synced to the video's time, and the page sky follows the Space on screen. Reduce
 still frame. Fonts (Funnel Display / Funnel Sans, OFL) are self-hosted so a visit calls no third
 party except the GitHub stars count. Vercel serves it with
 root directory `site`; the build fails if the CSP hash for the one inline script drifts.
+
+## D040 — The command bar ranks like a search engine that knows you
+
+Context: the bar ranked by fixed kind weights (tab > command > history) and plain subsequence
+matching, with history ordered by last visit and capped at 8 rows. It never learned, missed
+reordered words, typos and accents, and listed the same page as tab, history and archive.
+Choice: one pure engine in `packages/core/src/omnibox` (`rankOmnibox`, `rankHome`), fed by every
+source as `OmniCandidate`s.
+- Matching: accent- and case-free, any word order, tokens may split across title and URL, initials
+  ("hn"), one typo from 4 chars and two from 8 (optimal string alignment, prefix-aware).
+- Signals: text match, Firefox-style frecency, and adaptive history: `input_history`
+  (migration 5, sealed per Space like D030, nothing in private Spaces, erased with the history it
+  came from, a year's retention) records what was typed and then picked. A past pick for the typed
+  prefix wins outright; commands and Spaces learn the same way through their ids.
+- One row per page (URL key without scheme, `www.`, hash, trailing slash): an open tab wins and
+  becomes "Switch to tab", never the tab on screen.
+- Enter: an inline completion (host, or full URL once a path is typed, about three recent visits or
+  an open tab needed), else a typed URL, else the best match only when it is a clear one (tab or
+  favorite on a word prefix, a command on a full prefix of 3+ chars, a Space by its exact name, a
+  site by host prefix), else "search for what I typed". Destructive commands are never the default.
+- Instant answers (arithmetic, unit conversions) without eval or network; `>` narrows to commands,
+  `?` forces a search.
+- Main answers each keystroke in one `omnibox/query` round trip (frecent top 150 cached 5 s,
+  full-text matches by frecency, pages picked before); the renderer re-ranks the previous answer
+  until the new one lands, and selection follows a row id, so the list neither blinks nor moves
+  under the cursor.
+Budget: 2 000 candidates in < 30 ms (the bar never sees more than ~1 000).

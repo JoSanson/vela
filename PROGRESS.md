@@ -130,6 +130,9 @@ A box is checked only with: test green + app launched & screenshot inspected + c
 - [x] 14.8 Benchmark rerun with both browsers on raw CDP (Playwright kept Vela's tabs visible; the two "bugs" it showed were artifacts) — see git log
 - [ ] 14.7 Push, public repo, v0.4.0 release — needs `gh auth refresh -s workflow` (D013)
 
+## 15 Command bar intelligence (D040)
+- [ ] 15.1 Omnibox engine (typos, accents, word order, frecency, adaptive history, one row per page, inline completion with port, instant answers, `>` / `?` scopes, Spaces and move-to-Space, every shortcut as a command, grouped empty state, stable list, ⇧↵ split, ⌘↵ background, ⇧⌫ forget) — unit green (core 97 % lines, omnibox 98 %, `historyRepo.test.ts` on real SQLite), lint/typecheck/format/bundle green; e2e `omnibox.spec.ts` + updated completion test written, NOT run yet (owner runs e2e on demand), screenshots 40–43 pending.
+
 ## DoD checklist
 See PLAN.md §DoD mirror below; all boxes must be ticked at the end.
 - [x] e2e suite green 3× in a row — 150/150 (`--repeat-each 3`), 10/10 13:5x

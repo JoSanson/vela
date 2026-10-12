@@ -1,36 +1,45 @@
 import {
   activeItemId,
-  displayTitle,
+  displayUrl,
   hostOf,
-  makeSearchItem,
-  prettyUrl,
-  rankItems,
+  rankHome,
+  rankOmnibox,
   resolveInput,
+  rootSpaceId,
+  roundAnswer,
   SEARCH_ENGINES,
-  type ArchivedTab,
+  searchUrl,
+  tokenize,
   type Id,
-  type SearchItem,
+  type OmniRow,
+  type Range,
 } from '@vela/core';
 import {
   matchSiteSearch,
-  SHORTCUTS,
   siteHomeUrl,
   siteQueryOf,
   siteSearchBase,
   siteSearchUrl,
   type HistoryEntry,
-  type MessageKey,
+  type OmniboxData,
   type SiteSearch,
 } from '@vela/shared';
-import { isMac } from '../lib/api';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useHoverSelect } from '../lib/hoverSelect';
-import { useT } from '../lib/i18n';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Favicon } from '../components/Favicon';
 import { Icon, type IconName } from '../components/Icon';
-import { dispatch, invoke } from '../lib/api';
+import { dispatch, invoke, isMac } from '../lib/api';
+import { useHoverSelect } from '../lib/hoverSelect';
+import { useLocale, useT } from '../lib/i18n';
 import { useShell } from '../lib/store';
 import styles from './CommandBar.module.css';
+import {
+  archiveCandidates,
+  COMMAND_ICONS,
+  commandCandidates,
+  historyCandidates,
+  spaceCandidates,
+  tabCandidates,
+} from './omniboxSources';
 
 const KEY_GLYPH: Record<string, string> = isMac
   ? {
@@ -70,37 +79,33 @@ export interface CommandBarPayload {
   tabId?: Id | null;
 }
 
-const COMMANDS: { id: string; label: MessageKey; icon: IconName }[] = [
-  { id: 'newSpace', label: 'overlay.command.newSpace', icon: 'plus' },
-  { id: 'splitView', label: 'overlay.command.splitView', icon: 'split' },
-  { id: 'toggleSidebar', label: 'overlay.command.toggleSidebar', icon: 'sidebar' },
-  { id: 'pinTab', label: 'overlay.command.pinTab', icon: 'pin' },
-  { id: 'archiveView', label: 'overlay.command.archiveView', icon: 'archive' },
-  { id: 'clearSiteCookies', label: 'overlay.command.clearSiteCookies', icon: 'shield' },
-  { id: 'history', label: 'overlay.command.history', icon: 'history' },
-  { id: 'downloads', label: 'overlay.command.downloads', icon: 'download' },
-  { id: 'settings', label: 'overlay.command.settings', icon: 'settings' },
-  { id: 'shortcuts', label: 'overlay.command.shortcuts', icon: 'command' },
-  { id: 'readerMode', label: 'overlay.command.readerMode', icon: 'book' },
-  { id: 'devtools', label: 'overlay.command.devtools', icon: 'zap' },
-  { id: 'littleWindow', label: 'overlay.command.littleWindow', icon: 'window' },
-];
+type Open = 'default' | 'split' | 'background';
+
+const EMPTY_DATA: OmniboxData = { query: '', history: [], inputs: [], archived: [], closed: [] };
+
+/** The query without its `>` / `?` scope prefix: what adaptive history learns from. */
+const learnable = (q: string): string => q.trim().replace(/^[>?]\s*/, '');
 
 export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   const t = useT();
+  const locale = useLocale();
   const core = useShell((s) => s.core);
   const prefs = useShell((s) => s.prefs);
   const mode = payload?.mode ?? 'new';
   const editTab = mode === 'edit' && payload.tabId ? core.tabs[payload.tabId] : undefined;
   const [query, setQuery] = useState(editTab ? editTab.url : '');
-
-  const [suggestions, setSuggestions] = useState<{ query: string; list: string[] }>({ query: '', list: [] });
-  const [sel, setSel] = useState<{ query: string; idx: number }>({ query: '', idx: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const engine = SEARCH_ENGINES.find((e) => e.id === prefs.searchEngineId) ?? SEARCH_ENGINES[0];
   // Site mode (`y` then Tab): the pill names the site, Enter searches it, Backspace on empty leaves.
   const [site, setSite] = useState<SiteSearch | null>(null);
   const sites = prefs.siteSearches;
+  // Spaces are sealed (D030): only the current Space's tabs, archive and history (favorites: its profile's).
+  const spaceId = core.activeSpaceId;
+  const rootId = rootSpaceId(core, spaceId);
+  const spaceProfileId = core.spaces[spaceId]?.profileId ?? null;
+  const activeId = activeItemId(core) ?? '';
+  // Frecency and adaptive decay are measured from when the bar opened: stable while typing.
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     const el = inputRef.current;
@@ -109,16 +114,48 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     if (editTab) el.select();
   }, [editTab]);
 
-  // Archive and history live in main (D016): queried per keystroke, never bulk-loaded into the overlay.
-  const [remote, setRemote] = useState<{ query: string; items: SearchItem[] }>({ query: '', items: [] });
+  // One round trip per keystroke (D016: archive and history stay in main). The previous answer
+  // stays on screen and is re-ranked locally until the new one lands: the list never blinks.
+  const [data, setData] = useState<OmniboxData>(EMPTY_DATA);
+  const [dataVersion, setDataVersion] = useState(0);
+  useEffect(() => {
+    if (site) return;
+    const q = mode === 'edit' && query === editTab?.url ? '' : learnable(query);
+    if (/^[a-z]+:\/\//i.test(q)) return;
+    let cancelled = false;
+    void invoke('omnibox/query', { query: q, spaceId })
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [query, site, spaceId, mode, editTab, dataVersion]);
+
+  const [suggestions, setSuggestions] = useState<{ query: string; list: string[] }>({ query: '', list: [] });
+  useEffect(() => {
+    const q = learnable(query);
+    if (q.length < 2 || /^[a-z]+:\/\//i.test(q) || query.trimStart().startsWith('>')) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void invoke('suggest/query', { query: q, ...(site ? { siteId: site.id } : {}) })
+        .then((r) => {
+          if (!cancelled && r.query === q) setSuggestions({ query: q, list: r.suggestions.slice(0, 5) });
+        })
+        .catch(() => undefined);
+    }, 70);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, site]);
+
   const [recent, setRecent] = useState<{ siteId: string; query: string; items: string[] }>({
     siteId: '',
     query: '',
     items: [],
   });
-  // Spaces are sealed (D030): only the current Space's tabs, archive and history (favorites: its profile's).
-  const spaceId = core.activeSpaceId;
-  const spaceProfileId = core.spaces[spaceId]?.profileId ?? null;
   useEffect(() => {
     if (!site) return;
     const q = query.trim().toLowerCase();
@@ -142,275 +179,172 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       cancelled = true;
     };
   }, [site, query, spaceId]);
-  useEffect(() => {
-    const q = query.trim();
-    if (site || q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void Promise.all([
-        invoke('archive/search', { query: q, limit: 12, spaceId }).catch(() => [] as ArchivedTab[]),
-        invoke('history/search', { query: q, limit: 8, spaceId }).catch(() => [] as HistoryEntry[]),
-      ]).then(([archived, history]) => {
-        if (cancelled) return;
-        const items: SearchItem[] = [
-          ...archived.map((a) =>
-            makeSearchItem({
-              id: `archived:${a.id}`,
-              kind: 'archived',
-              title: a.title,
-              subtitle: prettyUrl(a.url),
-              boost: 0,
-            }),
-          ),
-          ...history.map((h) =>
-            makeSearchItem({
-              id: `history:${h.url}`,
-              kind: 'history',
-              title: h.title || prettyUrl(h.url),
-              subtitle: prettyUrl(h.url),
-              boost: Math.min(0.3, h.visitCount / 50),
-            }),
-          ),
-        ];
-        setRemote({ query: q, items });
-      });
-    }, 60);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query, site, spaceId]);
-  const trimmed = query.trim();
-  // Inline completion: typing a host prefix fills the rest, selected, so Enter opens it and typing on replaces it.
-  const [inline, setInline] = useState<{ typed: string; full: string; url: string } | null>(null);
-  const lastTyped = useRef('');
-  // Decided when the text changes, not on every rerun: history results or a tab's title arriving
-  // must not take the completion away, and a deleted completion must not come back.
-  const completes = useRef(false);
-  useEffect(() => {
-    const q = query.trim();
-    if (q !== lastTyped.current) {
-      completes.current = q.length > lastTyped.current.length && q.startsWith(lastTyped.current);
-      lastTyped.current = q;
-    }
-    if (site || !completes.current || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
-      setInline(null);
-      return;
-    }
-    const lower = q.toLowerCase();
-    const candidates: { host: string; url: string; weight: number }[] = [];
-    for (const t of Object.values(core.tabs)) {
-      const host = hostOf(t.url);
-      if (host.startsWith(lower)) candidates.push({ host, url: t.url, weight: 2 + t.lastActiveAt / 1e13 });
-    }
-    for (const it of remote.query === q ? remote.items : []) {
-      if (it.kind !== 'history') continue;
-      const url = it.id.slice('history:'.length);
-      const host = hostOf(url);
-      if (host.startsWith(lower)) candidates.push({ host, url: `https://${host}/`, weight: 1 + it.boost });
-    }
-    candidates.sort((a, b) => b.weight - a.weight);
-    const best = candidates[0];
-    setInline(
-      best?.host !== undefined && best.host !== lower ? { typed: q, full: best.host, url: best.url } : null,
-    );
-  }, [query, core.tabs, remote, site]);
-  useEffect(() => {
-    const el = inputRef.current;
-    if (!el || inline?.typed !== query.trim()) return;
-    el.value = inline.full;
-    el.setSelectionRange(inline.typed.length, inline.full.length);
-  }, [inline, query]);
 
-  const remoteItems = useMemo(() => (remote.query === trimmed ? remote.items : []), [remote, trimmed]);
-  const index = useMemo<SearchItem[]>(() => {
-    const items: SearchItem[] = [];
-    const tabs = Object.values(core.tabs).filter((t) =>
-      t.kind === 'favorite' ? (t.profileId ?? null) === spaceProfileId : t.spaceId === spaceId,
-    );
-    const newest = tabs.reduce((m, t) => Math.max(m, t.lastActiveAt), 0);
-    for (const t of tabs) {
-      const age = Math.max(0, newest - t.lastActiveAt);
-      items.push(
-        makeSearchItem({
-          id: `tab:${t.id}`,
-          kind: t.kind === 'favorite' ? 'favorite' : 'tab',
-          title: displayTitle(t),
-          subtitle: prettyUrl(t.url),
-          boost: Math.max(0, 1 - age / (1000 * 60 * 60 * 24)),
-        }),
-      );
-    }
-    items.push(...remoteItems);
-    for (const c of COMMANDS) {
-      const def = SHORTCUTS.find((s) => s.id === c.id);
-      items.push(
-        makeSearchItem({
-          id: `cmd:${c.id}`,
-          kind: 'command',
-          title: t(c.label),
-          subtitle: def ? acceleratorLabel(def.accelerator) : t('overlay.commandBar.commandSubtitle'),
-          boost: 0,
-        }),
-      );
-    }
-    return items;
-  }, [core.tabs, spaceId, spaceProfileId, remoteItems, t]);
+  const commands = useMemo(() => commandCandidates(t), [t]);
+  const tabs = useMemo(
+    () => tabCandidates(core, spaceId, spaceProfileId, activeId),
+    [core, spaceId, spaceProfileId, activeId],
+  );
+  const activeTab = core.tabs[activeId];
+  const spaces = useMemo(
+    () => spaceCandidates(core, rootId, t, !!activeTab && activeTab.kind !== 'favorite'),
+    [core, rootId, t, activeTab],
+  );
+  const remote = useMemo(
+    () => [
+      ...historyCandidates(data.history),
+      ...archiveCandidates(data.archived, 'archived'),
+      ...archiveCandidates(data.closed, 'closed'),
+    ],
+    [data],
+  );
+  const candidates = useMemo(() => {
+    const all = [...tabs, ...remote];
+    if (mode === 'split') return all.filter((c) => !c.current);
+    return [...all, ...commands.candidates, ...spaces];
+  }, [tabs, remote, commands, spaces, mode]);
 
-  useEffect(() => {
-    const q = query.trim();
-    if (!q || q.length < 2 || /^[a-z]+:\/\//i.test(q)) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void invoke('suggest/query', { query: q, ...(site ? { siteId: site.id } : {}) })
-        .then((r) => {
-          if (!cancelled && r.query === q) setSuggestions({ query: q, list: r.suggestions.slice(0, 4) });
-        })
-        .catch(() => undefined);
-    }, 80);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query, site]);
+  // Inline completion is offered only while the user types forward: deleting it must not bring it back.
+  const [completes, setCompletes] = useState(false);
+  const changeQuery = (v: string): void => {
+    const before = query.trim();
+    const after = v.trim();
+    setCompletes(after.length > before.length && after.startsWith(before));
+    setQuery(v);
+  };
 
-  const activeId = activeItemId(core) ?? '';
+  const showingEditUrl = mode === 'edit' && !!editTab && query === editTab.url;
   const keywordSite = useMemo(() => (site ? null : matchSiteSearch(query, sites)), [site, query, sites]);
-  const results = useMemo(() => {
-    const q = query.trim();
-    if (site) {
-      const list: SearchItem[] = [];
-      if (q) {
-        list.push(
-          makeSearchItem({
-            id: `sitesearch:${q}`,
-            kind: 'search',
-            title: q,
-            subtitle: t('overlay.commandBar.searchSite', { name: site.name }),
-            boost: 1,
-          }),
-        );
-      } else {
-        list.push(
-          makeSearchItem({
-            id: `siteopen:${siteHomeUrl(site)}`,
-            kind: 'url',
-            title: site.name,
-            subtitle: t('overlay.commandBar.openSite', { name: site.name }),
-            boost: 1,
-          }),
-        );
-      }
-      const lower = q.toLowerCase();
-      const seen = new Set([lower]);
-      for (const text of recent.siteId === site.id && recent.query === lower ? recent.items : []) {
-        if (seen.has(text.toLowerCase())) continue;
-        seen.add(text.toLowerCase());
-        list.push(
-          makeSearchItem({
-            id: `sitesearch:${text}`,
-            kind: 'history',
-            title: text,
-            subtitle: t('overlay.commandBar.recentOnSite', { name: site.name }),
-            boost: 0,
-          }),
-        );
-      }
-      for (const text of suggestions.query === q ? suggestions.list : []) {
-        if (seen.has(text.toLowerCase())) continue;
-        seen.add(text.toLowerCase());
-        list.push(
-          makeSearchItem({
-            id: `sitesearch:${text}`,
-            kind: 'suggestion',
-            title: text,
-            subtitle: t('overlay.commandBar.searchSite', { name: site.name }),
-            boost: 0,
-          }),
-        );
-      }
-      return list.slice(0, 10);
-    }
-    const ranked = rankItems(q, index, mode === 'split' ? 12 : 8).filter(
-      (r) => mode !== 'split' || (!r.item.id.startsWith('cmd:') && r.item.id !== `tab:${activeId}`),
-    );
-    const list: SearchItem[] = ranked.map((r) => r.item);
-    if (q && engine) {
-      const { url, isSearch } = resolveInput(q, engine);
-      const primary = makeSearchItem({
-        id: isSearch ? `search:${q}` : `url:${url}`,
-        kind: isSearch ? 'search' : 'url',
-        title: isSearch ? q : prettyUrl(url),
-        subtitle: isSearch
-          ? t('overlay.commandBar.searchWith', { engine: engine.name })
-          : hostOf(url)
-            ? t('overlay.commandBar.openWebsite')
-            : t('common.open'),
-        boost: 1,
-      });
-      // A strong (prefix) match on an open tab or command beats the generic search row.
-      const strong = ranked[0] && ranked[0].score >= 0.9 && ranked[0].item.kind !== 'archived';
-      if (strong) list.splice(1, 0, primary);
-      else list.unshift(primary);
-      if (keywordSite) {
-        list.unshift(
-          makeSearchItem({
-            id: `site:${keywordSite.id}`,
-            kind: 'search',
-            title: t('overlay.commandBar.searchSite', { name: keywordSite.name }),
-            subtitle: acceleratorLabel('Tab'),
-            boost: 1,
-          }),
-        );
-      }
-      for (const s of suggestions.query === q ? suggestions.list : []) {
-        if (s.toLowerCase() === q.toLowerCase()) continue;
-        list.push(
-          makeSearchItem({
-            id: `suggestion:${s}`,
-            kind: 'suggestion',
-            title: s,
-            subtitle: t('overlay.commandBar.searchWith', { engine: engine.name }),
-            boost: 0,
-          }),
-        );
-      }
-    }
-    return list.slice(0, 10);
-  }, [query, index, suggestions, engine, mode, activeId, t, site, recent, keywordSite]);
 
-  const selected = sel.query === query ? Math.min(sel.idx, Math.max(0, results.length - 1)) : 0;
-  const setSelected = (fn: number | ((s: number) => number)): void =>
-    setSel({ query, idx: typeof fn === 'function' ? fn(selected) : fn });
-  const hover = useHoverSelect((i) => {
-    if (i !== selected) setSelected(i);
+  const result = useMemo(() => {
+    const q = query.trim();
+    if (site) return { rows: siteRows(site, q, recent, suggestions), completion: null };
+    if (!q || showingEditUrl) {
+      const homeRows = rankHome(candidates, now, mode === 'split' ? { closed: 0 } : {});
+      if (!showingEditUrl || !editTab) return { rows: homeRows, completion: null };
+      // ⌘L then Enter reloads the page as it is, never jumps to a recent tab.
+      const self: OmniRow = {
+        id: `url:${editTab.url}`,
+        kind: 'url',
+        group: 'top',
+        title: displayUrl(editTab.url),
+        url: editTab.url,
+        titleRanges: [],
+        urlRanges: [],
+        score: 1,
+      };
+      return { rows: [self, ...homeRows.filter((r) => r.url !== editTab.url)], completion: null };
+    }
+    const typed = engine && !/^[>?]/.test(q) ? resolveInput(q, engine) : null;
+    const lower = tokenize(learnable(q)).join(' ');
+    const suggestionList = (suggestions.list ?? []).filter((s) => tokenize(s).join(' ').startsWith(lower));
+    const r = rankOmnibox({
+      query: q,
+      now,
+      candidates,
+      inputs: data.inputs,
+      suggestions: suggestionList,
+      typed,
+      complete: completes,
+      maxNav: mode === 'split' ? 8 : 6,
+    });
+    const rows = r.rows.filter((row) => mode !== 'split' || row.kind !== 'answer');
+    if (keywordSite) {
+      rows.unshift({
+        id: `site:${keywordSite.id}`,
+        kind: 'search',
+        group: 'top',
+        title: t('overlay.commandBar.searchSite', { name: keywordSite.name }),
+        titleRanges: [],
+        urlRanges: [],
+        score: 3,
+      });
+    }
+    return { rows: rows.slice(0, 11), completion: r.completion };
+  }, [
+    query,
+    site,
+    recent,
+    suggestions,
+    t,
+    candidates,
+    data.inputs,
+    engine,
+    mode,
+    keywordSite,
+    showingEditUrl,
+    editTab,
+    completes,
+    now,
+  ]);
+  const rows = result.rows;
+  const completion = result.completion;
+
+  // Show the completion in the input: typed text + selected tail, so typing on replaces it. Runs
+  // after every render because React puts the controlled value back each time.
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el || !completion || el.value !== query) return;
+    const typed = query.trim();
+    if (!completion.text.toLowerCase().startsWith(typed.toLowerCase())) return;
+    el.value = completion.text;
+    el.setSelectionRange(typed.length, completion.text.length);
   });
+
+  // Selection follows a row, not an index: results arriving later never move it under the cursor.
+  const [sel, setSel] = useState<{ query: string; id: string }>({ query: '', id: '' });
+  const foundIdx = sel.query === query ? rows.findIndex((r) => r.id === sel.id) : -1;
+  const selected = foundIdx >= 0 ? foundIdx : 0;
+  const select = (i: number): void => {
+    const row = rows[Math.max(0, Math.min(rows.length - 1, i))];
+    if (row) setSel({ query, id: row.id });
+  };
+  const hover = useHoverSelect((i) => {
+    if (i !== selected) select(i);
+  });
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    listRef.current?.querySelector(`#cmd-${selected}`)?.scrollIntoView({ block: 'nearest' });
+  }, [selected]);
 
   const enterSite = (s: SiteSearch): void => {
     setSite(s);
     setQuery('');
-    setInline(null);
     setSuggestions({ query: '', list: [] });
     inputRef.current?.focus();
   };
 
-  const run = (item: SearchItem | undefined): void => {
-    if (!item) return;
-    const [kind, ...rest] = item.id.split(':');
+  const hide = (): void => void invoke('overlay/hide', undefined);
+
+  const openUrl = (url: string, how: Open): void => {
+    if (how === 'background') {
+      void invoke('tab/openUrl', { input: url, activate: false });
+    } else if (how === 'split' || mode === 'split') {
+      void invoke('tab/openUrl', { input: url, activate: false, noAtc: true }).then((id) => {
+        dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: id });
+        dispatch({ type: 'tab/activate', id, now: Date.now() });
+      });
+    } else if (mode === 'edit' && payload.tabId) {
+      void invoke('tab/navigate', { tabId: payload.tabId, input: url });
+    } else {
+      void invoke('tab/openUrl', { input: url });
+    }
+    hide();
+  };
+
+  const learn = (row: OmniRow): void => {
+    const input = learnable(query);
+    const target = row.url ?? row.id;
+    if (!input || showingEditUrl || /^(search|suggestion|answer|site|sitesearch|siteopen):/.test(row.id))
+      return;
+    void invoke('omnibox/learn', { input, url: target, spaceId });
+  };
+
+  const run = (row: OmniRow | undefined, how: Open = 'default'): void => {
+    if (!row) return;
+    const [kind, ...rest] = row.id.split(':');
     const value = rest.join(':');
-    const open = (input: string): void => {
-      if (mode === 'edit' && payload.tabId) {
-        void invoke('tab/navigate', { tabId: payload.tabId, input });
-      } else if (mode === 'split') {
-        void invoke('tab/openUrl', { input, activate: false, noAtc: true }).then((id) => {
-          dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: id });
-          dispatch({ type: 'tab/activate', id, now: Date.now() });
-        });
-      } else {
-        void invoke('tab/openUrl', { input });
-      }
-      void invoke('overlay/hide', undefined);
-    };
+    learn(row);
     switch (kind) {
       case 'site': {
         const s = sites.find((x) => x.id === value);
@@ -418,42 +352,81 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
         return;
       }
       case 'sitesearch':
-        if (site) open(siteSearchUrl(site, value));
+        if (site) openUrl(siteSearchUrl(site, value), how);
         return;
       case 'siteopen':
-        open(value);
+        openUrl(value, how);
         return;
       case 'tab':
-        if (mode === 'split') dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: value });
-        else dispatch({ type: 'tab/activate', id: value, now: Date.now() });
-        void invoke('overlay/hide', undefined);
+        if (how === 'split' || mode === 'split') {
+          dispatch({ type: 'split/add', spaceId: core.activeSpaceId, tabId: value });
+        } else if (how === 'background' && row.url) {
+          openUrl(row.url, 'background');
+          return;
+        } else {
+          dispatch({ type: 'tab/activate', id: value, now: Date.now() });
+        }
+        hide();
         return;
       case 'archived':
+      case 'closed':
+        if (how !== 'default' && row.url) {
+          openUrl(row.url, how);
+          return;
+        }
         dispatch({ type: 'archive/restore', id: value, newTabId: crypto.randomUUID(), now: Date.now() });
-        void invoke('overlay/hide', undefined);
+        hide();
         return;
       case 'cmd':
-        void invoke('overlay/hide', undefined);
+        hide();
         void invoke('command/run', { id: value });
+        return;
+      case 'space':
+        hide();
+        void invoke('command/run', { id: 'activateSpace', payload: { spaceId: value } });
+        return;
+      case 'move':
+        if (activeTab) {
+          dispatch({
+            type: 'tab/move',
+            id: activeTab.id,
+            to: { container: { kind: 'today', spaceId: value }, index: 0 },
+            now: Date.now(),
+          });
+        }
+        hide();
+        return;
+      case 'answer':
+        if (row.answer) {
+          hide();
+          void invoke('command/run', { id: 'copyText', payload: { text: answerValue(row, locale).plain } });
+        }
         return;
       case 'search':
       case 'suggestion':
-      case 'history':
-        open(value);
+        if (engine) openUrl(searchUrl(value, engine), how);
         return;
+      case 'history':
       case 'url':
-        open(value);
+        openUrl(row.url ?? value, how);
         return;
       default:
-        open(query);
+        openUrl(query, how);
     }
   };
 
-  const onKeyDown = (e: React.KeyboardEvent): void => {
+  const removeFromHistory = (row: OmniRow): void => {
+    if (row.kind !== 'history' || !row.url) return;
+    void invoke('history/delete', { url: row.url }).then(() => setDataVersion((v) => v + 1));
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     // Confirming an IME conversion (CJK) must never submit or move the selection.
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-    const el = inputRef.current;
-    if (e.key === 'Tab' && keywordSite) {
+    const el = e.currentTarget;
+    const completed =
+      !!completion && el.value === completion.text && el.selectionStart === query.trim().length;
+    if (e.key === 'Tab' && keywordSite && !e.shiftKey) {
       e.preventDefault();
       enterSite(keywordSite);
       return;
@@ -464,39 +437,52 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       setSite(null);
       return;
     }
-    const completed =
-      !!inline && !!el && el.value === inline.full && el.selectionStart === inline.typed.length;
-    if (completed && e.key === 'Enter') {
-      e.preventDefault();
-      run(
-        makeSearchItem({ id: `url:${inline.url}`, kind: 'url', title: inline.full, subtitle: '', boost: 1 }),
-      );
-      return;
-    }
     if (completed && (e.key === 'ArrowRight' || e.key === 'End' || e.key === 'Tab')) {
       e.preventDefault();
-      setInline(null);
-      setQuery(inline.full);
+      changeQuery(completion.text);
       return;
     }
-    if (completed && (e.key === 'Backspace' || e.key === 'Delete')) {
+    if (completed && (e.key === 'Backspace' || e.key === 'Delete') && !e.shiftKey) {
       e.preventDefault();
-      setInline(null);
-      if (el) el.value = inline.typed;
+      el.value = query;
+      setCompletes(false);
       return;
     }
-    if (e.key === 'ArrowDown') {
+    const mod = isMac ? e.metaKey : e.ctrlKey;
+    // Emacs-style ⌃N / ⌃P, as in every macOS text field and Arc's bar.
+    const down = e.key === 'ArrowDown' || (isMac && e.ctrlKey && e.key === 'n');
+    const up = e.key === 'ArrowUp' || (isMac && e.ctrlKey && e.key === 'p');
+    if (down) {
       e.preventDefault();
-      setSelected((s) => Math.min(results.length - 1, s + 1));
-    } else if (e.key === 'ArrowUp') {
+      select(selected + 1);
+    } else if (up) {
       e.preventDefault();
-      setSelected((s) => Math.max(0, s - 1));
+      select(selected - 1);
+    } else if (e.key === 'PageDown' || e.key === 'PageUp') {
+      e.preventDefault();
+      select(e.key === 'PageDown' ? rows.length - 1 : 0);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      run(results[selected] ?? results[0]);
-    } else if (e.key === 'Tab' && results[selected]?.kind === 'suggestion') {
+      run(
+        rows[selected] ?? rows[0],
+        e.shiftKey && mode !== 'split' ? 'split' : mod ? 'background' : 'default',
+      );
+    } else if (
+      (e.key === 'Delete' || e.key === 'Backspace') &&
+      e.shiftKey &&
+      rows[selected]?.kind === 'history'
+    ) {
       e.preventDefault();
-      setQuery(results[selected]?.title ?? query);
+      const row = rows[selected];
+      if (row) removeFromHistory(row);
+    } else if (e.key === 'Tab') {
+      // Tab fills the input with the selected suggestion or page, ready to refine.
+      const row = rows[selected];
+      if (!row || row.kind === 'command' || row.kind === 'answer' || row.kind === 'space') return;
+      e.preventDefault();
+      changeQuery(
+        row.kind === 'search' || row.kind === 'suggestion' || !row.url ? row.title : displayUrl(row.url),
+      );
     }
   };
 
@@ -506,6 +492,9 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
       ? t('overlay.commandBar.placeholderSplit')
       : t('overlay.commandBar.placeholder');
   const tint = site ? ({ '--space-from': site.color } as React.CSSProperties) : undefined;
+  const engineName = engine?.name ?? '';
+  const selectedRow = rows[selected];
+  const home = !query.trim() || showingEditUrl;
 
   return (
     <div
@@ -531,64 +520,285 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
             ref={inputRef}
             className={styles.input}
             value={query}
-            onChange={(e) => {
-              const v = e.target.value;
-              // Typing over the selected completion keeps only what the user actually typed.
-              setQuery(inline?.full === v ? inline.typed : v);
-            }}
+            onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
             spellCheck={false}
             autoComplete="off"
             role="combobox"
-            aria-expanded={results.length > 0}
+            aria-expanded={rows.length > 0}
             aria-controls="cmd-results"
-            aria-activedescendant={results[selected] ? `cmd-${selected}` : undefined}
-            aria-autocomplete="list"
+            aria-activedescendant={rows[selected] ? `cmd-${selected}` : undefined}
+            aria-autocomplete="both"
             data-testid="command-input"
           />
           {mode === 'split' && <span className={styles.badge}>{t('overlay.commandBar.badgeSplit')}</span>}
         </div>
-        {results.length > 0 && (
-          <ul className={styles.results} id="cmd-results" role="listbox" style={tint}>
-            {results.map((item, i) => (
-              <li
-                key={item.id}
-                id={`cmd-${i}`}
-                role="option"
-                aria-selected={i === selected}
-                className={`${styles.item} ${i === selected ? styles.selected : ''}`}
-                onMouseMove={(e) => hover(i, e)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => run(item)}
-                data-testid="command-result"
-              >
-                <ResultIcon item={item} core={core} sites={sites} />
-                <span className={styles.title}>{item.title}</span>
-                <span className={styles.subtitle}>{item.subtitle}</span>
-                {i === selected && <kbd className={styles.enter}>↵</kbd>}
-              </li>
-            ))}
+        {rows.length > 0 && (
+          <ul className={styles.results} id="cmd-results" role="listbox" style={tint} ref={listRef}>
+            {rows.map((row, i) => {
+              const prev = rows[i - 1];
+              const header = home && row.group !== prev?.group ? groupLabel(row.group, t) : null;
+              const divider = !home && i > 0 && row.group === 'search' && prev?.group !== 'search';
+              return (
+                <Fragment key={row.id}>
+                  {header && (
+                    <li className={styles.groupLabel} role="presentation">
+                      {header}
+                    </li>
+                  )}
+                  {divider && <li className={styles.divider} role="presentation" />}
+                  <li
+                    id={`cmd-${i}`}
+                    role="option"
+                    aria-selected={i === selected}
+                    className={`${styles.item} ${i === selected ? styles.selected : ''} ${row.kind === 'answer' ? styles.answerItem : ''}`}
+                    onMouseMove={(e) => hover(i, e)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) =>
+                      run(
+                        row,
+                        e.shiftKey && mode !== 'split'
+                          ? 'split'
+                          : (isMac ? e.metaKey : e.ctrlKey)
+                            ? 'background'
+                            : 'default',
+                      )
+                    }
+                    data-testid="command-result"
+                    data-kind={row.kind}
+                  >
+                    <RowIcon row={row} core={core} sites={sites} />
+                    <RowText
+                      row={row}
+                      t={t}
+                      engineName={engineName}
+                      locale={locale}
+                      entries={commands.entries}
+                    />
+                    <RowAside row={row} selected={i === selected} t={t} entries={commands.entries} />
+                  </li>
+                </Fragment>
+              );
+            })}
           </ul>
         )}
-        {!query && results.length === 0 && (
-          <div className={styles.hint}>{t('overlay.commandBar.hint', { n: SHORTCUTS.length })}</div>
+        {rows.length === 0 && !query && <div className={styles.hint}>{t('overlay.commandBar.hint')}</div>}
+        {rows.length > 0 && (
+          <div className={styles.footer} aria-hidden="true">
+            <span>
+              <kbd>↵</kbd> {selectedRow ? actionLabel(selectedRow, mode, t) : t('common.open')}
+            </span>
+            {mode !== 'split' && selectedRow && opensPage(selectedRow) && (
+              <span>
+                <kbd>⇧↵</kbd> {t('overlay.commandBar.footer.split')}
+              </span>
+            )}
+            {selectedRow && opensPage(selectedRow) && (
+              <span>
+                <kbd>{isMac ? '⌘↵' : 'Ctrl+↵'}</kbd> {t('overlay.commandBar.footer.background')}
+              </span>
+            )}
+            {selectedRow?.kind === 'history' && (
+              <span>
+                <kbd>⇧⌫</kbd> {t('overlay.commandBar.footer.remove')}
+              </span>
+            )}
+            {!site && (
+              <span className={styles.footerEnd}>
+                <kbd>&gt;</kbd> {t('overlay.commandBar.footer.commands')}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function ResultIcon({
-  item,
+function opensPage(row: OmniRow): boolean {
+  return (
+    row.kind !== 'command' && row.kind !== 'space' && row.kind !== 'answer' && !row.id.startsWith('site:')
+  );
+}
+
+function siteRows(
+  site: SiteSearch,
+  q: string,
+  recent: { siteId: string; query: string; items: string[] },
+  suggestions: { query: string; list: string[] },
+): OmniRow[] {
+  const row = (id: string, kind: OmniRow['kind'], title: string): OmniRow => ({
+    id,
+    kind,
+    group: 'search',
+    title,
+    titleRanges: [],
+    urlRanges: [],
+    score: 0,
+  });
+  const list: OmniRow[] = [
+    q ? row(`sitesearch:${q}`, 'search', q) : row(`siteopen:${siteHomeUrl(site)}`, 'url', site.name),
+  ];
+  const lower = q.toLowerCase();
+  const seen = new Set([lower]);
+  for (const text of recent.siteId === site.id && recent.query === lower ? recent.items : []) {
+    if (seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    list.push(row(`sitesearch:${text}`, 'history', text));
+  }
+  for (const text of suggestions.query === q ? suggestions.list : []) {
+    if (seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    list.push(row(`sitesearch:${text}`, 'suggestion', text));
+  }
+  return list.slice(0, 10);
+}
+
+function groupLabel(group: OmniRow['group'], t: ReturnType<typeof useT>): string | null {
+  switch (group) {
+    case 'tabs':
+      return t('overlay.commandBar.group.tabs');
+    case 'frequent':
+      return t('overlay.commandBar.group.frequent');
+    case 'closed':
+      return t('overlay.commandBar.group.closed');
+    default:
+      return null;
+  }
+}
+
+function actionLabel(row: OmniRow, mode: CommandBarPayload['mode'], t: ReturnType<typeof useT>): string {
+  if (row.kind === 'answer') return t('common.copy');
+  if (row.kind === 'command' || row.kind === 'space') return t('overlay.commandBar.footer.run');
+  if ((row.kind === 'tab' || row.kind === 'pinned' || row.kind === 'favorite') && mode !== 'split') {
+    return t('overlay.commandBar.switchToTab');
+  }
+  if (row.kind === 'search' || row.kind === 'suggestion') return t('overlay.commandBar.footer.search');
+  return t('common.open');
+}
+
+function highlight(text: string, ranges: readonly Range[]): ReactNode {
+  if (!ranges.length) return text;
+  const out: ReactNode[] = [];
+  let at = 0;
+  for (const [s, e] of ranges) {
+    if (s > at) out.push(text.slice(at, s));
+    out.push(
+      <mark key={s} className={styles.hl}>
+        {text.slice(s, e)}
+      </mark>,
+    );
+    at = e;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+function answerValue(row: OmniRow, locale: string): { shown: string; plain: string; detail: string } {
+  const a = row.answer;
+  if (!a) return { shown: '', plain: '', detail: '' };
+  const fmt = (v: number, digits: number): string =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(roundAnswer(v));
+  if (a.kind === 'calc') {
+    const plain = String(roundAnswer(a.value));
+    return { shown: fmt(a.value, 10), plain, detail: a.expression };
+  }
+  const result = fmt(a.result, 4);
+  return { shown: `${result} ${a.to}`, plain: `${result} ${a.to}`, detail: `${fmt(a.value, 4)} ${a.from}` };
+}
+
+function RowText({
+  row,
+  t,
+  engineName,
+  locale,
+  entries,
+}: {
+  row: OmniRow;
+  t: ReturnType<typeof useT>;
+  engineName: string;
+  locale: string;
+  entries: { id: string; accelerator: string | null }[];
+}) {
+  let title: ReactNode = highlight(row.title, row.titleRanges);
+  let subtitle: ReactNode = null;
+  switch (row.kind) {
+    case 'answer': {
+      const v = answerValue(row, locale);
+      title = <span className={styles.answer}>= {v.shown}</span>;
+      subtitle = v.detail;
+      break;
+    }
+    case 'search':
+    case 'suggestion':
+      subtitle = row.id.startsWith('site')
+        ? null
+        : t('overlay.commandBar.searchWith', { engine: engineName });
+      break;
+    case 'url':
+      title = row.url ? displayUrl(row.url) : row.title;
+      subtitle = row.id.startsWith('siteopen:') ? null : t('overlay.commandBar.openWebsite');
+      break;
+    case 'command':
+      subtitle =
+        entries.some((e) => `cmd:${e.id}` === row.id) || row.id.startsWith('move:')
+          ? t('overlay.commandBar.commandSubtitle')
+          : null;
+      break;
+    case 'space':
+      subtitle = t('overlay.commandBar.switchSpace');
+      break;
+    default:
+      if (row.url) subtitle = highlight(displayUrl(row.url), row.urlRanges);
+  }
+  return (
+    <>
+      <span className={styles.title}>{title}</span>
+      {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
+    </>
+  );
+}
+
+function RowAside({
+  row,
+  selected,
+  t,
+  entries,
+}: {
+  row: OmniRow;
+  selected: boolean;
+  t: ReturnType<typeof useT>;
+  entries: { id: string; accelerator: string | null }[];
+}) {
+  let tag: string | null = null;
+  if (row.kind === 'tab' || row.kind === 'pinned' || row.kind === 'favorite') {
+    tag = row.candidate?.current ? t('overlay.commandBar.currentTab') : t('overlay.commandBar.switchToTab');
+  } else if (row.kind === 'archived') {
+    tag = t('overlay.commandBar.archived');
+  } else if (row.kind === 'answer') {
+    tag = t('common.copy');
+  }
+  const acc = row.kind === 'command' ? entries.find((e) => `cmd:${e.id}` === row.id)?.accelerator : null;
+  return (
+    <span className={styles.aside}>
+      {tag && <span className={styles.tag}>{tag}</span>}
+      {acc && <kbd className={styles.acc}>{acceleratorLabel(acc)}</kbd>}
+      {selected && <kbd className={styles.enter}>↵</kbd>}
+    </span>
+  );
+}
+
+function RowIcon({
+  row,
   core,
   sites,
 }: {
-  item: SearchItem;
+  row: OmniRow;
   core: ReturnType<typeof useShell.getState>['core'];
   sites: readonly SiteSearch[];
 }) {
-  const [kind, value] = item.id.split(':', 2);
+  const [kind, value] = row.id.split(':', 2);
   if (kind === 'site') {
     const s = sites.find((x) => x.id === value);
     return <span className={styles.dot} style={{ background: s?.color }} aria-hidden="true" />;
@@ -597,17 +807,32 @@ function ResultIcon({
     const tab = core.tabs[value ?? ''];
     if (tab) return <Favicon tab={tab} size={18} />;
   }
-  if (kind === 'cmd') {
-    const c = COMMANDS.find((x) => x.id === value);
-    return <Icon name={c?.icon ?? 'command'} size={16} className={styles.kindIcon} />;
+  if (kind === 'space') {
+    const sp = core.spaces[value ?? ''];
+    return (
+      <span className={styles.spaceIcon} aria-hidden="true">
+        {sp?.emoji || '◆'}
+      </span>
+    );
   }
-  const icon: IconName =
-    kind === 'archived'
-      ? 'archive'
-      : item.kind === 'history'
-        ? 'history'
-        : kind === 'url' || kind === 'siteopen'
-          ? 'globe'
-          : 'search';
+  if (
+    (kind === 'history' || kind === 'archived' || kind === 'closed' || kind === 'url') &&
+    row.url &&
+    /^https?:/i.test(row.url)
+  ) {
+    return (
+      <Favicon
+        tab={{ url: row.url, favicon: row.favicon ?? null, emoji: null, sleeping: false, loading: false }}
+        size={18}
+      />
+    );
+  }
+  let icon: IconName = 'search';
+  if (kind === 'cmd') icon = COMMAND_ICONS[value ?? ''] ?? 'command';
+  else if (kind === 'move') icon = 'send';
+  else if (kind === 'answer') icon = 'sparkle';
+  else if (row.kind === 'history') icon = 'history';
+  else if (kind === 'url' || kind === 'siteopen') icon = 'globe';
+  else if (kind === 'archived' || kind === 'closed') icon = 'archive';
   return <Icon name={icon} size={16} className={styles.kindIcon} />;
 }

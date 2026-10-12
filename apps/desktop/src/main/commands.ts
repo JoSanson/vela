@@ -230,6 +230,18 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
       overlay.show('toast', { text: ctx.i18n.t('overlay.toast.urlCopied') });
       return;
     }
+    case 'activateSpace': {
+      const target = (payload as { spaceId?: string } | undefined)?.spaceId;
+      if (target && state.spaces[target]) ctx.activateSpace(target);
+      return;
+    }
+    case 'copyText': {
+      const text = (payload as { text?: unknown } | undefined)?.text;
+      if (typeof text !== 'string' || !text || text.length > 10_000) return;
+      void clipboard.writeText(text);
+      overlay.show('toast', { text: ctx.i18n.t('overlay.toast.copied', { text }) });
+      return;
+    }
     case 'clearToday': {
       if (!space) return;
       for (const tid of [...space.today]) tabs.close(tid);
