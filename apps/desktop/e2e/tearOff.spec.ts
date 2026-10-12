@@ -13,10 +13,13 @@ const windowCount = (vela: VelaApp): Promise<number> =>
 async function pointOutside(vela: VelaApp): Promise<{ x: number; y: number }> {
   return vela.app.evaluate(({ BrowserWindow, screen }) => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
-    const b = win?.getBounds() ?? { x: 0, y: 0, width: 800, height: 600 };
-    const area = screen.getDisplayMatching(b).workArea;
-    const x = b.x + b.width + 40 < area.x + area.width ? b.x + b.width + 40 : Math.max(area.x + 10, b.x - 40);
-    return { x, y: b.y + 60 };
+    const area = screen.getPrimaryDisplay().workArea;
+    // Runners may open it maximized: leave room on its right first.
+    const width = Math.min(900, Math.floor(area.width / 2));
+    const height = Math.min(700, area.height - 40);
+    if (win?.isMaximized()) win.unmaximize();
+    win?.setBounds({ x: area.x + 20, y: area.y + 20, width, height });
+    return { x: area.x + 20 + width + 60, y: area.y + 80 };
   });
 }
 

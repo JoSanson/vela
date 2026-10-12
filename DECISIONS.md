@@ -349,3 +349,12 @@ drag handler has `onDragWillPresentPlaceholderWindow`, `onDragDidUpdateTargetWin
   `foldInstances` runs on load, export and import.
 - ⌘-click on a favorite or a pinned tab opens its current page as a new Today tab (⌘⇧ in the
   background), leaving the item in place.
+
+## D038 — macOS and Windows only
+
+Context: the first GitHub CI run showed Linux packaging and e2e needing their own fixes, for a
+platform Arc never served and the owner does not target.
+Choice: no Linux builds, e2e or docs. electron-builder, ci.yml and release.yml build macOS (arm64,
+x64) and Windows (x64); e2e runs on macOS and Windows; the importer drops its Linux paths and the
+`peanuts` keyring fallback. Tooling jobs (quality, CodeQL, audit, engine watch) still run on
+ubuntu-latest, which says nothing about the product. Supersedes the Linux half of D009.

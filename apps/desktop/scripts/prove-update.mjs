@@ -28,12 +28,7 @@ const TO = '0.1.1';
 const log = (...a) => process.stdout.write(`[update-proof] ${a.join(' ')}\n`);
 
 function build(version, dir) {
-  const target =
-    process.platform === 'darwin'
-      ? ['--mac', 'zip', `--${process.arch}`]
-      : process.platform === 'win32'
-        ? ['--win', 'nsis']
-        : ['--linux', 'AppImage'];
+  const target = process.platform === 'darwin' ? ['--mac', 'zip', `--${process.arch}`] : ['--win', 'nsis'];
   const args = [
     'electron-builder',
     '--config',
@@ -58,9 +53,7 @@ function executableOf(dir) {
     const app = readdirSync(join(dir, `mac-${process.arch}`)).find((f) => f.endsWith('.app'));
     return join(dir, `mac-${process.arch}`, app, 'Contents', 'MacOS', app.replace('.app', ''));
   }
-  if (process.platform === 'win32') return join(dir, 'win-unpacked', 'Vela.exe');
-  const appImage = readdirSync(dir).find((f) => f.endsWith('.AppImage'));
-  return appImage ? join(dir, appImage) : join(dir, 'linux-unpacked', 'vela');
+  return join(dir, 'win-unpacked', 'Vela.exe');
 }
 
 function serve(dir) {

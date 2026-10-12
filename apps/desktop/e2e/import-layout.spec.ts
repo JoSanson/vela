@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { SCREENSHOT_DIR, expect, launchVela, test } from './helpers';
 
 test('import rows keep their layout in French with Arc, Chrome and a denied Safari', async ({ fixtures }) => {
+  test.skip(process.platform !== 'darwin', 'Safari and its Full Disk Access gate exist on macOS only');
   const root = mkdtempSync(join(tmpdir(), 'vela-import-'));
   mkdirSync(join(root, 'arc'), { recursive: true });
   mkdirSync(join(root, 'chrome', 'Default'), { recursive: true });

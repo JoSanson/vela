@@ -300,7 +300,9 @@ export async function launchVela(
     await expect
       .poll(async () => {
         const st = await state();
-        id = Object.values(st.tabs).find((t) => t.url === url)?.id ?? '';
+        // Chromium may canonicalize `vela://settings` to `vela://settings/` depending on the platform.
+        const bare = (u: string): string => u.replace(/\/$/, '');
+        id = Object.values(st.tabs).find((t) => bare(t.url) === bare(url))?.id ?? '';
         return id;
       })
       .not.toBe('');

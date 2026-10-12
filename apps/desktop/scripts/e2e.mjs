@@ -16,10 +16,9 @@ if (needsBuild) {
   if (b.status !== 0) process.exit(b.status ?? 1);
 }
 
-const useXvfb = process.platform === 'linux' && !process.env.DISPLAY;
-const cmd = useXvfb ? 'xvfb-run' : 'npx';
-const cmdArgs = useXvfb
-  ? ['-a', '-s', '-screen 0 1600x1000x24', 'npx', 'playwright', 'test', ...args]
-  : ['playwright', 'test', ...args];
-const r = spawnSync(cmd, cmdArgs, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
+const r = spawnSync('npx', ['playwright', 'test', ...args], {
+  cwd: root,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
 process.exit(r.status ?? 1);

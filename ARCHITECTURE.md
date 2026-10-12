@@ -125,7 +125,7 @@ renderers call `useT()` from `lib/i18n.ts`, fed by the snapshot (`prefs.language
 ## Build & release
 
 electron-vite bundles `main`, `preload` (shell/tab, single-file) and the multi-page renderer
-(index/overlay/little/pages). electron-builder packages dmg/zip (mac arm64+x64), nsis (win) and
-AppImage/deb (linux); electron-updater checks GitHub Releases at launch and every 6 h. See
+(index/overlay/little/pages). electron-builder packages dmg/zip (mac arm64+x64) and nsis (win);
+electron-updater checks GitHub Releases at launch and every 6 h. See
 `RELEASING.md` for the pipeline and `.github/workflows/engine-watch.yml` for the automated
 Electron (Chromium) bump.

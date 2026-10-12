@@ -1,8 +1,7 @@
-# Release — builds signed (when secrets exist) installers for every platform and publishes a
-# GitHub Release carrying the electron-updater metadata (latest-mac.yml, latest.yml,
-# latest-linux.yml).
+# Release — builds signed (when secrets exist) installers for macOS and Windows and publishes a
+# GitHub Release carrying the electron-updater metadata (latest-mac.yml, latest.yml).
 #
-# Flow:   tag vX.Y.Z pushed  ─►  verify  ─►  build (4 runners, --publish never)  ─►  publish
+# Flow:   tag vX.Y.Z pushed  ─►  verify  ─►  build (3 runners, --publish never)  ─►  publish
 #
 # Why not `electron-builder --publish always` from each runner?  electron-updater on macOS reads a
 # single latest-mac.yml listing BOTH the arm64 and x64 zips. Each runner would upload its own
@@ -74,9 +73,6 @@ jobs:
           - name: win-x64
             os: windows-2022
             args: --win --x64
-          - name: linux-x64
-            os: ubuntu-latest
-            args: --linux
     env:
       # All optional. electron-builder reads them directly; empty values are treated as unset.
       CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -97,13 +93,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install Electron runtime libs (linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1
-          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -149,8 +138,6 @@ jobs:
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
             apps/desktop/release/*.exe
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
             apps/desktop/release/*.blockmap
             apps/desktop/release/*.yml
           if-no-files-found: error

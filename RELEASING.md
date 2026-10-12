@@ -5,7 +5,7 @@ How a version goes from `main` to users' machines, and what the repo owner must 
 ## TL;DR
 
 ```
-tag vX.Y.Z  ──►  release.yml  ──►  GitHub Release (dmg/zip/exe/AppImage/deb + latest*.yml)
+tag vX.Y.Z  ──►  release.yml  ──►  GitHub Release (dmg/zip/exe + latest*.yml)
                                         └──►  electron-updater in running apps picks it up
 ```
 
@@ -25,8 +25,8 @@ Engine (Chromium) releases are fully automated — see [Engine pipeline](#engine
 
 | File                                 | Trigger                                         | What it does                                                                                                                          |
 | ------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`           | PR, push to `main`, `workflow_dispatch`         | `quality` (lint, typecheck, format, coverage), `e2e` (Playwright under xvfb), `build` matrix (mac arm64/x64, win x64, linux)           |
-| `.github/workflows/release.yml`      | tag `v*`, `workflow_dispatch` (`tag` input)     | verifies tag == package version, builds + signs on 4 runners, merges `latest-mac.yml`, publishes the GitHub Release                   |
+| `.github/workflows/ci.yml`           | PR, push to `main`, `workflow_dispatch`         | `quality` (lint, typecheck, format, coverage), `e2e` (Playwright on macOS and Windows), `build` matrix (mac arm64/x64, win x64)               |
+| `.github/workflows/release.yml`      | tag `v*`, `workflow_dispatch` (`tag` input)     | verifies tag == package version, builds + signs on 3 runners, merges `latest-mac.yml`, publishes the GitHub Release                   |
 | `.github/workflows/engine-watch.yml` | every 6 h, `workflow_dispatch`, CI `workflow_run` | bumps Electron when a newer stable exists, opens an auto-merging PR; opens an issue when CI on that PR fails                           |
 | `.github/workflows/engine-release.yml` | push to `main`                                | when the merged commit is an engine bump: patch-bump, commit `chore(release): vX.Y.Z`, tag, push (→ release.yml)                        |
 | `.github/workflows/codeql.yml`       | PR, push to `main`, daily                       | CodeQL `javascript-typescript`, security-and-quality queries                                                                          |
@@ -51,8 +51,7 @@ Helper scripts (plain Node, no dependencies):
    | ---------------- | --------------- | -------------------------------------------------------- |
    | `macos-14`       | `--mac --arm64` | `Vela-X.Y.Z-arm64.dmg`, `Vela-X.Y.Z-arm64-mac.zip`, `latest-mac.yml` |
    | `macos-15-intel` | `--mac --x64`   | `Vela-X.Y.Z.dmg`, `Vela-X.Y.Z-mac.zip`, `latest-mac.yml`  |
-   | `windows-latest` | `--win --x64`   | `Vela Setup X.Y.Z.exe`, `latest.yml`                      |
-   | `ubuntu-latest`  | `--linux`       | `Vela-X.Y.Z.AppImage`, `vela_X.Y.Z_amd64.deb`, `latest-linux.yml` |
+   | `windows-2022`   | `--win --x64`   | `Vela Setup X.Y.Z.exe`, `latest.yml`                      |
 
    Each arch builds on its native runner so the `better-sqlite3` binary rebuilt in `postinstall` matches the packaged Electron.
 
@@ -121,7 +120,7 @@ skips when an open `engine` PR already mentions the version, so the two never ra
 2. **Branch protection / ruleset on `main`**:
    - Require a pull request before merging.
    - Require status checks to pass: **`quality`**, **`e2e`**, **`build (mac-arm64)`**,
-     **`build (mac-x64)`**, **`build (win-x64)`**, **`build (linux-x64)`** (names as reported by
+     **`build (mac-x64)`**, **`build (win-x64)`** (names as reported by
      ci.yml). Require branches to be up to date: optional.
    - **Bypass**: `engine-release.yml` pushes the `chore(release)` commit straight to `main`. Add
      the PAT owner (you) — or, with GITHUB_TOKEN, the `github-actions` app — to "Allow specified
@@ -177,8 +176,7 @@ electron-updater reads `latest*.yml` from the **latest published** GitHub Releas
 
 1. Release **v0.1.0** (tag + release.yml, or `gh workflow run release.yml --ref v0.1.0 -f tag=v0.1.0`).
 2. Install v0.1.0 from the release assets on a test machine and launch it once. The log
-   (`~/Library/Logs/Vela/main.log` on macOS, `%APPDATA%\Vela\logs` on Windows,
-   `~/.config/Vela/logs` on Linux) should show `Checking for update` with no update found.
+   (`~/Library/Logs/Vela/main.log` on macOS, `%APPDATA%\Vela\logs` on Windows) should show `Checking for update` with no update found.
 3. Bump and release **v0.1.1**:
 
    ```bash
@@ -190,7 +188,7 @@ electron-updater reads `latest*.yml` from the **latest published** GitHub Releas
    notes UI, and installs on quit. Verify `Vela ▸ About` reads 0.1.1 after restart.
 5. On macOS, auto-update **requires a signed app** (Squirrel.Mac refuses unsigned updates).
    Unsigned test builds can verify the *check* and *download* steps only; the install step
-   needs the `CSC_*` secrets. Windows NSIS and Linux AppImage update unsigned.
+   needs the `CSC_*` secrets. Windows NSIS updates unsigned.
 
 ### Local proof without GitHub
 
@@ -198,7 +196,7 @@ electron-updater reads `latest*.yml` from the **latest published** GitHub Releas
 serves the v0.1.1 directory (`latest*.yml` + installer) from a local HTTP server as a *generic*
 electron-updater feed, launches the v0.1.0 app with `VELA_UPDATE_URL` pointing at it, and records
 the updater state machine (`checking → available → downloading → downloaded`) into
-`UPDATE-PROOF.md`. Add `--install` to call `quitAndInstall()` at the end (works on Linux/Windows;
+`UPDATE-PROOF.md`. Add `--install` to call `quitAndInstall()` at the end (works on Windows;
 macOS needs a signed build). `--skip-build` reuses `apps/desktop/release/update-proof/{a,b}`.
 
 Pre-releases: tag `v0.2.0-beta.1` publishes a release whose `latest*.yml` is picked up by
@@ -210,6 +208,5 @@ clients with `allowPrerelease` only.
 pnpm ci:local   # lint → typecheck → format:check → coverage → build → e2e → perf
 ```
 
-Runs exactly the gates CI enforces, on the current OS (one electron-builder target). On Linux
-without a display `pnpm e2e` wraps Playwright in `xvfb-run -a` automatically. Required Linux
-packages: `libnss3 libgtk-3-0 libxss1 libasound2t64 libgbm1 xvfb`.
+Runs exactly the gates CI enforces, on the current OS (one electron-builder target). Vela ships
+for macOS and Windows only (D038).

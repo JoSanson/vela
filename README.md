@@ -22,7 +22,6 @@
 <p align="center">
   <a href="https://github.com/JoSanson/vela/releases/latest"><b>Download for macOS</b></a> ·
   <a href="https://github.com/JoSanson/vela/releases/latest"><b>Windows</b></a> ·
-  <a href="https://github.com/JoSanson/vela/releases/latest"><b>Linux</b></a> ·
   <a href="docs/MIGRATING-FROM-ARC.md">Switching from Arc</a> ·
   <a href="docs/BENCHMARK.md">Benchmark</a> ·
   <a href="#contributing">Contribute</a>
@@ -121,7 +120,6 @@ checked locally, rebindable shortcuts, English and French UI.
 | Boosts, Air Traffic Control, auto PiP | ✅ | ✅ |
 | One-click import of your Arc sidebar and passwords | n/a | ✅ |
 | Built-in content blocker | ✅ | ✅ |
-| Linux | ❌ | ✅ |
 | Open source | ❌ | ✅ GPL-3.0 |
 | New features | frozen since May 2025 | shipping |
 | Chrome extensions from the Chrome Web Store | ✅ | ✅ [most popular ones](docs/EXTENSIONS.md#compatibility-the-20-most-used-extensions) |
@@ -143,8 +141,6 @@ System Settings → Privacy & Security → **Open Anyway**. Or, in Terminal:
 
 **Windows**: run the `.exe` installer. SmartScreen may warn about an unknown publisher: More info →
 Run anyway.
-
-**Linux**: `.AppImage` (any distro) or `.deb` (Debian, Ubuntu).
 
 Vela updates itself from GitHub Releases. Prefer to build it yourself? See [Develop](#develop).
 
@@ -221,7 +217,7 @@ used, 16 work fully or with minor glitches today, tested one by one in
 [docs/EXTENSIONS.md](docs/EXTENSIONS.md). Ad blockers load but rely on an API Electron lacks; Vela's
 built-in blocker does that job.
 
-**Why Electron?** It ships a current Chromium within days of Google, on macOS, Windows and Linux,
+**Why Electron?** It ships a current Chromium within days of Google, on macOS and Windows,
 without maintaining a fork of 30 million lines. The shell idles at ~110 MB; see the benchmark.
 
 **Will it keep being updated?** Engine updates are automated (a check every 6 hours, full CI, then

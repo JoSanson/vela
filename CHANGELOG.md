@@ -25,6 +25,10 @@ All notable changes to Vela are documented here. The format follows
 - After an Arc import, Arc's Chrome Web Store extensions are listed, already checked, and installed
   again in one click.
 
+### Removed
+
+- Linux builds: Vela ships for macOS and Windows only (D038).
+
 ### Changed
 
 - A download no longer opens the downloads view by itself: its button shows the progress and a

@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,7 +22,9 @@ test('session survives kill -9: tabs, pins, folders and active tab come back, la
   await new Promise((r) => setTimeout(r, 400));
   const pid = vela.app.process().pid;
   if (!pid) throw new Error('no pid');
-  process.kill(pid, 'SIGKILL');
+  // Windows: kill the whole tree, or Chromium's children keep the profile locked for the relaunch.
+  if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(pid), '/T', '/F']);
+  else process.kill(pid, 'SIGKILL');
   await vela.app.waitForEvent('close').catch(() => undefined);
 
   vela = await launchVela({ fixtures, userData });

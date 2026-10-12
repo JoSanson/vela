@@ -4,9 +4,8 @@ import { chromeTimeToMs } from './chromium';
 /**
  * Chromium "OS crypt" as used by Arc, Chrome, Brave and Edge: values prefixed `v10` are
  * AES-128-CBC with a key derived (PBKDF2-SHA1, salt `saltysalt`) from a random password the
- * browser keeps in the OS keychain ("Arc Safe Storage"). macOS uses 1003 iterations, Linux 1
- * with the fixed password `peanuts` when no keyring is used. Windows wraps the key with DPAPI
- * instead and is not supported here.
+ * browser keeps in the macOS keychain ("Arc Safe Storage"), with 1003 iterations. Windows wraps
+ * the key with DPAPI instead and is not supported here.
  */
 export const SAFE_STORAGE: Record<'arc' | 'chrome' | 'brave' | 'edge', { service: string; account: string }> =
   {
@@ -19,7 +18,7 @@ export const SAFE_STORAGE: Record<'arc' | 'chrome' | 'brave' | 'edge', { service
 const SALT = 'saltysalt';
 const IV = Buffer.alloc(16, 0x20);
 
-export function chromiumKey(password: string, iterations = process.platform === 'linux' ? 1 : 1003): Buffer {
+export function chromiumKey(password: string, iterations = 1003): Buffer {
   return pbkdf2Sync(password, SALT, iterations, 16, 'sha1');
 }
 

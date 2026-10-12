@@ -16,14 +16,6 @@ if (needsBuild) {
 }
 
 const runner = join(root, 'perf/run.mjs');
-const useXvfb = process.platform === 'linux' && !process.env.DISPLAY;
-if (useXvfb) {
-  const r = spawnSync('xvfb-run', ['-a', '-s', '-screen 0 1600x1000x24', process.execPath, runner], {
-    cwd: root,
-    stdio: 'inherit',
-  });
-  process.exit(r.status ?? 1);
-}
 
 const { run } = await import(runner);
 process.exit(await run());

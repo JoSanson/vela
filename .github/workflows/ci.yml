@@ -2,8 +2,8 @@
 #
 # Jobs (all three are required checks in branch protection, see RELEASING.md):
 #   quality  lint + typecheck + format:check + unit tests with coverage (ubuntu)
-#   e2e      Playwright _electron under xvfb (ubuntu)
-#   build    electron-builder installers for mac arm64 / mac x64 / win x64 / linux
+#   e2e      Playwright _electron on macOS and Windows
+#   build    electron-builder installers for mac arm64 / mac x64 / win x64
 #
 # workflow_dispatch exists so engine-watch can trigger CI on branches it pushed with
 # GITHUB_TOKEN (events created by GITHUB_TOKEN never trigger `pull_request` runs).
@@ -72,8 +72,8 @@ jobs:
       fail-fast: false
       matrix:
         # The shell code paths differ per platform (title bar overlay, vibrancy, paths): run the
-        # whole suite on all three instead of trusting Linux for everyone.
-        os: [ubuntu-latest, macos-14, windows-2022]
+        # whole suite on both supported platforms.
+        os: [macos-14, windows-2022]
     steps:
       - uses: actions/checkout@v5
 
@@ -83,15 +83,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install Electron runtime libs + xvfb
-        if: runner.os == 'Linux'
-        # libasound2 was renamed libasound2t64 on Ubuntu 24.04; try both so the job survives
-        # a runner image bump in either direction.
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1 xvfb
-          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -103,7 +94,6 @@ jobs:
         run: pnpm build:bundle
 
       - name: Playwright _electron
-        # scripts/e2e.mjs wraps the run with `xvfb-run -a` when DISPLAY is unset on Linux.
         # Playwright `_electron` drives our own Electron binary: no browser download needed.
         run: pnpm e2e
         env:
@@ -137,9 +127,6 @@ jobs:
           - name: win-x64
             os: windows-2022
             args: --win --x64
-          - name: linux-x64
-            os: ubuntu-latest
-            args: --linux
     steps:
       - uses: actions/checkout@v5
 
@@ -149,13 +136,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install Electron runtime libs (linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends libnss3 libgtk-3-0 libxss1 libgbm1
-          sudo apt-get install -y --no-install-recommends libasound2t64 || sudo apt-get install -y --no-install-recommends libasound2
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -177,8 +157,6 @@ jobs:
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
             apps/desktop/release/*.exe
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
             apps/desktop/release/*.blockmap
             apps/desktop/release/*.yml
           if-no-files-found: error

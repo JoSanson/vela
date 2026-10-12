@@ -33,7 +33,6 @@ body:
         - macOS (Apple silicon)
         - macOS (Intel)
         - Windows
-        - Linux
     validations:
       required: true
   - type: input

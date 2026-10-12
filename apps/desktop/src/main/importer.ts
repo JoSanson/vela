@@ -65,24 +65,20 @@ const execFileAsync = promisify(execFile);
  *   Safari                  macOS   Library/Safari/{Bookmarks.plist,History.db}  (needs Full Disk Access)
  *   Firefox                 macOS   Library/Application Support/Firefox/Profiles/<profile>/places.sqlite
  *                           Windows AppData/Roaming/Mozilla/Firefox/Profiles/<profile>/places.sqlite
- *                           Linux   .mozilla/firefox/<profile>/places.sqlite, snap/firefox/common/.mozilla/firefox/…
  * VELA_IMPORT_ROOT points every base at <root>/<source> so tests can plant synthetic data.
  */
 const CHROMIUM: Record<'chrome' | 'brave' | 'edge', Record<NodeJS.Platform, string | undefined>> = {
   chrome: {
     darwin: 'Library/Application Support/Google/Chrome',
     win32: 'AppData/Local/Google/Chrome/User Data',
-    linux: '.config/google-chrome',
   } as Record<NodeJS.Platform, string | undefined>,
   brave: {
     darwin: 'Library/Application Support/BraveSoftware/Brave-Browser',
     win32: 'AppData/Local/BraveSoftware/Brave-Browser/User Data',
-    linux: '.config/BraveSoftware/Brave-Browser',
   } as Record<NodeJS.Platform, string | undefined>,
   edge: {
     darwin: 'Library/Application Support/Microsoft Edge',
     win32: 'AppData/Local/Microsoft/Edge/User Data',
-    linux: '.config/microsoft-edge',
   } as Record<NodeJS.Platform, string | undefined>,
 };
 
@@ -96,7 +92,6 @@ const SAFARI: Partial<Record<NodeJS.Platform, string>> = { darwin: 'Library/Safa
 const FIREFOX: Partial<Record<NodeJS.Platform, string[]>> = {
   darwin: ['Library/Application Support/Firefox/Profiles'],
   win32: ['AppData/Roaming/Mozilla/Firefox/Profiles'],
-  linux: ['.mozilla/firefox', 'snap/firefox/common/.mozilla/firefox'],
 };
 
 const CHROMIUM_PROFILES = ['Default', 'Profile 1', 'Profile 2'];
@@ -168,9 +163,9 @@ function secretFilesUnder(root: string): SecretFiles[] {
   return out;
 }
 
-/** Decryption needs the browser's keychain password: macOS prompts once, Linux uses `peanuts`. */
+/** Decryption needs the browser's keychain password, which macOS gives after one prompt. */
 export function secretsSupported(): boolean {
-  return process.platform === 'darwin' || process.platform === 'linux' || !!process.env.VELA_IMPORT_KEY;
+  return process.platform === 'darwin' || !!process.env.VELA_IMPORT_KEY;
 }
 
 function chromiumFiles(id: 'chrome' | 'brave' | 'edge'): SourceFiles {
@@ -446,7 +441,7 @@ function importArcSidebar(
   return { counts: applied.counts, profiles: applied.profiles };
 }
 
-/** The browser's OS-crypt password: `VELA_IMPORT_KEY` (tests), the macOS keychain, or `peanuts` on Linux. */
+/** The browser's OS-crypt password: `VELA_IMPORT_KEY` (tests) or the macOS keychain. */
 async function safeStoragePassword(source: BrowserImportSourceId): Promise<string | null> {
   if (process.env.VELA_IMPORT_KEY) return process.env.VELA_IMPORT_KEY;
   const entry =
@@ -454,7 +449,6 @@ async function safeStoragePassword(source: BrowserImportSourceId): Promise<strin
       ? SAFE_STORAGE[source]
       : null;
   if (!entry) return null;
-  if (process.platform === 'linux') return 'peanuts';
   if (process.platform !== 'darwin') return null;
   try {
     const { stdout } = await execFileAsync('/usr/bin/security', [

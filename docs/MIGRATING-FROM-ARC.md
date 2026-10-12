@@ -6,7 +6,7 @@ you; Arc itself is left untouched, so you can go back and forth while you try Ve
 ## 1. Install
 
 Download Vela from the [latest release](https://github.com/JoSanson/vela/releases/latest)
-(macOS Apple silicon or Intel, Windows, Linux). On macOS the first launch needs System Settings →
+(macOS Apple silicon or Intel, Windows). On macOS the first launch needs System Settings →
 Privacy & Security → **Open Anyway** (builds are not notarized yet).
 
 ## 2. Import your Arc
@@ -57,7 +57,7 @@ Most default shortcuts match Arc's, and every one of them can be rebound in `vel
   friends need Widevine). Each one has an issue labelled
   [`arc-parity`](https://github.com/JoSanson/vela/labels/arc-parity): upvote the one you miss most,
   or pick it up.
-- **Built in that Arc did not have**: a content blocker, Linux builds, and an open codebase.
+- **Built in that Arc did not have**: a content blocker and an open codebase.
 
 Missing something you used every day?
 [Open an "Arc feature I miss" issue](https://github.com/JoSanson/vela/issues/new?template=arc_feature.yml).

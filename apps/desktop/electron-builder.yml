@@ -59,19 +59,6 @@ nsis:
   allowToChangeInstallationDirectory: true
   perMachine: false
   deleteAppDataOnUninstall: false
-linux:
-  # Defaults to the package name, and `@vela/desktop` is not a valid file name.
-  executableName: vela
-  maintainer: Jordane Sanson <https://github.com/JoSanson/vela>
-  target:
-    - AppImage
-    - deb
-  category: Network
-  icon: resources/icons
-  desktop:
-    entry:
-      MimeType: x-scheme-handler/http;x-scheme-handler/https;text/html;
-      StartupWMClass: vela
 protocols:
   - name: Vela URL
     schemes: [http, https]

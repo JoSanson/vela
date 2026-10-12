@@ -184,11 +184,16 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
   // Inline completion: typing a host prefix fills the rest, selected, so Enter opens it and typing on replaces it.
   const [inline, setInline] = useState<{ typed: string; full: string; url: string } | null>(null);
   const lastTyped = useRef('');
+  // Decided when the text changes, not on every rerun: history results or a tab's title arriving
+  // must not take the completion away, and a deleted completion must not come back.
+  const completes = useRef(false);
   useEffect(() => {
     const q = query.trim();
-    const forward = q.length > lastTyped.current.length && q.startsWith(lastTyped.current);
-    lastTyped.current = q;
-    if (site || !forward || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
+    if (q !== lastTyped.current) {
+      completes.current = q.length > lastTyped.current.length && q.startsWith(lastTyped.current);
+      lastTyped.current = q;
+    }
+    if (site || !completes.current || q.length < 2 || /[\s/]/.test(q) || /^[a-z]+:/i.test(q)) {
       setInline(null);
       return;
     }
