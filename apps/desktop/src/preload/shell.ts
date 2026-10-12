@@ -1,5 +1,6 @@
 import type { IpcEventChannel, IpcEventMap, IpcInvokeChannel, IpcInvokeMap, VelaBridge } from '@vela/shared';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { injectBrowserAction } from 'electron-chrome-extensions/browser-action';
 
 // Inlined on purpose: a sandboxed preload must be a single file with no shared chunks.
 const channel = (name: string): string => `vela:${name}`;
@@ -23,3 +24,5 @@ const bridge: VelaBridge = {
 };
 
 contextBridge.exposeInMainWorld('vela', bridge);
+// `<browser-action-list>`: extension buttons, badges and popups in the sidebar (D036).
+injectBrowserAction();

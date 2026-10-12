@@ -97,6 +97,10 @@ imports are there too. Step by step, and the shortcut cheat sheet:
   </tr>
 </table>
 
+**Chrome extensions** install from the Chrome Web Store in one click ("Add to Vela"), update
+themselves and get their buttons in the sidebar: 1Password, Dark Reader, Vimium, Bitwarden,
+Grammarly… ([compatibility list](docs/EXTENSIONS.md)).
+
 Also built in: password manager (OS keychain, never leaves your machine), content blocker, auto
 picture-in-picture, Boosts (per-site CSS/JS and a Zap element picker), reader mode, Air Traffic
 Control rules that route links to the right Space, multiple windows, private Spaces, safe browsing
@@ -116,7 +120,7 @@ checked locally, rebindable shortcuts, English and French UI.
 | Linux | ❌ | ✅ |
 | Open source | ❌ | ✅ GPL-3.0 |
 | New features | frozen since May 2025 | shipping |
-| Chrome extensions | ✅ Web Store | ⚠️ unpacked MV3 ([help wanted](docs/EXTENSIONS.md)) |
+| Chrome extensions from the Chrome Web Store | ✅ | ✅ [most popular ones](docs/EXTENSIONS.md#compatibility-the-20-most-used-extensions) |
 | Netflix / DRM video (Widevine) | ✅ | ❌ not yet ([help wanted](https://github.com/JoSanson/vela/issues?q=is%3Aissue+label%3Aarc-parity)) |
 | Easels, Notes, AI features | ✅ | ❌ not yet |
 | Sync between devices, mobile app | ✅ | ❌ not yet |
@@ -207,6 +211,11 @@ from scratch and borrows ideas, not code, names or assets.
 
 **Why Chromium and not Firefox?** Sites, web apps and extensions are built and tested for Chromium
 first, and that is what Arc users are used to. If you prefer Gecko, Zen is a great project.
+
+**Do my Chrome extensions work?** Install them straight from the Chrome Web Store. Of the 20 most
+used, 16 work fully or with minor glitches today, tested one by one in
+[docs/EXTENSIONS.md](docs/EXTENSIONS.md). Ad blockers load but rely on an API Electron lacks; Vela's
+built-in blocker does that job.
 
 **Why Electron?** It ships a current Chromium within days of Google, on macOS, Windows and Linux,
 without maintaining a fork of 30 million lines. The shell idles at ~110 MB; see the benchmark.

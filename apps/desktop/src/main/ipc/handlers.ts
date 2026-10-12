@@ -15,6 +15,7 @@ import { exportState, importFromFile, importState, saveExportToFile } from '../e
 import { emit, handle, isTrustedShell, pageOrigin } from './typed';
 import { ipcMain } from 'electron';
 import { channel, UNRESERVED_SHORTCUTS, resolveShortcuts, unreservedOf } from '@vela/shared';
+import { WEB_STORE_URL } from '../extensions';
 
 const UNRESERVED_IDS = new Set(UNRESERVED_SHORTCUTS.map((s) => s.id));
 
@@ -412,8 +413,12 @@ export function registerCoreHandlers(ctx: AppContext): void {
       ? ctx.extensions.load(path)
       : ctx.extensions.pickAndLoad(windows.main?.win, ctx.i18n.t('menu.dialog.chooseExtension')),
   );
-  handle('extensions/remove', 'internal', ({ id }) => {
-    ctx.extensions.remove(id);
+  handle('extensions/remove', 'internal', async ({ id }) => {
+    await ctx.extensions.remove(id);
+    return undefined;
+  });
+  handle('extensions/openStore', 'internal', () => {
+    tabs.openUrl({ input: WEB_STORE_URL, noAtc: true });
     return undefined;
   });
   handle('extensions/popup', 'internal', ({ id }) => {

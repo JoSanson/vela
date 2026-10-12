@@ -8,6 +8,15 @@ All notable changes to Vela are documented here. The format follows
 
 ### Added
 
+- Chrome Web Store: open it from Settings → Extensions and click "Add to Vela". A prompt lists what
+  the extension can do (Chrome's wording) before anything is installed; extensions reach every
+  Space and profile, update themselves, and are reloaded at launch.
+- Extension buttons in the sidebar (next to back / forward / reload), with badges and popups.
+- The chrome.* APIs Electron lacks (action, tabs, windows, contextMenus, cookies, permissions,
+  webNavigation, commands, notifications) are provided and mapped onto Vela's tabs; extensions
+  using the `browser.*` namespace get them too. 16 of the 20 most used extensions now work fully or
+  with minor glitches (docs/EXTENSIONS.md).
+
 - Quick search: type a keyword and Tab in the command bar (y YouTube, p Perplexity, g Google,
   c ChatGPT, w Wikipedia, gh GitHub, r Reddit, a Amazon, x X, m Maps) to search that site, with
   its suggestions and your recent searches there; the list is editable in Settings > General.
@@ -43,8 +52,15 @@ All notable changes to Vela are documented here. The format follows
 - Sealed Spaces (D030): the command bar only offers the current Space's tabs, archive and history;
   history is recorded per Space, and Arc history is imported into the Spaces using each profile.
 
+### Changed
+
+- Vela is now GPL-3.0-or-later; the Vela name and logo are reserved (TRADEMARKS.md).
+
 ### Fixed
 
+- Arc import: a site that is a favorite in two Arc profiles becomes two favorites again.
+- After a restart, Web Store extensions are listed and loaded before the first tab opens.
+- The sidebar spring catches up with real time after a stalled frame.
 - Password popover: it closed and reopened on the field it had just filled, hiding the next
   field; it now fills both fields, lands on the password and only comes back on a click.
 - Import panel: source rows keep a fixed grid (the name column collapsed under a long option
@@ -63,6 +79,7 @@ All notable changes to Vela are documented here. The format follows
 - Google sign-in refused Vela ("this browser or app may not be secure"): pages now get the
   `window.chrome` object every Chromium browser exposes (Electron leaves it empty), and the user
   agent carries the reduced `Chrome/N.0.0.0` version like Chrome itself (D032).
+
 
 ## [0.3.0] - 2026-10-11
 

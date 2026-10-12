@@ -72,7 +72,7 @@ export function rendererUrl(page: RendererPage, hash = ''): string {
   return `file://${join(__dirname, '../renderer', `${page}.html`)}${hash}`;
 }
 
-export function preloadPath(name: 'shell' | 'tab'): string {
+export function preloadPath(name: 'shell' | 'tab' | 'extensionCompat'): string {
   return join(__dirname, '../preload', `${name}.js`);
 }
 

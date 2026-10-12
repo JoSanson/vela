@@ -37,6 +37,8 @@ import { DownloadManager } from './downloads';
 import { PermissionManager } from './permissions';
 import { BoostsManager } from './boosts';
 import { ContentBlocker } from './blocker';
+import { ExtensionApis } from './extensionApis';
+import { permissionWarnings } from './extensionPermissions';
 import { ExtensionManager } from './extensions';
 import { UpdateManager } from './updater';
 import { installMaintenance } from './maintenance';
@@ -241,7 +243,69 @@ async function boot(): Promise<void> {
     tabs.markUnsafe(wc, url, threat);
     return true;
   };
-  const extensions = new ExtensionManager(prefs, sessions);
+  const extensionApis = new ExtensionApis({
+    tabs,
+    windows,
+    activateTab: (id) => store.dispatch({ type: 'tab/activate', id, now: Date.now() }),
+    confirmPermissions: async (ext, permissions) => {
+      const warnings = permissionWarnings({
+        permissions: permissions.filter((p) => !p.includes('://')),
+        host_permissions: permissions.filter((p) => p.includes('://') || p === '<all_urls>'),
+      });
+      if (warnings.length === 0) return true;
+      const opts = {
+        type: 'question' as const,
+        message: i18n.t('menu.dialog.extension.request', { name: ext.name }),
+        detail: warnings
+          .map((w) =>
+            w.key === 'someSites'
+              ? i18n.t('menu.dialog.extension.perm.someSites', { hosts: w.hosts })
+              : i18n.t(`menu.dialog.extension.perm.${w.key}`),
+          )
+          .map((l) => `• ${l}`)
+          .join('\n'),
+        buttons: [i18n.t('menu.dialog.extension.allow'), i18n.t('common.cancel')],
+        defaultId: 0,
+        cancelId: 1,
+      };
+      const parent = windows.main?.win;
+      const { response } = parent
+        ? await dialog.showMessageBox(parent, opts)
+        : await dialog.showMessageBox(opts);
+      return response === 0;
+    },
+  });
+  const extensions = new ExtensionManager(prefs, sessions, {
+    apis: extensionApis,
+    storeDir: join(userData, 'Extensions'),
+    confirmInstall: async (req, warnings) => {
+      const lines = warnings.map((w) =>
+        w.key === 'someSites'
+          ? i18n.t('menu.dialog.extension.perm.someSites', { hosts: w.hosts })
+          : i18n.t(`menu.dialog.extension.perm.${w.key}`),
+      );
+      const detail = [
+        lines.length
+          ? `${i18n.t('menu.dialog.extension.canDo')}\n${lines.map((l) => `• ${l}`).join('\n')}`
+          : i18n.t('menu.dialog.extension.nothing'),
+        i18n.t('menu.dialog.extension.everywhere'),
+      ].join('\n\n');
+      const opts = {
+        type: 'question' as const,
+        message: i18n.t('menu.dialog.extension.add', { name: req.localizedName }),
+        detail,
+        ...(req.icon.isEmpty() ? {} : { icon: req.icon }),
+        buttons: [i18n.t('menu.dialog.extension.confirm'), i18n.t('common.cancel')],
+        defaultId: 0,
+        cancelId: 1,
+      };
+      const parent = windows.main?.win;
+      const { response } = parent
+        ? await dialog.showMessageBox(parent, opts)
+        : await dialog.showMessageBox(opts);
+      return response === 0;
+    },
+  });
   const rendererDir = join(__dirname, '../renderer');
   const devUrl = process.env.ELECTRON_RENDERER_URL;
 

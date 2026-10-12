@@ -1,0 +1,206 @@
+[
+  {
+    "name": "Dark Reader",
+    "storeButton": true,
+    "installed": true,
+    "version": "4.9.133",
+    "popup": "renders (1257 chars)",
+    "popupErrors": ["Unrecognized Content-Security-Policy directive 'navigate-to'."],
+    "workerErrors": []
+  },
+  {
+    "name": "uBlock Origin Lite",
+    "storeButton": true,
+    "installed": true,
+    "version": "2026.1006.1931",
+    "popup": "renders (13 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "1Password",
+    "storeButton": true,
+    "installed": true,
+    "version": "8.12.41.1",
+    "popup": "blank (0)",
+    "popupErrors": [],
+    "workerErrors": [
+      "background/background.js: Uncaught (in promise) Error: Cannot read properties of null (reading 'id')"
+    ]
+  },
+  {
+    "name": "Bitwarden",
+    "storeButton": true,
+    "installed": true,
+    "version": "2026.9.3",
+    "popup": "renders (191 chars)",
+    "popupErrors": [],
+    "workerErrors": [
+      "background.js: Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist."
+    ]
+  },
+  {
+    "name": "Grammarly",
+    "storeButton": true,
+    "installed": true,
+    "version": "14.1336.0",
+    "popup": "renders (252 chars)",
+    "popupErrors": [],
+    "workerErrors": [
+      "src/js/Grammarly-bg.js: grm ERROR [lib.tracking.telemetry] ░░ bg.unhandledRejection [object Object] Error: Cannot read properties of null (readi",
+      "src/js/Grammarly-bg.js: Uncaught (in promise) TypeError: Cannot read properties of null (reading 'focused')",
+      "src/js/Grammarly-bg.js: grm ERROR [extension-api.managed-storage.chrome] ░░ Manage storage timeout to get \"GrammarlyExtensionMode\""
+    ]
+  },
+  {
+    "name": "React DevTools",
+    "storeButton": true,
+    "installed": true,
+    "version": "8.0.0",
+    "popup": "renders (105 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "Vimium",
+    "storeButton": true,
+    "installed": true,
+    "version": "2.4.2",
+    "popup": "renders (144 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "Google Translate",
+    "storeButton": true,
+    "installed": true,
+    "version": "2.0.17",
+    "popup": "renders (112 chars)",
+    "popupErrors": [
+      "Uncaught (in promise) Error: Cannot access contents of the page. Extension manifest must request permission to access the respective host.",
+      "Uncaught (in promise) Error: Cannot access contents of the page. Extension manifest must request permission to access the respective host."
+    ],
+    "workerErrors": []
+  },
+  {
+    "name": "Return YouTube Dislike",
+    "storeButton": true,
+    "installed": true,
+    "version": "4.0.5",
+    "popup": "renders (752 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "SponsorBlock",
+    "storeButton": true,
+    "installed": true,
+    "version": "6.1.6",
+    "popup": "renders (342 chars)",
+    "popupErrors": [
+      "Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.",
+      "Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.",
+      "Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist."
+    ],
+    "workerErrors": [
+      "js/background.js: Uncaught TypeError: Cannot add property contentScripts, object is not extensible"
+    ]
+  },
+  {
+    "name": "Loom",
+    "storeButton": true,
+    "installed": true,
+    "version": "5.5.212",
+    "popup": "blank (-2)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "Notion Web Clipper",
+    "storeButton": true,
+    "installed": true,
+    "version": "0.2.19",
+    "popup": "renders (97 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "JSON Formatter",
+    "storeButton": true,
+    "installed": true,
+    "version": "0.10.2",
+    "popup": "no popup",
+    "workerErrors": []
+  },
+  {
+    "name": "Wappalyzer",
+    "storeButton": true,
+    "installed": true,
+    "version": "6.12.7",
+    "popup": "renders (277 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "Raindrop",
+    "storeButton": true,
+    "installed": true,
+    "version": "6.8.2",
+    "popup": "renders (63 chars)",
+    "popupErrors": [],
+    "workerErrors": []
+  },
+  {
+    "name": "Honey",
+    "storeButton": true,
+    "installed": true,
+    "version": "19.7.0",
+    "popup": "blank (0)",
+    "popupErrors": [
+      "Unchecked runtime.lastError: The message port closed before a response was received.",
+      "Unchecked runtime.lastError: The message port closed before a response was received.",
+      "Unchecked runtime.lastError: The message port closed before a response was received."
+    ],
+    "workerErrors": ["h0.js: Uncaught (in promise) ReferenceError: localStorage is not defined"]
+  },
+  {
+    "name": "LastPass",
+    "storeButton": true,
+    "installed": true,
+    "version": "4.156.0",
+    "popup": "renders (105 chars)",
+    "popupErrors": [],
+    "workerErrors": ["background-redux-new.js: Uncaught (in promise) ReferenceError: document is not defined"]
+  },
+  {
+    "name": "Momentum",
+    "storeButton": true,
+    "installed": true,
+    "version": "2.27.8",
+    "popup": "no popup",
+    "workerErrors": []
+  },
+  {
+    "name": "Todoist",
+    "storeButton": true,
+    "installed": true,
+    "version": "12.21.9",
+    "popup": "blank (0)",
+    "popupErrors": [],
+    "workerErrors": [
+      "background.js: Uncaught TypeError: Error in invocation of declarativeNetRequest.updateSessionRules(declarativeNetRequest.UpdateRuleOpti"
+    ]
+  },
+  {
+    "name": "Adblock Plus",
+    "storeButton": true,
+    "installed": true,
+    "version": "4.46.0",
+    "popup": "renders (214 chars)",
+    "popupErrors": [],
+    "workerErrors": [
+      "background.js: Error: [ipm]: No remote configuration.",
+      "background.js: [conflict-detection]: Error running MV3 detection script Error: Cannot access contents of url \"chrome-extension://cfhdoj"
+    ]
+  }
+]

@@ -1,7 +1,7 @@
 import { prettyUrl } from '@vela/core';
 import { invoke, isMac, modKey } from '../../lib/api';
 import { useT } from '../../lib/i18n';
-import { selectActiveTab, useShell } from '../../lib/store';
+import { selectActivePartition, selectActiveTab, useShell } from '../../lib/store';
 import { Icon } from '../Icon';
 import styles from './NavBar.module.css';
 
@@ -10,6 +10,7 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const siteControlOpen = useShell((s) => s.siteControlOpen);
   const setSiteControlOpen = useShell((s) => s.setSiteControlOpen);
   const fullscreen = useShell((s) => s.fullscreen);
+  const partition = useShell(selectActivePartition);
   const t = useT();
   const id = tab?.id;
   return (
@@ -24,6 +25,12 @@ export function NavBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Icon name="sidebar" />
         </button>
         <span className={styles.spacer} />
+        <browser-action-list
+          className={`${styles.extensions} no-drag`}
+          partition={partition}
+          alignment="bottom right"
+          data-testid="extension-actions"
+        />
         <button
           className={`${styles.btn} no-drag`}
           disabled={!tab?.canGoBack}

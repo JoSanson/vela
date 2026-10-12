@@ -51,7 +51,8 @@ Most default shortcuts match Arc's, and every one of them can be rebound in `vel
 
 ## 4. What feels different
 
-- **Extensions**: see [EXTENSIONS.md](EXTENSIONS.md) for what is supported today.
+- **Extensions**: install them again from the Chrome Web Store ("Add to Vela"); they show up in
+  the sidebar. [EXTENSIONS.md](EXTENSIONS.md) lists how the 20 most used ones behave.
 - **Not there yet**: Easels, Notes, AI features, sync between devices, DRM video (Netflix and
   friends need Widevine). Each one has an issue labelled
   [`arc-parity`](https://github.com/JoSanson/vela/labels/arc-parity): upvote the one you miss most,

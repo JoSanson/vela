@@ -240,7 +240,7 @@ export const settings = {
   'settings.boosts.deleteQuestion': 'Supprimer le boost pour {host} ?',
 
   'settings.extensions.desc.before':
-    'Installez des extensions Chrome depuis le Chrome Web Store (ouvrez-le et cliquez sur « Ajouter à Chrome »), ou chargez-en une décompressée. Scripts de contenu, service workers, stockage, popups et la plupart des API runtime fonctionnent ; le détail est documenté dans',
+    'Installez des extensions Chrome depuis le Chrome Web Store (ouvrez-le et cliquez sur « Ajouter à Vela »), ou chargez-en une décompressée. Scripts de contenu, service workers, stockage, popups et la plupart des API runtime fonctionnent ; le détail est documenté dans',
   'settings.extensions.desc.after': '. Les extensions s’appliquent à tous les espaces et profils.',
   'settings.extensions.loaded': '{name} {version} chargée',
   'settings.extensions.loadError': 'Aucune extension chargée : choisissez un dossier contenant manifest.json',
@@ -248,7 +248,7 @@ export const settings = {
   'settings.extensions.load': 'Charger non empaquetée…',
   'settings.extensions.empty.title': 'Aucune extension',
   'settings.extensions.empty.hint':
-    'Ouvrez le Chrome Web Store et cliquez sur « Ajouter à Chrome », ou chargez un dossier qui contient un manifest.json.',
+    'Ouvrez le Chrome Web Store et cliquez sur « Ajouter à Vela », ou chargez un dossier qui contient un manifest.json.',
   'settings.extensions.col.extension': 'Extension',
   'settings.extensions.col.version': 'Version',
   'settings.extensions.col.source': 'Source',
@@ -272,7 +272,8 @@ export const settings = {
   'settings.import.import.button': 'Importer…',
 
   'settings.about.unknown': 'inconnue',
-  'settings.about.tagline': 'Un navigateur Chromium pensé autour des espaces, de la barre latérale et de la barre de commande. Libre et open source (GPL-3.0).',
+  'settings.about.tagline':
+    'Un navigateur Chromium pensé autour des espaces, de la barre latérale et de la barre de commande. Libre et open source (GPL-3.0).',
   'settings.about.platform': 'Plateforme',
   'settings.about.updates': 'Mises à jour',
   'settings.about.status.unavailable.title': 'Mises à jour indisponibles',

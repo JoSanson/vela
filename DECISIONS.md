@@ -317,3 +317,12 @@ name and logo: forks must rebrand. Contributions are accepted under the same lic
 Why: copyleft keeps every distributed fork open source, which removes the business case for a
 closed commercial copy while staying OSI open source (the positioning and contributors need that).
 The trademark policy, not the licence, is what stops a look-alike "Vela" from riding the brand.
+
+## D036 — Extension buttons live in the sidebar's top row
+Context: Web Store extensions need a visible button (popup, badge); Vela has no toolbar.
+Choice: electron-chrome-extensions' `<browser-action-list>` sits in the NavBar row, between the
+sidebar toggle and back / forward / reload, bound to the active Space's profile partition. Its
+element is injected by the shell preload (inlined in the bundle, sandboxed preloads cannot require
+node_modules) and its icons come over the `crx:` scheme, allowed in the shell CSP's `img-src` only.
+Why: that row is where Arc shows extensions, it is always visible with the sidebar, and it costs no
+new chrome.

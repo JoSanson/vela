@@ -29,6 +29,9 @@ export function ExtensionsSection() {
     await tryInvoke('extensions/remove', { id });
     await refresh();
   };
+  const openStore = (): void => {
+    void tryInvoke('extensions/openStore', undefined);
+  };
   const popup = async (id: string): Promise<void> => {
     const ok = await tryInvoke('extensions/popup', { id });
     if (!ok) toast(t('settings.extensions.noPopup'));
@@ -41,10 +44,14 @@ export function ExtensionsSection() {
         {t('settings.extensions.desc.after')}
       </p>
       <div className={styles.headActions}>
-        <Button variant="primary" icon="plus" onClick={() => void add()} testId="extensions-add">
+        <Button variant="primary" icon="puzzle" onClick={openStore} testId="extensions-store">
+          {t('settings.extensions.store')}
+        </Button>
+        <Button icon="plus" onClick={() => void add()} testId="extensions-add">
           {t('settings.extensions.load')}
         </Button>
       </div>
+      <p className={styles.desc}>{t('settings.extensions.updates')}</p>
       {list?.length === 0 && (
         <EmptyState
           icon="puzzle"
@@ -59,7 +66,7 @@ export function ExtensionsSection() {
             <tr>
               <th>{t('settings.extensions.col.extension')}</th>
               <th>{t('settings.extensions.col.version')}</th>
-              <th>{t('settings.extensions.col.folder')}</th>
+              <th>{t('settings.extensions.col.source')}</th>
               <th />
             </tr>
           </thead>
@@ -72,9 +79,13 @@ export function ExtensionsSection() {
                 <td>
                   <Badge>{ext.version}</Badge>
                 </td>
-                <td className={styles.mono} title={ext.path}>
-                  {ext.path}
-                </td>
+                {ext.source === 'webstore' ? (
+                  <td data-testid="extension-source">{t('settings.extensions.source.webstore')}</td>
+                ) : (
+                  <td className={styles.mono} title={ext.path} data-testid="extension-source">
+                    {ext.path}
+                  </td>
+                )}
                 <td>
                   <div className={styles.cellActions}>
                     <Button size="sm" onClick={() => void popup(ext.id)} testId="extension-popup">

@@ -2,17 +2,9 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, type VelaApp } from './helpers';
+import { evalMain, expect, test } from './helpers';
 
 const ICON = join(__dirname, '..', 'resources', 'icon.png');
-
-async function evalMain<T>(vela: VelaApp, code: string): Promise<T> {
-  return vela.app.evaluate((_e, c) => {
-    const g = globalThis as unknown as { __vela: unknown };
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    return (new Function('__vela', c) as (v: unknown) => T)(g.__vela);
-  }, code);
-}
 
 test.describe('site control center', () => {
   test('shows blocker state, zoom and per-site permissions and acts on them', async ({ vela, fixtures }) => {
@@ -176,8 +168,8 @@ test.describe('extensions', () => {
       );
       expect(popup, name).toMatch(/^chrome-extension:\/\/[a-z]+\/.+\.html$/);
     }
-    // Dark Reader's service worker is started by Chromium (it then hits chrome.permissions.onRemoved,
-    // which Electron lacks — documented in docs/EXTENSIONS.md).
+    // Dark Reader's service worker is started by Chromium (its chrome.permissions use comes from the
+    // extension API layer, see docs/EXTENSIONS.md).
     await expect
       .poll(() =>
         vela.app.evaluate(({ session }) =>

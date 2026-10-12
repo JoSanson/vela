@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "description": "Vela — the open-source Arc browser alternative: Chromium-based, Spaces, vertical tabs, command bar",
   "author": "Jordane Sanson",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
@@ -24,6 +24,8 @@
     "@vela/core": "workspace:*",
     "@vela/shared": "workspace:*",
     "better-sqlite3": "13.0.3",
+    "electron-chrome-extensions": "4.9.0",
+    "electron-chrome-web-store": "0.13.0",
     "electron-updater": "6.8.9"
   },
   "devDependencies": {

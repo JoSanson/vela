@@ -154,6 +154,12 @@ export class TabManager {
     return undefined;
   }
 
+  /** Creates (and starts loading) a tab's view without showing it: `chrome.tabs.create({ active: false })`. */
+  loadInBackground(tabId: Id): WebContents | undefined {
+    const tab = this.state.tabs[tabId];
+    return tab ? this.ensureView(tab).webContents : undefined;
+  }
+
   /** The window currently holding the tab's view. */
   windowOf(tabId: Id): MainWindow | undefined {
     const winId = this.attached.get(tabId);

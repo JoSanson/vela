@@ -1,63 +1,88 @@
 # Chrome extensions in Vela
 
-Vela loads **unpacked Manifest V3 extensions** through Electron's `session.extensions.loadExtension`
-(Settings → Extensions → *Load unpacked…*). Extensions are loaded into every tab session (the default
-profile and every space profile) and remembered across launches (`prefs.extensionPaths`).
+## Installing
 
-There is no Web Store integration: download or build the extension, unzip it, and pick the folder
-that contains `manifest.json`.
+**From the Chrome Web Store.** Settings → Extensions → **Chrome Web Store** (or open
+[chromewebstore.google.com](https://chromewebstore.google.com/) in any tab), pick an extension and
+click **Add to Vela**. Vela shows what the extension will be able to do, in the same words Chrome
+uses ("Read and change all your data on all websites"…), and installs it only if you agree.
 
-## Supported subset (Electron 44 / Chromium 152)
+- Installed extensions are available in **every Space and profile**.
+- They **update themselves** (checked at launch and every 5 hours).
+- Their buttons appear in the **sidebar**, next to back / forward / reload: click one for its
+  popup; badges and icons update live.
+- Remove them from Settings → Extensions or from their Web Store page.
 
-Electron implements a subset of the Chrome extension platform. What works in Vela today:
+**Unpacked.** Settings → Extensions → *Load unpacked…* and pick the folder that contains
+`manifest.json` (for extensions you build yourself or that are not on the store).
 
-| Area | Status | Notes |
+## How it works
+
+Electron implements only part of the Chrome extension platform. Vela adds the rest in two layers:
+
+- [electron-chrome-web-store](https://github.com/samuelmaddock/electron-browser-shell) (MIT):
+  the store's install button, downloads, updates and uninstall.
+- [electron-chrome-extensions](https://github.com/samuelmaddock/electron-browser-shell) (GPL-3.0,
+  the reason Vela is GPL, see [DECISIONS.md](../DECISIONS.md) D035): `chrome.action`, `tabs`,
+  `windows`, `contextMenus`, `cookies`, `notifications`, `permissions`, `webNavigation`,
+  `commands`, mapped onto Vela's own tabs. An extension that opens, activates or closes a tab drives
+  the sidebar.
+- Vela's own fix (`src/preload/extensionCompat.ts`): Chromium now has a native `browser` namespace
+  beside `chrome`; extensions built with Mozilla's webextension-polyfill use it and would miss every
+  API added above, so Vela points `browser` at the completed `chrome`.
+
+## Compatibility: the 20 most used extensions
+
+Measured by `apps/desktop/perf/extensions/compat.mjs`: each one is installed from its real Web
+Store page, then its background worker and popup are checked. Electron 44 / Chromium 152,
+2026-10-12.
+
+| Extension | Status | Notes |
 | --- | --- | --- |
-| `manifest_version: 3` | ✅ | MV2 extensions also load but are deprecated upstream. |
-| Content scripts (`content_scripts`, `run_at`, `all_frames`, `match_about_blank`) | ✅ | Injected in every tab, Little and Peek views. `world: "MAIN"` is supported. |
-| Background service worker (`background.service_worker`) | ✅ | Started lazily by Chromium; `chrome.runtime` messaging between worker, content scripts and pages works. |
-| `chrome.runtime` (`sendMessage`, `onMessage`, `connect`, `getURL`, `getManifest`, `id`) | ✅ | |
-| `chrome.storage` (`local`, `sync`\*, `session`) | ✅ | `sync` is backed by local storage (no cloud). |
-| `chrome.tabs` (`query`, `get`, `sendMessage`, `reload`, `update`, `create`, `remove`, `onUpdated`…) | ✅ | Tab ids are WebContents ids. `windowId` is best-effort. |
-| `chrome.scripting` (`executeScript`, `insertCSS`, `removeCSS`, `registerContentScripts`) | ✅ | |
-| `chrome.i18n`, `chrome.extension` basics | ✅ | |
-| `chrome.webRequest` / `webRequestBlocking` | ✅ (MV2 style) | Electron supports it; MV3 extensions rarely use it. |
-| `chrome.commands` (keyboard shortcuts) | ⚠️ | Declared commands load, but Vela does not bind their accelerators. |
-| Action popup (`action.default_popup`) | ✅ (Vela UI) | Vela has no toolbar: open popups from Settings → Extensions → *Popup* or the site control center. The popup renders in a Peek-style view with the extension's own origin and APIs. |
-| Options page (`options_ui` / `options_page`) | ✅ | Open `chrome-extension://<id>/<options>.html` via the popup button or the command bar. |
-| `declarativeNetRequest` | ❌ | Not implemented by Electron. Blocking-style extensions (uBlock Origin Lite) load, show their UI, but their static rulesets do not filter traffic. Vela's built-in blocker covers this. |
-| `chrome.webNavigation`, `chrome.cookies`, `chrome.history`, `chrome.bookmarks`, `chrome.downloads` | ❌ | Not implemented by Electron. |
-| `chrome.identity`, `chrome.management`, `chrome.permissions` | ❌ | Not implemented. |
-| `chrome.offscreen`, `chrome.userScripts`, `chrome.alarms` | ❌ | Not implemented (extensions must tolerate their absence). |
-| `devtools_page` | ❌ | Electron does not load extension DevTools panels. |
-| Web Store install / updates / CRX | ❌ | Unpacked folders only; update them by replacing the folder contents and relaunching. |
+| Dark Reader | ✅ | |
+| 1Password | ✅ | Setup flow opens from its sidebar button. |
+| Vimium | ✅ | |
+| React Developer Tools | ✅ | DevTools panels themselves are not loaded (Electron limit). |
+| Return YouTube Dislike | ✅ | |
+| Notion Web Clipper | ✅ | |
+| Wappalyzer | ✅ | |
+| Raindrop.io | ✅ | |
+| JSON Formatter | ✅ | |
+| Momentum | ✅ | |
+| uBlock Origin Lite | ⚠️ | Popup and settings work; its filters do not apply (`declarativeNetRequest`). Vela's built-in blocker covers this. |
+| Bitwarden | ⚠️ | Works; logs a harmless messaging error at start. |
+| LastPass | ⚠️ | Popup works; one background feature expects a DOM in its worker. |
+| Grammarly | ⚠️ | Works; its telemetry module reports errors. |
+| Adblock Plus | ⚠️ | Popup works; filtering needs `declarativeNetRequest`. |
+| Google Translate | ⚠️ | Popup works; translating the page needs a scripting permission flow Vela does not have yet. |
+| SponsorBlock | ⚠️ | Popup works; it writes to the `chrome` object, which the API layer freezes. |
+| Loom | ❌ | Popup does not load yet. |
+| Honey | ❌ | Needs `chrome.offscreen` (not in Electron). |
+| Todoist | ❌ | Needs `declarativeNetRequest` (not in Electron). |
 
-\* Electron maps `chrome.storage.sync` onto local storage.
+Something you rely on is missing or broken? Open an issue with the extension's Web Store link, or
+pick one of the [`extensions`](https://github.com/JoSanson/vela/labels/extensions) issues.
 
-## Tested extensions
+## What is still missing
 
-The e2e suite (`apps/desktop/e2e/p1.spec.ts`, "extensions" block) downloads two popular open-source releases
-and loads them:
-
-1. **Dark Reader** (`darkreader-chrome-mv3.zip`) — loads, is listed with its version, its popup URL
-   resolves and Chromium starts its service worker. **Limitation:** the worker calls
-   `chrome.permissions.onRemoved`, which Electron does not implement, so it throws during start-up
-   and the dark theme is never pushed to the content scripts. The content scripts themselves are
-   injected (the pipeline works — see the local extension below); the extension needs the
-   `permissions` API to be useful.
-2. **uBlock Origin Lite** (`uBOLite_*.chromium.zip`) — loads (manifest, locales, popup, options
-   page), is listed with its version and its popup URL resolves. Its `declarativeNetRequest`
-   rules are *not* applied (see the table); Vela's built-in blocker is the supported way to block
-   ads.
-3. **Vela Marker** (`apps/desktop/e2e/fixtures/ext-marker`, a 4-file MV3 extension) proves the
-   supported subset end to end: content script injected on an http page, `chrome.runtime`
-   messaging to the service worker, `chrome.storage.local` writes, and the action popup opened in
-   a Peek view.
+| API | Status |
+| --- | --- |
+| `declarativeNetRequest` | ❌ Not implemented by Electron. Ad blockers load but do not filter; use Vela's built-in blocker. |
+| `chrome.offscreen`, `chrome.userScripts`, `chrome.sidePanel` | ❌ Not implemented. |
+| `chrome.history`, `chrome.bookmarks`, `chrome.downloads`, `chrome.identity`, `chrome.management` | ❌ Not implemented yet. |
+| `chrome.storage.sync` | ⚠️ Backed by local storage (no cloud sync). |
+| `devtools_page` | ❌ Electron does not load extension DevTools panels. |
 
 ## Security notes
 
+- Web Store installs always go through a confirmation that lists the permissions; runtime
+  `chrome.permissions.request` calls ask again.
+- The store's install API only answers pages from `https://chromewebstore.google.com`; the
+  extension API preload is only injected into `chrome-extension://` pages and extension service
+  workers, never into websites.
 - Extensions run with their declared `host_permissions` in the tab sessions only; the shell,
   overlay and `vela://` pages are not extension-accessible (`will-attach-webview` and navigation
   guards still apply).
 - `allowFileAccess` is disabled: extensions cannot read `file://` URLs.
-- Remove an extension from Settings → Extensions; its folder is left untouched.
+- Removing an unpacked extension leaves its folder untouched; removing a Web Store one deletes its
+  copy in Vela's profile.

@@ -155,6 +155,11 @@ export function connectStore(): () => void {
 }
 
 export const selectActiveSpace = (st: ShellStore) => st.core.spaces[st.core.activeSpaceId];
+/** Session partition of the active Space's profile, the one its tabs (and extensions) run in. */
+export const selectActivePartition = (st: ShellStore): string => {
+  const pid = st.core.spaces[st.core.activeSpaceId]?.profileId;
+  return (pid ? st.core.profiles[pid]?.partition : undefined) ?? 'persist:default';
+};
 export const selectActiveTab = (st: ShellStore) => {
   const sp = st.core.spaces[st.core.activeSpaceId];
   return sp?.activeTabId ? st.core.tabs[sp.activeTabId] : undefined;

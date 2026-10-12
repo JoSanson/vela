@@ -19,13 +19,15 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: bundled })],
+    // Sandboxed preloads cannot require node_modules: the browser-action element is inlined.
+    plugins: [externalizeDepsPlugin({ exclude: [...bundled, 'electron-chrome-extensions'] })],
     build: {
       sourcemap: true,
       rollupOptions: {
         input: {
           shell: resolve(dir, 'src/preload/shell.ts'),
           tab: resolve(dir, 'src/preload/tab.ts'),
+          extensionCompat: resolve(dir, 'src/preload/extensionCompat.ts'),
         },
       },
     },

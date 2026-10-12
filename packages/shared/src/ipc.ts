@@ -272,6 +272,8 @@ export interface ExtensionInfo {
   version: string;
   path: string;
   enabled: boolean;
+  /** Installed (and kept updated) from the Chrome Web Store, or loaded from a folder. */
+  source: 'webstore' | 'unpacked';
 }
 
 export interface ThemePalette {
@@ -403,6 +405,7 @@ export interface IpcInvokeMap {
   'extensions/load': { req: { path?: string }; res: ExtensionInfo | null };
   'extensions/remove': { req: { id: string }; res: undefined };
   'extensions/popup': { req: { id: string }; res: boolean };
+  'extensions/openStore': { req: undefined; res: undefined };
 
   'theme/fromImage': { req: undefined; res: ThemePalette | null };
   'theme/fromImagePath': { req: { path: string }; res: ThemePalette | null };
