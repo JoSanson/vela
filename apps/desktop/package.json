@@ -1,6 +1,7 @@
 {
   "name": "@vela/desktop",
   "productName": "Vela",
+  "homepage": "https://github.com/JoSanson/vela",
   "version": "0.5.0",
   "description": "Vela — the open-source Arc browser alternative: Chromium-based, Spaces, vertical tabs, command bar",
   "author": "Jordane Sanson",

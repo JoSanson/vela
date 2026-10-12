@@ -60,6 +60,9 @@ nsis:
   perMachine: false
   deleteAppDataOnUninstall: false
 linux:
+  # Defaults to the package name, and `@vela/desktop` is not a valid file name.
+  executableName: vela
+  maintainer: Jordane Sanson <https://github.com/JoSanson/vela>
   target:
     - AppImage
     - deb

@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { expect, launchVela, test } from './helpers';
 
 const PASSWORD = 'e2e-safe-storage';
-const key = pbkdf2Sync(PASSWORD, 'saltysalt', 1003, 16, 'sha1');
+// Chromium derives the OS-crypt key with 1 PBKDF2 iteration on Linux and 1003 elsewhere.
+const key = pbkdf2Sync(PASSWORD, 'saltysalt', process.platform === 'linux' ? 1 : 1003, 16, 'sha1');
 const encrypt = (plain: Buffer): Buffer => {
   const c = createCipheriv('aes-128-cbc', key, Buffer.alloc(16, 0x20));
   return Buffer.concat([Buffer.from('v10'), c.update(plain), c.final()]);

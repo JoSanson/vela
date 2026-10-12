@@ -72,7 +72,7 @@ jobs:
             os: macos-15-intel
             args: --mac --x64
           - name: win-x64
-            os: windows-latest
+            os: windows-2022
             args: --win --x64
           - name: linux-x64
             os: ubuntu-latest
@@ -107,6 +107,9 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+        env:
+          # better-sqlite3 compiles on Windows; windows-2022's VS 2022 is the one node-gyp finds.
+          npm_config_msvs_version: '2022'
 
       - name: Configure signing
         # Without a certificate electron-builder would otherwise try to auto-discover one in the

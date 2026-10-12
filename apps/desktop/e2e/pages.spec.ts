@@ -55,6 +55,12 @@ test.describe('internal pages', () => {
     await page.getByTestId('history-row').first().click();
     await expect.poll(() => tabCount(vela)).toBe(before + 1);
 
+    // The visit opened in a new active tab: come back to History (a background page does not paint).
+    await evalMain(
+      vela,
+      `const t = Object.values(__vela.ctx.store.state.tabs).find((x) => x.url.startsWith('vela://history'));
+       __vela.ctx.store.dispatch({ type: 'tab/activate', id: t.id, now: Date.now() });`,
+    );
     await page.getByTestId('history-search').fill('');
     await expect.poll(() => page.getByTestId('history-row').count()).toBeGreaterThanOrEqual(2);
     const rows = await page.getByTestId('history-row').count();

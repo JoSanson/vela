@@ -458,6 +458,17 @@ async function boot(): Promise<void> {
 
   const theme = activeSpace(store.state)?.theme;
   perf.appReady = Date.now();
+  // Wired before the first window: a change during startup must still reach its sidebar.
+  extensions.onChange((list) => {
+    for (const w of windows.all()) emit(w.win.webContents, 'extensions/changed', list);
+  });
+  downloads.onChange((list) => {
+    for (const w of windows.all()) emit(w.win.webContents, 'downloads/changed', list);
+    for (const id of tabs.liveTabIds()) {
+      const wc = tabs.webContents(id);
+      if (wc?.getURL().startsWith('vela://downloads')) emit(wc, 'downloads/changed', list);
+    }
+  });
   const mw = await windows.createMain(theme?.from ?? '#1b1b22', { spaceId: store.state.activeSpaceId });
   registerCoreHandlers(c);
   // Focusing a window makes its space the active one (menus, ⌘T, ⌘N act there).
@@ -610,16 +621,6 @@ async function boot(): Promise<void> {
   sweepers = installMaintenance(c);
   installAutoPip(c);
   c.updater.start();
-  extensions.onChange((list) => {
-    for (const w of windows.all()) emit(w.win.webContents, 'extensions/changed', list);
-  });
-  downloads.onChange((list) => {
-    for (const w of windows.all()) emit(w.win.webContents, 'downloads/changed', list);
-    for (const id of tabs.liveTabIds()) {
-      const wc = tabs.webContents(id);
-      if (wc?.getURL().startsWith('vela://downloads')) emit(wc, 'downloads/changed', list);
-    }
-  });
   if (!prefs.value.onboardingDone && Object.keys(store.state.tabs).length === 0 && !process.env.VELA_E2E) {
     tabs.openUrl({ input: 'vela://onboarding', noAtc: true });
   }

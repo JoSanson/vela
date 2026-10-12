@@ -28,8 +28,18 @@ const iconUrl = (id: string, partition: string): string =>
 function useExtensions(): ExtensionInfo[] {
   const [list, setList] = useState<ExtensionInfo[]>([]);
   useEffect(() => {
-    void invoke('extensions/list', undefined).then(setList, () => undefined);
-    return vela.on('extensions/changed', setList);
+    // A change pushed before the initial answer is newer: the answer must not overwrite it.
+    let pushed = false;
+    void invoke('extensions/list', undefined).then(
+      (initial) => {
+        if (!pushed) setList(initial);
+      },
+      () => undefined,
+    );
+    return vela.on('extensions/changed', (next) => {
+      pushed = true;
+      setList(next);
+    });
   }, []);
   return list;
 }
