@@ -36,7 +36,13 @@ export const TabRow = memo(function TabRow({
   const editing = useShell((s) => s.editingItemId === tab.id);
   const setEditing = useShell((s) => s.setEditingItem);
   const activate = useCallback(
-    () => dispatch({ type: 'tab/activate', id: tab.id, now: Date.now() }),
+    () =>
+      dispatch({
+        type: 'tab/activate',
+        id: tab.id,
+        now: Date.now(),
+        spaceId: useShell.getState().core.activeSpaceId,
+      }),
     [tab.id],
   );
   const close = useCallback(
@@ -127,7 +133,18 @@ export const TabRow = memo(function TabRow({
       data-dnd-depth={depth}
       className={`${styles.row} ${active ? styles.active : ''} ${inSplit ? styles.inSplit : ''} ${compact ? styles.compact : ''} ${tab.sleeping ? styles.sleeping : ''}`}
       style={{ paddingLeft: compact ? 6 : 8 + depth * 14 }}
-      onClick={activate}
+      onClick={(e) => {
+        if (tab.kind === 'pinned' && (e.metaKey || e.ctrlKey)) {
+          void invoke('tab/openUrl', {
+            input: tab.url,
+            ...(tab.spaceId ? { spaceId: tab.spaceId } : {}),
+            activate: !e.shiftKey,
+            noAtc: true,
+          });
+          return;
+        }
+        activate();
+      }}
       onMouseDown={onMouseDown}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}

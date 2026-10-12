@@ -1,6 +1,7 @@
 import type { BrowserImportSource, BrowserImportSourceId, ImportResult, Translator } from '@vela/shared';
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
+import { ArcExtensions } from './ArcExtensions';
 import { useT } from '../lib/i18n';
 import styles from './ImportPanel.module.css';
 import { tryInvoke } from './lib';
@@ -242,6 +243,7 @@ export function ImportPanel({ onImported }: Props) {
           </div>
         );
       })}
+      {results.arc && <ArcExtensions />}
     </div>
   );
 }

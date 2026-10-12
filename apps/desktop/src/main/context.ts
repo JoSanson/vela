@@ -56,7 +56,7 @@ export interface AppContext {
   activateSpace: (id: Id, mw?: MainWindow | null) => void;
   /** ⌘N: a new main window showing a space not displayed yet (created if needed). */
   /** Opens a window on `spaceId`, else on the next Space no window shows (or a fresh one). */
-  openWindow: (spaceId?: Id) => Promise<MainWindow | null>;
+  openWindow: (spaceId?: Id, bounds?: Electron.Rectangle) => Promise<MainWindow | null>;
   /** Wall-clock timestamps (Date.now()) of startup milestones. */
   perf: Record<string, number>;
   version: string;

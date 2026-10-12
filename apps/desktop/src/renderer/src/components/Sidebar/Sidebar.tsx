@@ -1,11 +1,13 @@
-import { createFolder, type Id } from '@vela/core';
+import { createFolder, rootSpaceId, type Id } from '@vela/core';
 import { useCallback, useEffect, useRef, useState, type WheelEvent } from 'react';
 import { dispatch, vela } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { useShell } from '../../lib/store';
+import { DownloadsView } from '../../shell/DownloadsView';
 import { EmojiPicker } from '../EmojiPicker';
 import { useSidebarDnd } from './dnd';
 import { DndLayer } from './DndLayer';
+import { ExtensionBar } from './ExtensionBar';
 import { FavoritesGrid } from './FavoritesGrid';
 import { NavBar } from './NavBar';
 import { PinnedList } from './PinnedList';
@@ -29,12 +31,33 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
   const iconPickerFor = useShell((s) => s.iconPickerFor);
   const setIconPickerFor = useShell((s) => s.setIconPickerFor);
   const setEditing = useShell((s) => s.setEditingItem);
+  const downloadsOpen = useShell((s) => s.downloadsOpen);
+  const setDownloadsOpen = useShell((s) => s.setDownloadsOpen);
+  // Kept mounted through its exit slide, then removed.
+  const [leaving, setLeaving] = useState(false);
+  const [wasOpen, setWasOpen] = useState(downloadsOpen);
+  if (wasOpen !== downloadsOpen) {
+    setWasOpen(downloadsOpen);
+    setLeaving(!downloadsOpen);
+  }
+  useEffect(() => {
+    if (!leaving) return undefined;
+    const timer = setTimeout(() => setLeaving(false), 220);
+    return () => clearTimeout(timer);
+  }, [leaving]);
+  const downloadsMounted = downloadsOpen || leaving;
+  const closeDownloads = useCallback(() => {
+    setDownloadsOpen(false);
+    requestAnimationFrame(() =>
+      rootRef.current?.querySelector<HTMLElement>('[data-testid="downloads-toggle"]')?.focus(),
+    );
+  }, [setDownloadsOpen]);
   const t = useT();
   const [slide, setSlide] = useState<'left' | 'right' | null>(null);
-  const prevSpaceIdx = useRef(core.spaceOrder.indexOf(core.activeSpaceId));
+  const prevSpaceIdx = useRef(core.spaceOrder.indexOf(rootSpaceId(core, core.activeSpaceId)));
   const swipe = useRef({ acc: 0, at: 0 });
 
-  const spaceIdx = core.spaceOrder.indexOf(core.activeSpaceId);
+  const spaceIdx = core.spaceOrder.indexOf(rootSpaceId(core, core.activeSpaceId));
   useEffect(() => {
     const prev = prevSpaceIdx.current;
     if (prev !== spaceIdx && prev >= 0) {
@@ -73,7 +96,7 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
     swipe.current.acc += e.deltaX;
     if (Math.abs(swipe.current.acc) >= SWIPE_THRESHOLD) {
       const st = useShell.getState().core;
-      const idx = st.spaceOrder.indexOf(st.activeSpaceId);
+      const idx = st.spaceOrder.indexOf(rootSpaceId(st, st.activeSpaceId));
       const next = st.spaceOrder[idx + (swipe.current.acc > 0 ? 1 : -1)];
       swipe.current.acc = -Math.sign(swipe.current.acc) * SWIPE_THRESHOLD * 2;
       if (next) dispatch({ type: 'space/activate', id: next, now });
@@ -135,21 +158,31 @@ export function Sidebar({ width, onToggle, floating = false }: Props) {
       data-floating={floating ? 'true' : 'false'}
     >
       <NavBar onToggleSidebar={onToggle} />
-      <FavoritesGrid onDragStart={onPointerDown} dragging={!!dnd && dnd.item.type === 'tab'} />
-      <div
-        className={`${styles.scroll} ${slide === 'right' ? styles.slideRight : ''} ${slide === 'left' ? styles.slideLeft : ''}`}
-        role="tree"
-        aria-label={t('shortcut.group.tabs')}
-        onWheel={onWheel}
-        onKeyDown={onTreeKeyDown}
-        key={core.activeSpaceId}
-        data-flip-viewport=""
-      >
-        <SpaceHeader />
-        <PinnedList onDragStart={onPointerDown} />
-        <TodayList onDragStart={onPointerDown} />
+      <div className={styles.stage}>
+        <div className={styles.page} data-away={downloadsOpen ? 'true' : undefined} inert={downloadsOpen}>
+          <ExtensionBar />
+          <FavoritesGrid onDragStart={onPointerDown} dragging={!!dnd && dnd.item.type === 'tab'} />
+          <div
+            className={`${styles.scroll} ${slide === 'right' ? styles.slideRight : ''} ${slide === 'left' ? styles.slideLeft : ''}`}
+            role="tree"
+            aria-label={t('shortcut.group.tabs')}
+            onWheel={onWheel}
+            onKeyDown={onTreeKeyDown}
+            key={core.activeSpaceId}
+            data-flip-viewport=""
+          >
+            <SpaceHeader />
+            <PinnedList onDragStart={onPointerDown} />
+            <TodayList onDragStart={onPointerDown} />
+          </div>
+          <SpaceBar />
+        </div>
+        {downloadsMounted && (
+          <div className={styles.downloads} data-open={downloadsOpen ? 'true' : 'false'}>
+            <DownloadsView onClose={closeDownloads} />
+          </div>
+        )}
       </div>
-      <SpaceBar />
       {iconPickerFor && pickerTarget && (
         <div className={styles.pickerAnchor}>
           <EmojiPicker

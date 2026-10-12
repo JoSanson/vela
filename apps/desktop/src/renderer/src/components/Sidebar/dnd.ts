@@ -1,6 +1,6 @@
 import { favoriteTabs, type Container, type Id } from '@vela/core';
 import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { dispatch } from '../../lib/api';
+import { dispatch, invoke } from '../../lib/api';
 import { useShell } from '../../lib/store';
 
 export interface DragItem {
@@ -19,7 +19,9 @@ export type DropTarget =
   | { kind: 'space'; spaceId: Id; rect: DOMRect }
   | { kind: 'split'; side: 'left' | 'right'; rect: DOMRect }
   /** Dropped onto another tab: the two open side by side (Arc's gesture for a split). */
-  | { kind: 'pair'; tabId: Id; rect: DOMRect };
+  | { kind: 'pair'; tabId: Id; rect: DOMRect }
+  /** Outside the window: main shows a placeholder window, and the drop tears the tab off (Arc). */
+  | { kind: 'window'; screenX: number; screenY: number };
 
 export interface DndState {
   item: DragItem;
@@ -138,6 +140,12 @@ export function hitTest(x: number, y: number, item: DragItem, root: HTMLElement)
   return null;
 }
 
+function outsideWindow(ev: PointerEvent): boolean {
+  return (
+    ev.clientX < 0 || ev.clientY < 0 || ev.clientX >= window.innerWidth || ev.clientY >= window.innerHeight
+  );
+}
+
 export function performDrop(item: DragItem, target: DropTarget): void {
   const core = useShell.getState().core;
   const now = Date.now();
@@ -159,7 +167,7 @@ export function performDrop(item: DragItem, target: DropTarget): void {
         if (pane !== target.tabId && pane !== item.id)
           dispatch({ type: 'split/remove', spaceId: space.id, tabId: pane });
       }
-      dispatch({ type: 'tab/activate', id: target.tabId, now });
+      dispatch({ type: 'tab/activate', id: target.tabId, now, spaceId: space.id });
       dispatch({ type: 'split/add', spaceId: space.id, tabId: item.id });
       return;
     }
@@ -198,6 +206,9 @@ export function performDrop(item: DragItem, target: DropTarget): void {
           now,
         });
       }
+      return;
+    case 'window':
+      void invoke('tab/dropOut', { tabId: item.id, x: target.screenX, y: target.screenY });
       return;
     case 'split': {
       const space = core.spaces[core.activeSpaceId];
@@ -249,6 +260,18 @@ export function useSidebarDnd(rootRef: React.RefObject<HTMLElement | null>) {
     pointerId: number;
   } | null>(null);
   const live = useRef<DndState | null>(null);
+  const ghost = useRef<{ frame: number; out: boolean }>({ frame: 0, out: false });
+
+  /** One IPC per frame at most: main moves the placeholder window to the latest screen point. */
+  const sendGhost = useCallback((tabId: Id | null, x = 0, y = 0) => {
+    const g = ghost.current;
+    if (!tabId && !g.out) return;
+    g.out = !!tabId;
+    cancelAnimationFrame(g.frame);
+    g.frame = requestAnimationFrame(() => {
+      void invoke('tab/dragOut', tabId ? { tabId, x, y } : null);
+    });
+  }, []);
 
   const onPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLElement>, item: DragItem) => {
@@ -274,11 +297,17 @@ export function useSidebarDnd(rootRef: React.RefObject<HTMLElement | null>) {
           document.body.dataset.dragging = 'true';
         }
         const root = rootRef.current;
-        const target = root ? hitTest(ev.clientX, ev.clientY, p.item, root) : null;
+        const out = p.item.type === 'tab' && outsideWindow(ev);
+        sendGhost(out ? p.item.id : null, ev.screenX, ev.screenY);
+        const target: DropTarget | null = out
+          ? { kind: 'window', screenX: ev.screenX, screenY: ev.screenY }
+          : root
+            ? hitTest(ev.clientX, ev.clientY, p.item, root)
+            : null;
         live.current = { item: p.item, x: ev.clientX, y: ev.clientY, target };
         setState(live.current);
       };
-      const up = (): void => {
+      const up = (ev: PointerEvent): void => {
         el.removeEventListener('pointermove', move);
         el.removeEventListener('pointerup', up);
         el.removeEventListener('pointercancel', up);
@@ -292,7 +321,13 @@ export function useSidebarDnd(rootRef: React.RefObject<HTMLElement | null>) {
           window.addEventListener('click', eat, { capture: true, once: true });
           setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 0);
         }
-        if (current?.target) performDrop(current.item, current.target);
+        const g = ghost.current;
+        cancelAnimationFrame(g.frame);
+        const tearing = current?.target?.kind === 'window' && ev.type === 'pointerup';
+        if (g.out && !tearing) void invoke('tab/dragOut', null);
+        g.out = false;
+        if (current?.target && (ev.type === 'pointerup' || current.target.kind !== 'window'))
+          performDrop(current.item, current.target);
         live.current = null;
         pending.current = null;
         delete document.body.dataset.dragging;
@@ -302,7 +337,7 @@ export function useSidebarDnd(rootRef: React.RefObject<HTMLElement | null>) {
       el.addEventListener('pointerup', up);
       el.addEventListener('pointercancel', up);
     },
-    [rootRef],
+    [rootRef, sendGhost],
   );
 
   return { dnd: state, onPointerDown };

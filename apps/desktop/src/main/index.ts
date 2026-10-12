@@ -2,12 +2,13 @@ import {
   activeSpace,
   type CoreState,
   dropEphemeralTabs,
+  foldInstances,
   needsSnapshot,
+  rootSpaceId,
   type CoreAction,
   type StateDelta,
   isEphemeralSpace,
   createSpace,
-  SPACE_PRESET_THEMES,
   type Id,
 } from '@vela/core';
 import { resolveShortcuts, unreservedOf, type BrowserImportSourceId } from '@vela/shared';
@@ -53,6 +54,8 @@ import { installInternalProtocol, registerInternalScheme } from './protocol';
 import { hardenSession, installAppSecurity } from './security';
 import { SessionManager } from './sessions';
 import { Store } from './store';
+import { settleSharedTabs } from './tabs/shadows';
+import type { MainWindow } from './windows/mainWindow';
 import { TabManager } from './tabs/tabManager';
 import { WindowManager } from './windows/windowManager';
 
@@ -130,6 +133,12 @@ function handleExternalUrl(url: string): void {
   else ctx.openLittle(url);
 }
 
+function newInstanceFor(store: Store, rootId: Id): Id {
+  const inst = { ...createSpace({ name: '', now: Date.now() }), parentId: rootId };
+  store.dispatch({ type: 'space/create', space: inst });
+  return inst.id;
+}
+
 function persistLoop(ctx: AppContext): () => void {
   let timer: NodeJS.Timeout | null = null;
   let dirty: CoreState | null = null;
@@ -178,7 +187,8 @@ async function boot(): Promise<void> {
   const repo = new StateRepo(db);
   const history = new HistoryRepo(db);
   const prefs = new PrefsStore(join(userData, 'prefs.json'));
-  const store = new Store(repo.load());
+  // One window comes back: per-window Space instances and shadows fold into their roots.
+  const store = new Store(foldInstances(repo.load()));
   const sessions = new SessionManager();
   const windows = new WindowManager(prefs);
   const i18n = new I18n(prefs);
@@ -193,9 +203,10 @@ async function boot(): Promise<void> {
     // A navigation that became a download leaves an empty tab behind: close it, keep the user's page.
     if (id && !wc.getURL() && Object.keys(store.state.tabs).length > 1)
       store.dispatch({ type: 'tab/close', id, now: Date.now() });
+    // The downloads view replaces the sidebar, so a download only shows progress on its button and
+    // a toast; opening the view stays the user's call.
     const target = shellWcNow();
     if (target) {
-      emit(target, 'ui/command', { id: 'showDownloads' });
       emit(target, 'ui/command', {
         id: 'toast',
         payload: { text: i18n.t('menu.toast.downloading', { filename }) },
@@ -309,6 +320,18 @@ async function boot(): Promise<void> {
   const rendererDir = join(__dirname, '../renderer');
   const devUrl = process.env.ELECTRON_RENDERER_URL;
 
+  const newInstance = (rootId: Id): Id => newInstanceFor(store, rootId);
+  /** What `mw` shows for `wanted`: its own instance of that Space, the Space itself, or a new instance. */
+  const spaceToShow = (mw: MainWindow, wanted: Id): Id => {
+    const rootId = rootSpaceId(store.state, wanted);
+    const own = windows.instanceOf(mw, rootId);
+    if (own && store.state.spaces[own]) return own;
+    const holder = windows.windowForSpace(rootId);
+    if (!holder || holder === mw) return rootId;
+    const inst = newInstance(rootId);
+    windows.setInstance(mw, rootId, inst);
+    return inst;
+  };
   const c: AppContext = {
     store,
     prefs,
@@ -336,28 +359,31 @@ async function boot(): Promise<void> {
     activateSpace: (id, target) => {
       const mw = target ?? windows.main;
       if (!store.state.spaces[id]) return;
-      if (mw) windows.setSpace(mw, id);
-      store.dispatch({ type: 'space/activate', id, now: Date.now() });
-    },
-    openWindow: async (wanted?: Id) => {
-      const state = store.state;
-      // A window shows a space nobody else shows: the next undisplayed one, or a fresh space.
-      let spaceId =
-        wanted && state.spaces[wanted]
-          ? wanted
-          : state.spaceOrder.find((sid) => !windows.windowForSpace(sid));
-      if (!spaceId) {
-        const preset = SPACE_PRESET_THEMES[state.spaceOrder.length % SPACE_PRESET_THEMES.length];
-        const sp = createSpace({
-          name: `Space ${state.spaceOrder.length + 1}`,
-          ...(preset ? { theme: preset } : {}),
-          now: Date.now(),
-        });
-        store.dispatch({ type: 'space/create', space: sp });
-        spaceId = sp.id;
+      // Another window's instance: that window is where this Space's Today lives.
+      const owner = windows.ownerOf(id);
+      if (owner && owner !== mw) {
+        owner.win.focus();
+        store.dispatch({ type: 'space/activate', id, now: Date.now() });
+        return;
       }
+      const shown = mw ? spaceToShow(mw, id) : id;
+      if (mw) windows.setSpace(mw, shown);
+      store.dispatch({ type: 'space/activate', id: shown, now: Date.now() });
+    },
+    openWindow: async (wanted?: Id, bounds?: Electron.Rectangle) => {
+      // Like Arc, a new window opens on the acting window's Space, with a Today of its own.
+      const from =
+        wanted && store.state.spaces[wanted] ? wanted : (windows.main?.spaceId ?? store.state.activeSpaceId);
+      const rootId = rootSpaceId(store.state, from);
+      if (!store.state.spaces[rootId]) return null;
+      const instanceId = windows.windowForSpace(rootId) ? newInstance(rootId) : null;
+      const spaceId = instanceId ?? rootId;
       const theme = store.state.spaces[spaceId]?.theme;
-      const win = await windows.createMain(theme?.from ?? '#1b1b22', { spaceId, offset: true });
+      const win = await windows.createMain(
+        theme?.from ?? '#1b1b22',
+        bounds ? { spaceId, bounds } : { spaceId, offset: true },
+      );
+      if (instanceId) windows.setInstance(win, rootId, instanceId);
       tabs.reconcile(store.state, null);
       store.dispatch({ type: 'space/activate', id: spaceId, now: Date.now() });
       return win;
@@ -439,6 +465,10 @@ async function boot(): Promise<void> {
     if (store.state.activeSpaceId !== w.spaceId && store.state.spaces[w.spaceId])
       store.dispatch({ type: 'space/activate', id: w.spaceId, now: Date.now() });
   });
+  // A closing window's Today tabs join its Space's Today in the other windows; nothing is lost.
+  windows.setClosedListener((_w, owned) => {
+    for (const id of owned) store.dispatch({ type: 'space/delete', id, now: Date.now() });
+  });
   windows.setSpaceListener((w, spaceId) => {
     emit(w.win.webContents, 'window/space', spaceId);
     const t = store.state.spaces[spaceId]?.theme;
@@ -493,12 +523,34 @@ async function boot(): Promise<void> {
       }
     }
   });
+  // After any change: windows whose Space is gone take another one, and no two windows share a page.
+  let settling = false;
+  const settleWindows = (): void => {
+    if (settling) return;
+    settling = true;
+    setImmediate(() => {
+      settling = false;
+      for (const w of windows.all()) {
+        if (store.state.spaces[w.spaceId]) continue;
+        const fallback = store.state.spaceOrder[0];
+        if (fallback) c.activateSpace(fallback, w);
+      }
+      settleSharedTabs(c);
+    });
+  };
   store.subscribe((next, prev, action) => {
+    if (next.spaces !== prev.spaces || next.tabs !== prev.tabs) settleWindows();
     // Any path that makes a space active (ATC routing, activating a tab elsewhere, direct
     // dispatches) must also show it somewhere: the acting window takes it when no window has it.
-    if (next.activeSpaceId !== prev.activeSpaceId && !windows.windowForSpace(next.activeSpaceId)) {
-      const mw = windows.main;
-      if (mw) windows.setSpace(mw, next.activeSpaceId);
+    if (next.activeSpaceId !== prev.activeSpaceId) {
+      const holder = windows.windowForSpace(next.activeSpaceId);
+      if (!holder) {
+        const mw = windows.ownerOf(next.activeSpaceId) ?? windows.main;
+        if (mw) windows.setSpace(mw, next.activeSpaceId);
+      } else if (holder !== windows.main) {
+        // A tab picked from another window's Today: that window comes forward, as in Arc.
+        holder.win.focus();
+      }
     }
     for (const w of windows.all()) {
       const t = next.spaces[w.spaceId]?.theme;
@@ -558,6 +610,9 @@ async function boot(): Promise<void> {
   sweepers = installMaintenance(c);
   installAutoPip(c);
   c.updater.start();
+  extensions.onChange((list) => {
+    for (const w of windows.all()) emit(w.win.webContents, 'extensions/changed', list);
+  });
   downloads.onChange((list) => {
     for (const w of windows.all()) emit(w.win.webContents, 'downloads/changed', list);
     for (const id of tabs.liveTabIds()) {

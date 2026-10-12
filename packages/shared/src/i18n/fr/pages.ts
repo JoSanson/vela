@@ -231,6 +231,16 @@ export const pages = {
   'pages.import.none':
     'Aucune donnée Arc, Chrome, Brave, Edge, Safari ou Firefox trouvée sur ce Mac. Vous pouvez toujours importer un export Vela depuis un fichier.',
   'pages.import.structureHint': 'Espaces, dossiers, onglets épinglés et ouverts, favoris.',
+  'pages.import.arcExtensions.title': 'Extensions de Arc',
+  'pages.import.arcExtensions.desc':
+    'Installez les mêmes extensions depuis le Chrome Web Store. Décochez celles dont vous n’avez plus besoin.',
+  'pages.import.arcExtensions.install': 'Installer {n, plural, one {# extension} other {# extensions}}',
+  'pages.import.arcExtensions.installing': 'Installation…',
+  'pages.import.arcExtensions.installed': 'Installée',
+  'pages.import.arcExtensions.already': 'Déjà dans Vela',
+  'pages.import.arcExtensions.failed': 'Absente du Web Store',
+  'pages.import.arcExtensions.done':
+    '{n, plural, one {# extension installée} other {# extensions installées}}',
   'pages.import.safariAccess':
     'Accès complet au disque requis : Réglages Système > Confidentialité et sécurité.',
   'pages.import.accessDenied': 'macOS a refusé l’accès au dossier de données de {name}.',

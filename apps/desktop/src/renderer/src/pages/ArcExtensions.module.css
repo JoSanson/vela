@@ -1,0 +1,111 @@
+/* Arc's extensions, right under the finished Arc import row. */
+.step {
+  margin: 0 16px 14px 64px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-border);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.headText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-fg);
+}
+
+.desc {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--p-muted);
+}
+
+.done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--p-success);
+  white-space: nowrap;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2px 16px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--p-fg);
+}
+
+.item[data-installed='true'] .label {
+  color: var(--p-muted);
+}
+
+.icon,
+.iconFallback {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 4px;
+}
+
+.iconFallback {
+  display: grid;
+  place-items: center;
+  color: var(--p-faint);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--p-muted);
+  white-space: nowrap;
+}
+
+.status[data-status='installed'] {
+  color: var(--p-success);
+}
+
+.status[data-status='failed'] {
+  color: var(--p-danger);
+}

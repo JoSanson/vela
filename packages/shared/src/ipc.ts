@@ -31,7 +31,8 @@ export interface Layout {
   topStrip?: number;
 }
 
-export type ContextMenuKind = 'tab' | 'folder' | 'space' | 'favorite' | 'today' | 'pinnedArea' | 'urlPill';
+export type ContextMenuKind =
+  'tab' | 'folder' | 'space' | 'favorite' | 'today' | 'pinnedArea' | 'urlPill' | 'extension';
 
 export interface LittleState {
   url: string;
@@ -274,6 +275,19 @@ export interface ExtensionInfo {
   enabled: boolean;
   /** Installed (and kept updated) from the Chrome Web Store, or loaded from a folder. */
   source: 'webstore' | 'unpacked';
+  /** Has an action button (toolbar icon / popup). */
+  hasAction: boolean;
+  /** Options page, when the extension declares one. */
+  optionsUrl: string | null;
+}
+
+export interface ArcExtension {
+  id: string;
+  name: string;
+  /** Data URL of its largest icon, if any. */
+  icon: string | null;
+  /** Already installed in Vela. */
+  installed: boolean;
 }
 
 export interface ThemePalette {
@@ -315,6 +329,10 @@ export interface IpcInvokeMap {
   };
   'tab/preview': { req: { tabId: Id; width: number }; res: TabPreview };
   'tab/reader': { req: { tabId: Id }; res: ReaderResult | null };
+  /** A sidebar drag left the window: the placeholder window follows the screen point; null hides it. */
+  'tab/dragOut': { req: { tabId: Id; x: number; y: number } | null; res: undefined };
+  /** Dropped outside the window: into the Vela window under the point, else a new window there. */
+  'tab/dropOut': { req: { tabId: Id; x: number; y: number }; res: undefined };
 
   'layout/set': { req: Layout; res: undefined };
   'window/action': {
@@ -359,6 +377,10 @@ export interface IpcInvokeMap {
     res: undefined;
   };
   'downloads/clear': { req: undefined; res: undefined };
+  /** The OS icon of the downloaded file (Finder's), as a data URL; null when the file is gone. */
+  'downloads/icon': { req: { id: string }; res: string | null };
+  /** Starts a native drag of the file (from the row's dragstart). */
+  'downloads/drag': { req: { id: string }; res: undefined };
 
   'permissions/list': { req: undefined; res: SitePermission[] };
   'permissions/set': { req: SitePermission; res: undefined };
@@ -406,6 +428,9 @@ export interface IpcInvokeMap {
   'extensions/remove': { req: { id: string }; res: undefined };
   'extensions/popup': { req: { id: string }; res: boolean };
   'extensions/openStore': { req: undefined; res: undefined };
+  /** Arc's Web Store extensions (all profiles), for the import step. */
+  'extensions/fromArc': { req: undefined; res: ArcExtension[] };
+  'extensions/installFromStore': { req: { id: string }; res: { ok: boolean; error?: string } };
 
   'theme/fromImage': { req: undefined; res: ThemePalette | null };
   'theme/fromImagePath': { req: { path: string }; res: ThemePalette | null };
@@ -467,6 +492,7 @@ export interface IpcEventMap {
   'ui/command': { id: string; payload?: unknown };
   'find/result': FindResult;
   'downloads/changed': DownloadItemState[];
+  'extensions/changed': ExtensionInfo[];
   'permissions/prompt': PermissionPrompt;
   'auth/prompt': AuthPrompt;
   'external/prompt': ExternalPrompt;

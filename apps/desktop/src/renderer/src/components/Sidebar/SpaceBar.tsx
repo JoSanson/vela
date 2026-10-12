@@ -1,3 +1,4 @@
+import { rootSpaceId } from '@vela/core';
 import type { DownloadItemState } from '@vela/shared';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { dispatch, invoke, modKey, vela } from '../../lib/api';
@@ -50,7 +51,7 @@ export function SpaceBar() {
           {core.spaceOrder.map((id, i) => {
             const sp = core.spaces[id];
             if (!sp) return null;
-            const isActive = id === core.activeSpaceId;
+            const isActive = id === rootSpaceId(core, core.activeSpaceId);
             return (
               <button
                 key={id}

@@ -52,6 +52,7 @@ import {
   type SafariHistoryRow,
 } from './importers/safari';
 import { applyBookmarkTree, type BookmarkFolder } from './importers/tree';
+import { readChromiumExtensions, type ChromiumExtension } from './importers/extensions';
 
 const execFileAsync = promisify(execFile);
 
@@ -223,6 +224,25 @@ function arcFiles(): SourceFiles {
     }
   }
   return none;
+}
+
+/**
+ * The Web Store extensions of every Arc profile, for the import step that offers to install them
+ * again (Arc's own system profile is skipped by name).
+ */
+export function arcExtensions(): ChromiumExtension[] {
+  const base = ARC[process.platform];
+  if (!base && !process.env.VELA_IMPORT_ROOT) return [];
+  for (const root of bases('arc', base ? [base] : [])) {
+    const userData = join(root, 'User Data');
+    if (!existsSync(userData)) continue;
+    const names = localStateNames(join(userData, 'Local State'));
+    const profiles = readdirSync(userData).filter(
+      (d) => CHROMIUM_PROFILE_DIR_RE.test(d) && names[d] !== '__ARC_SYSTEM_PROFILE',
+    );
+    return readChromiumExtensions(userData, profiles);
+  }
+  return [];
 }
 
 function safariFiles(): SourceFiles {

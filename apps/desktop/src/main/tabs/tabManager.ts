@@ -6,6 +6,7 @@ import {
   matchAtc,
   pickNextActive,
   resolveInput,
+  rootSpaceId,
   SEARCH_ENGINES,
   visibleTabIds,
   type CoreState,
@@ -195,7 +196,7 @@ export class TabManager {
   /** History is sealed per Space (D030): a favorite files its visits under the Space it is open in. */
   private historySpace(id: Id): string {
     const tab = this.state.tabs[id];
-    if (tab?.spaceId) return tab.spaceId;
+    if (tab?.spaceId) return rootSpaceId(this.state, tab.spaceId);
     const shownIn = Object.values(this.state.spaces).find(
       (s) => s.activeTabId === id || s.split?.panes.includes(id),
     );
@@ -204,6 +205,8 @@ export class TabManager {
 
   /** The profile a tab browses with: its Space's, or its own for favorites. */
   profileOf(tab: Tab): Id | null {
+    const original = tab.shadowOf ? this.state.tabs[tab.shadowOf] : undefined;
+    if (original) return this.profileOf(original);
     if (tab.spaceId) return this.state.spaces[tab.spaceId]?.profileId ?? null;
     return tab.profileId ?? null;
   }
@@ -709,14 +712,19 @@ export class TabManager {
     }
     // Pinned & favorites survive Cmd+W: unload them and move on. The tab leaves the visible set
     // before `tab/reset`, otherwise reconcile would spawn a fresh renderer for it.
-    const spaceId = tab.spaceId ?? state.activeSpaceId;
+    // The window showing it (an instance's, for a pinned tab of its root) moves on to another tab.
+    const spaceId =
+      Object.values(state.spaces).find((s) => s.activeTabId === tabId || s.split?.panes.includes(tabId))
+        ?.id ??
+      tab.spaceId ??
+      state.activeSpaceId;
     const space = state.spaces[spaceId];
     const next = pickNextActive(state, spaceId, tabId);
     this.destroyView(tabId);
     if (space?.split?.panes.includes(tabId))
       this.deps.store.dispatch({ type: 'split/remove', spaceId, tabId });
     if (space?.activeTabId === tabId) {
-      if (next) this.deps.store.dispatch({ type: 'tab/activate', id: next, now: Date.now() });
+      if (next) this.deps.store.dispatch({ type: 'tab/activate', id: next, now: Date.now(), spaceId });
       else this.deps.store.dispatch({ type: 'space/setActiveTab', spaceId, tabId: null });
     }
     this.deps.store.dispatch({ type: 'tab/reset', id: tabId });

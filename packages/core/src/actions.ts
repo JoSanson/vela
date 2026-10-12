@@ -47,7 +47,8 @@ export type CoreAction =
   | { type: 'space/activate'; id: Id; now: number }
   | { type: 'space/setActiveTab'; spaceId: Id; tabId: Id | null }
   | { type: 'tab/open'; tab: Tab; index?: number; activate: boolean }
-  | { type: 'tab/activate'; id: Id; now: number }
+  /** `spaceId`: the window's Space the click came from (see `activateTab`). */
+  | { type: 'tab/activate'; id: Id; now: number; spaceId?: Id }
   | { type: 'tab/close'; id: Id; now: number; reason?: ArchiveReason }
   | { type: 'tab/update'; id: Id; patch: TabPatch }
   | { type: 'tab/pin'; id: Id; index?: number }

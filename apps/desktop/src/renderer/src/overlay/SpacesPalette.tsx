@@ -1,4 +1,4 @@
-import { spaceTabs, type Id } from '@vela/core';
+import { rootSpaceId, spaceTabs, type Id } from '@vela/core';
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from '../components/Icon';
 import { dispatch, invoke, modKey } from '../lib/api';
@@ -16,7 +16,9 @@ export function SpacesPalette() {
   const t = useT();
   const core = useShell((s) => s.core);
   const [query, setQuery] = useState('');
-  const [index, setIndex] = useState(() => Math.max(0, core.spaceOrder.indexOf(core.activeSpaceId)));
+  const [index, setIndex] = useState(() =>
+    Math.max(0, core.spaceOrder.indexOf(rootSpaceId(core, core.activeSpaceId))),
+  );
   const gridRef = useRef<HTMLDivElement>(null);
   const q = query.trim().toLowerCase();
 
@@ -42,7 +44,7 @@ export function SpacesPalette() {
 
   const close = (): void => void invoke('overlay/hide', undefined);
   const go = (id: Id): void => {
-    if (id !== core.activeSpaceId) activateSpace(id);
+    if (id !== rootSpaceId(core, core.activeSpaceId)) activateSpace(id);
     close();
   };
   const create = (): void =>
@@ -106,7 +108,7 @@ export function SpacesPalette() {
           style={{ '--cols': COLS } as CSSProperties}
         >
           {list.map((r, i) => {
-            const isActive = r.sp.id === core.activeSpaceId;
+            const isActive = r.sp.id === rootSpaceId(core, core.activeSpaceId);
             return (
               <button
                 key={r.sp.id}

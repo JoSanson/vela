@@ -44,12 +44,19 @@
   box-shadow: 0 1px 2px rgba(18, 16, 30, 0.08);
 }
 
+/* Zero-height anchor at the grid's place: the zone below hangs from it during a drag. */
+.anchor {
+  position: relative;
+  height: 0;
+  z-index: 4;
+}
+
 /* Absolutely positioned so showing it during a drag never shifts the rows below. */
 .emptyZone {
   position: absolute;
   left: 10px;
   right: 10px;
-  top: 92px;
+  top: 6px;
   z-index: 4;
   height: 34px;
   padding: 0;
@@ -79,4 +86,30 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+/* Dock-style "running" mark: the favorite has a live page behind it. */
+.live {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.live.on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.active .live {
+  background: var(--fg-muted);
 }

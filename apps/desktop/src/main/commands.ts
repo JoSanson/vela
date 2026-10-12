@@ -4,6 +4,7 @@ import {
   createSpace,
   displayTitle,
   pinnedTree,
+  rootSpaceId,
   SPACE_PRESET_THEMES,
   type Id,
 } from '@vela/core';
@@ -110,7 +111,7 @@ export function runCommand(ctx: AppContext, id: string, payload?: unknown): void
     }
     case 'spaceNext':
     case 'spacePrev': {
-      const idx = state.spaceOrder.indexOf(state.activeSpaceId);
+      const idx = state.spaceOrder.indexOf(rootSpaceId(state, state.activeSpaceId));
       const n = state.spaceOrder.length;
       const target = state.spaceOrder[(idx + (id === 'spaceNext' ? 1 : -1) + n) % n];
       if (target) ctx.activateSpace(target);

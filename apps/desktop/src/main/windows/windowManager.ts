@@ -6,7 +6,8 @@ import type { LittleWindow } from './littleWindow';
 import { MainWindow } from './mainWindow';
 
 /**
- * Every main window shows exactly one Space, and a Space lives in one window at a time (D024).
+ * Every main window shows one Space. A Space already shown elsewhere is shown through a per-window
+ * instance (own Today, active tab and split; shared pinned and look), as Arc windows do (D037).
  * `main` is the window to act on: the focused one, else the most recently focused one.
  */
 export class WindowManager {
@@ -18,6 +19,9 @@ export class WindowManager {
   private onCreated: ((mw: MainWindow) => void) | null = null;
   private onFocused: ((mw: MainWindow) => void) | null = null;
   private onSpaceChanged: ((mw: MainWindow, spaceId: Id, previous: Id) => void) | null = null;
+  private onClosed: ((mw: MainWindow, instances: Id[]) => void) | null = null;
+  /** window id → (root Space → that window's instance of it). */
+  private readonly instances = new Map<number, Map<Id, Id>>();
 
   constructor(private readonly prefs: PrefsStore) {}
 
@@ -55,6 +59,28 @@ export class WindowManager {
     this.onCreated = fn;
   }
 
+  /** Runs after a main window closed, with the Space instances it owned (to fold them back). */
+  setClosedListener(fn: (mw: MainWindow, instances: Id[]) => void): void {
+    this.onClosed = fn;
+  }
+
+  instanceOf(mw: MainWindow, rootId: Id): Id | undefined {
+    return this.instances.get(mw.win.id)?.get(rootId);
+  }
+
+  setInstance(mw: MainWindow, rootId: Id, instanceId: Id): void {
+    const own = this.instances.get(mw.win.id) ?? new Map<Id, Id>();
+    own.set(rootId, instanceId);
+    this.instances.set(mw.win.id, own);
+  }
+
+  /** The window that owns a Space instance, if `spaceId` is one. */
+  ownerOf(spaceId: Id): MainWindow | undefined {
+    for (const [winId, own] of this.instances)
+      for (const inst of own.values()) if (inst === spaceId) return this.byId(winId);
+    return undefined;
+  }
+
   setFocusListener(fn: (mw: MainWindow) => void): void {
     this.onFocused = fn;
   }
@@ -81,20 +107,12 @@ export class WindowManager {
     return undefined;
   }
 
-  /**
-   * Shows `spaceId` in `mw`. If another window already shows it, that window takes `mw`'s previous
-   * space instead (a swap), so no space is ever displayed twice.
-   */
+  /** Shows `spaceId` in `mw`; callers pick an instance when another window shows the root. */
   setSpace(mw: MainWindow, spaceId: Id): void {
     if (mw.spaceId === spaceId) return;
     const previous = mw.spaceId;
-    const other = this.windowForSpace(spaceId);
     mw.spaceId = spaceId;
     this.onSpaceChanged?.(mw, spaceId, previous);
-    if (other && other !== mw) {
-      other.spaceId = previous;
-      this.onSpaceChanged?.(other, previous, spaceId);
-    }
   }
 
   async createMain(
@@ -141,6 +159,9 @@ export class WindowManager {
       unsubscribePrefs();
       this.windows.delete(win.id);
       this.focusOrder = this.focusOrder.filter((i) => i !== win.id);
+      const owned = [...(this.instances.get(win.id)?.values() ?? [])];
+      this.instances.delete(win.id);
+      this.onClosed?.(mw, owned);
     });
     this.onCreated?.(mw);
     await mw.load();

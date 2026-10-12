@@ -63,3 +63,65 @@
     opacity: 1;
   }
 }
+
+/* Below the nav bar: the tabs page and, over it, the downloads view sliding in from the right. */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+.page[data-away='true'] {
+  transform: translateX(-24px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    visibility 0s linear var(--dur);
+}
+
+.downloads {
+  position: absolute;
+  inset: 0;
+  animation: downloadsIn var(--dur) var(--ease-out);
+}
+
+.downloads[data-open='false'] {
+  transform: translateX(24px);
+  opacity: 0;
+  transition:
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+@keyframes downloadsIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .page[data-away='true'],
+  .downloads[data-open='false'] {
+    transition: none;
+  }
+  .downloads {
+    animation: none;
+  }
+}

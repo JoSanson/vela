@@ -21,14 +21,21 @@ export interface ExtensionApiDeps {
  */
 export class ExtensionApis {
   private bySession = new Map<Session, ElectronChromeExtensions>();
+  /** The tab extensions currently see as active (chrome.tabs.query({ active: true }), autofill…). */
+  private selected: WebContents | null = null;
 
   constructor(private readonly deps: ExtensionApiDeps) {
     // Icons for the sidebar's <browser-action-list>, which lives in the shell's (default) session.
     ElectronChromeExtensions.handleCRXProtocol(session.defaultSession);
-    deps.tabs.onViewCreated((tabId, wc) => this.add(tabId, wc));
-    deps.tabs.onVisibilityChange((tabId, visible) => {
-      if (visible && tabId === deps.tabs.activeTabId()) this.select(tabId);
+    // Every path that can change which tab is in front ends in one of these: a new view (restored
+    // or opened), a visibility change, or a layout. Missing one left extensions such as Bitwarden
+    // filling a background tab instead of the page on screen.
+    deps.tabs.onViewCreated((tabId, wc) => {
+      this.add(tabId, wc);
+      this.syncActive();
     });
+    deps.tabs.onVisibilityChange(() => this.syncActive());
+    deps.tabs.onAfterLayout(() => this.syncActive());
   }
 
   /** Must run before the session loads any extension, so the API preloads are registered first. */
@@ -94,8 +101,13 @@ export class ExtensionApis {
     if (api && win) api.addTab(wc, win);
   }
 
-  private select(tabId: Id): void {
-    const wc = this.deps.tabs.webContents(tabId);
-    if (wc) this.bySession.get(wc.session)?.selectTab(wc);
+  private syncActive(): void {
+    const id = this.deps.tabs.activeTabId();
+    const wc = id ? this.deps.tabs.webContents(id) : undefined;
+    if (!wc || wc === this.selected) return;
+    const api = this.bySession.get(wc.session);
+    if (!api) return;
+    api.selectTab(wc);
+    this.selected = wc;
   }
 }

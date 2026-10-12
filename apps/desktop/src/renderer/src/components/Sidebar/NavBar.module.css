@@ -127,13 +127,3 @@
 .site[aria-expanded='true'] {
   background: var(--surface-active);
 }
-
-/* Extension buttons (electron-chrome-extensions' <browser-action-list>), sized like the nav buttons. */
-.extensions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  max-width: 132px;
-  overflow: hidden;
-}

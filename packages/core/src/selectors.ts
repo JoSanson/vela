@@ -9,6 +9,17 @@ export function activeTab(state: CoreState): Tab | undefined {
   return space?.activeTabId ? state.tabs[space.activeTabId] : undefined;
 }
 
+/** The Space whose pinned tabs, folders and look a (possibly per-window instance) Space shows. */
+export function rootSpaceId(state: CoreState, spaceId: Id): Id {
+  return state.spaces[spaceId]?.parentId ?? spaceId;
+}
+
+/** The sidebar item a Space's active tab stands for (a shadow stands for its favorite or pinned tab). */
+export function activeItemId(state: CoreState, spaceId: Id = state.activeSpaceId): Id | null {
+  const id = state.spaces[spaceId]?.activeTabId ?? null;
+  return (id && state.tabs[id]?.shadowOf) || id;
+}
+
 /** Tabs that must have live contents right now: the active tab or split panes of the active space. */
 export function visibleTabIds(state: CoreState, spaceId: Id = state.activeSpaceId): Id[] {
   const space = state.spaces[spaceId];
@@ -22,7 +33,7 @@ export type SidebarItem =
 
 /** Flattened pinned tree of a space, respecting collapsed folders. */
 export function pinnedTree(state: CoreState, spaceId: Id, includeCollapsed = false): SidebarItem[] {
-  const space = state.spaces[spaceId];
+  const space = state.spaces[rootSpaceId(state, spaceId)];
   if (!space) return [];
   const out: SidebarItem[] = [];
   const walk = (ids: readonly Id[], depth: number): void => {

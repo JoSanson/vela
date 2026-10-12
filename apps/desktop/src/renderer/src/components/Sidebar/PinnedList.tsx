@@ -1,4 +1,4 @@
-import { pinnedTree, type Container, type Folder, type Id } from '@vela/core';
+import { activeItemId, pinnedTree, type Container, type Folder, type Id } from '@vela/core';
 import { useMemo, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
 import { useT } from '../../lib/i18n';
@@ -165,7 +165,7 @@ export function PinnedList({ onDragStart }: Props) {
             key={it.tab.id}
             tab={it.tab}
             depth={it.depth}
-            active={space.activeTabId === it.tab.id}
+            active={activeItemId(core) === it.tab.id}
             inSplit={!!space.split?.panes.includes(it.tab.id)}
             {...containerFor(it.tab.id)}
             onDragStart={onDragStart}

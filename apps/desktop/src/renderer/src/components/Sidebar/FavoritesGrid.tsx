@@ -1,4 +1,4 @@
-import { displayTitle, favoriteTabs } from '@vela/core';
+import { activeItemId, displayTitle, favoriteTabs } from '@vela/core';
 import { useState, type PointerEvent } from 'react';
 import { dispatch, invoke } from '../../lib/api';
 import { useT } from '../../lib/i18n';
@@ -21,12 +21,12 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
   const t = useT();
   const all = favoriteTabs(core);
   const [expanded, setExpanded] = useState(false);
-  const activeId = core.spaces[core.activeSpaceId]?.activeTabId;
+  const activeId = activeItemId(core);
   if (all.length === 0 && !dragging) return null;
   const folded = all.length > MAX_VISIBLE && !expanded && !dragging;
   const favs = folded ? all.slice(0, MAX_VISIBLE - 1) : all;
   const hidden = all.length - favs.length;
-  return (
+  const grid = (
     <div
       className={`${styles.grid} ${favs.length === 0 ? styles.emptyZone : ''}`}
       role="list"
@@ -40,7 +40,19 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
           key={t.id}
           role="listitem"
           className={`${styles.cell} ${t.id === activeId ? styles.active : ''}`}
-          onClick={() => dispatch({ type: 'tab/activate', id: t.id, now: Date.now() })}
+          onClick={(e) => {
+            // ⌘-click keeps the favorite where it is and opens its page as a Today tab (Arc).
+            if (e.metaKey || e.ctrlKey) {
+              void invoke('tab/openUrl', {
+                input: t.url,
+                spaceId: core.activeSpaceId,
+                activate: !e.shiftKey,
+                noAtc: true,
+              });
+              return;
+            }
+            dispatch({ type: 'tab/activate', id: t.id, now: Date.now(), spaceId: core.activeSpaceId });
+          }}
           onContextMenu={(e) => {
             e.preventDefault();
             void invoke('menu/show', { kind: 'favorite', id: t.id });
@@ -59,9 +71,11 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
           aria-label={displayTitle(t)}
           data-tab-id={t.id}
           data-dnd-fav={i}
+          data-loaded={t.loaded}
         >
           <Favicon tab={t} size={20} />
           {t.audible && <span className={styles.dot} aria-hidden="true" />}
+          <span className={`${styles.live} ${t.loaded ? styles.on : ''}`} aria-hidden="true" />
         </button>
       ))}
       {(folded || (expanded && all.length > MAX_VISIBLE && !dragging)) && (
@@ -78,4 +92,6 @@ export function FavoritesGrid({ onDragStart, dragging }: Props) {
       {all.length === 0 && <span className={styles.hint}>{t('shell.favorites.dropHint')}</span>}
     </div>
   );
+  // The empty drop zone floats over the tabs from where the grid would be, so it never shifts them.
+  return favs.length === 0 ? <div className={styles.anchor}>{grid}</div> : grid;
 }

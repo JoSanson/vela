@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CoreAction } from './actions';
 import { createDefaultState, createFolder, createProfile, createSpace, createTab } from './factories';
-import { findContainer, reduce } from './reducer';
-import { activeTab, visibleTabIds } from './selectors';
+import { findContainer, foldInstances, reduce } from './reducer';
+import { activeItemId, activeTab, visibleTabIds } from './selectors';
 import type { CoreState, Folder, Id, Space, Tab, TabKind } from './types';
 
 const NOW = 1_700_000_000_000;
@@ -1044,5 +1044,153 @@ describe('no-op actions return the same state reference', () => {
       { type: 'profile/delete', id: 'nope' },
     ];
     for (const action of actions) expect(reduce(s, action), action.type).toBe(s);
+  });
+});
+
+describe('per-window Space instances (Arc windows)', () => {
+  function withInstance(state: CoreState, id: Id = 'w2', parentId: Id = 's1'): CoreState {
+    return reduce(state, {
+      type: 'space/create',
+      space: { ...createSpace({ id, name: 'ignored', now: NOW }), parentId },
+    });
+  }
+
+  it('an instance mirrors its root, stays out of spaceOrder, and has its own Today', () => {
+    let s = open(baseState(), 'a', 's1');
+    s = withInstance(s);
+    expect(s.spaceOrder).toEqual(['s1']);
+    expect(sp(s, 'w2')).toMatchObject({ name: 'Home', parentId: 's1', today: [], pinned: [] });
+    s = open(s, 'b', 'w2');
+    expect(sp(s, 'w2').today).toEqual(['b']);
+    expect(sp(s, 's1').today).toEqual(['a']);
+    expect(sp(s, 's1').activeTabId).toBe('a');
+  });
+
+  it('pinned tabs and folders opened from an instance live in the root', () => {
+    let s = withInstance(baseState());
+    s = open(s, 'p', 'w2', { kind: 'pinned' });
+    expect(sp(s, 's1').pinned).toEqual(['p']);
+    expect(s.tabs.p?.spaceId).toBe('s1');
+    s = reduce(s, { type: 'folder/create', folder: createFolder({ id: 'f', spaceId: 'w2', name: 'F' }) });
+    expect(s.folders.f?.spaceId).toBe('s1');
+    s = open(s, 't', 'w2');
+    s = reduce(s, {
+      type: 'tab/move',
+      id: 't',
+      to: { container: { kind: 'pinned', spaceId: 'w2' }, index: 0 },
+      now: NOW,
+    });
+    expect(sp(s, 's1').pinned[0]).toBe('t');
+    expect(s.tabs.t?.spaceId).toBe('s1');
+  });
+
+  it('renaming either side renames the root and every instance', () => {
+    let s = withInstance(baseState());
+    s = reduce(s, { type: 'space/update', id: 'w2', patch: { name: 'Work' } });
+    expect(sp(s, 's1').name).toBe('Work');
+    expect(sp(s, 'w2').name).toBe('Work');
+  });
+
+  it('activating a pinned tab from a window shows it in that window only', () => {
+    let s = open(baseState(), 'a', 's1');
+    s = open(s, 'p', 's1', { kind: 'pinned', activate: false });
+    s = withInstance(s);
+    s = reduce(s, { type: 'tab/activate', id: 'p', now: NOW, spaceId: 'w2' });
+    expect(sp(s, 'w2').activeTabId).toBe('p');
+    expect(sp(s, 's1').activeTabId).toBe('a');
+    expect(s.activeSpaceId).toBe('w2');
+    s = open(s, 't', 'w2', { activate: false });
+    s = reduce(s, { type: 'tab/activate', id: 't', now: NOW, spaceId: 's1' });
+    expect(sp(s, 'w2').activeTabId).toBe('t');
+  });
+
+  it('a shadow joins no container, stands for its item, and closes with it', () => {
+    let s = open(baseState(), 'p', 's1', { kind: 'pinned' });
+    s = withInstance(s);
+    const shadow = {
+      ...createTab({ id: 'sh', url: 'https://p.example.com/', spaceId: 'w2', kind: 'today', now: NOW }),
+      shadowOf: 'p',
+    };
+    s = reduce(s, { type: 'tab/open', tab: shadow, activate: true });
+    expect(sp(s, 'w2').today).toEqual([]);
+    expect(sp(s, 'w2').activeTabId).toBe('sh');
+    expect(activeItemId(s, 'w2')).toBe('p');
+    s = reduce(s, { type: 'tab/close', id: 'p', now: NOW });
+    expect(s.tabs.sh).toBeUndefined();
+    expect(s.archive.map((a) => a.id)).toEqual(['p']);
+  });
+
+  it('closing a shadow archives nothing', () => {
+    let s = open(baseState(), 'p', 's1', { kind: 'pinned' });
+    s = withInstance(s);
+    const shadow = {
+      ...createTab({ id: 'sh', url: 'https://p.example.com/', spaceId: 'w2', kind: 'today', now: NOW }),
+      shadowOf: 'p',
+    };
+    s = reduce(s, { type: 'tab/open', tab: shadow, activate: true });
+    s = reduce(s, { type: 'tab/close', id: 'sh', now: NOW });
+    expect(s.archive).toEqual([]);
+    expect(s.tabs.p).toBeDefined();
+  });
+
+  it('deleting an instance folds its Today into the top of the root', () => {
+    let s = open(baseState(), 'a', 's1');
+    s = withInstance(s);
+    s = open(s, 'b', 'w2');
+    s = open(s, 'c', 'w2');
+    s = reduce(s, { type: 'space/delete', id: 'w2', now: NOW });
+    expect(s.spaces.w2).toBeUndefined();
+    expect(sp(s, 's1').today).toEqual(['c', 'b', 'a']);
+    expect(s.tabs.b?.spaceId).toBe('s1');
+    expect(s.activeSpaceId).toBe('s1');
+    expect(s.archive).toEqual([]);
+  });
+
+  it('deleting a root folds its instances first, then closes everything', () => {
+    let s = withSpace(baseState(), 's2');
+    s = withInstance(s, 'w2', 's2');
+    s = open(s, 'b', 'w2');
+    s = reduce(s, { type: 'space/delete', id: 's2', now: NOW });
+    expect(s.spaces.w2).toBeUndefined();
+    expect(s.tabs.b).toBeUndefined();
+  });
+
+  it('foldInstances leaves the state of one fresh window', () => {
+    let s = open(baseState(), 'p', 's1', { kind: 'pinned' });
+    s = withInstance(s);
+    s = open(s, 'b', 'w2');
+    const shadow = {
+      ...createTab({ id: 'sh', url: 'https://p.example.com/', spaceId: 's1', kind: 'today', now: NOW }),
+      shadowOf: 'p',
+    };
+    s = reduce(s, { type: 'tab/open', tab: shadow, activate: true });
+    s = foldInstances(s);
+    expect(Object.keys(s.spaces)).toEqual(['s1']);
+    expect(s.tabs.sh).toBeUndefined();
+    expect(sp(s, 's1').activeTabId).toBe('p');
+    expect(sp(s, 's1').today).toEqual(['b']);
+  });
+
+  it('an instance of an unknown or nested root is refused', () => {
+    const s = withInstance(baseState());
+    expect(withInstance(s, 'w3', 'nope')).toBe(s);
+    expect(withInstance(s, 'w3', 'w2')).toBe(s);
+  });
+
+  it('auto-archive and tab moves reach instances too', () => {
+    let s = withInstance(baseState());
+    s = open(s, 'old', 'w2', { now: NOW - 2 * DAY, activate: false });
+    s = open(s, 'cur', 'w2');
+    s = reduce(s, { type: 'maintenance/autoArchive', now: NOW, maxAgeMs: DAY });
+    expect(s.tabs.old).toBeUndefined();
+    expect(findContainer(s, 'cur')).toEqual({ container: { kind: 'today', spaceId: 'w2' }, index: 0 });
+    s = reduce(s, {
+      type: 'tab/move',
+      id: 'cur',
+      to: { container: { kind: 'today', spaceId: 's1' }, index: 0 },
+      now: NOW,
+    });
+    expect(sp(s, 'w2').today).toEqual([]);
+    expect(sp(s, 'w2').activeTabId).toBeNull();
   });
 });

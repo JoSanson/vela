@@ -1,4 +1,11 @@
-import { createDefaultState, type CoreState, type Folder, type Space, type Tab } from '@vela/core';
+import {
+  createDefaultState,
+  foldInstances,
+  type CoreState,
+  type Folder,
+  type Space,
+  type Tab,
+} from '@vela/core';
 import { DEFAULT_PREFS, type Boost, type Prefs } from '@vela/shared';
 import { app, dialog } from 'electron';
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -21,7 +28,7 @@ export function exportState(ctx: AppContext): string {
     version: 1,
     exportedAt: Date.now(),
     appVersion: ctx.version,
-    state: ctx.store.state,
+    state: foldInstances(ctx.store.state),
     prefs: ctx.prefs.value,
     boosts: ctx.boosts.list(),
   };
@@ -81,7 +88,7 @@ export function importState(ctx: AppContext, json: string): void {
   const raw = JSON.parse(json) as Partial<ExportBundle>;
   if (raw.format !== 'vela-export' || !raw.state) throw new Error('Not a Vela export file');
   const base = createDefaultState();
-  const state = sanitizeImported({ ...base, ...raw.state });
+  const state = foldInstances(sanitizeImported({ ...base, ...raw.state }));
   if (!state.spaceOrder.length || !state.spaces[state.activeSpaceId])
     throw new Error('Export file has no valid space');
   // Irreversible: keep a copy of the current database next to it first (last three kept).

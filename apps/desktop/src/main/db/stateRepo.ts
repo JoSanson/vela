@@ -46,7 +46,8 @@ export class StateRepo {
       const s = parseRow<Space>(r.data, 'space');
       if (!s?.id || !s.theme) continue;
       spaces[s.id] = { ...s, pinned: s.pinned ?? [], today: s.today ?? [] };
-      spaceOrder.push(s.id);
+      // Per-window instances come back only to be folded into their root (`foldInstances`).
+      if (!s.parentId) spaceOrder.push(s.id);
     }
     if (spaceOrder.length === 0) return createDefaultState();
     const tabs: Record<string, Tab> = {};
@@ -110,8 +111,12 @@ export class StateRepo {
           const sp = state.spaces[id];
           if (sp && (prev?.spaces[id] !== sp || prev.spaceOrder[i] !== id)) up.run(id, i, JSON.stringify(sp));
         });
+        // Window instances too, so a crash never strands their Today tabs.
+        for (const sp of Object.values(state.spaces))
+          if (sp.parentId && prev?.spaces[sp.id] !== sp)
+            up.run(sp.id, state.spaceOrder.length, JSON.stringify(sp));
         const del = db.prepare('DELETE FROM spaces WHERE id = ?');
-        for (const id of prev?.spaceOrder ?? []) if (!state.spaces[id]) del.run(id);
+        for (const id of Object.keys(prev?.spaces ?? {})) if (!state.spaces[id]) del.run(id);
       }
       if (prev?.tabs !== state.tabs) {
         const up = db.prepare(

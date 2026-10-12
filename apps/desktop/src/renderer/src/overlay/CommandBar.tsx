@@ -1,4 +1,5 @@
 import {
+  activeItemId,
   displayTitle,
   hostOf,
   makeSearchItem,
@@ -268,7 +269,7 @@ export function CommandBar({ payload }: { payload: CommandBarPayload }) {
     };
   }, [query, site]);
 
-  const activeId = core.spaces[core.activeSpaceId]?.activeTabId ?? '';
+  const activeId = activeItemId(core) ?? '';
   const keywordSite = useMemo(() => (site ? null : matchSiteSearch(query, sites)), [site, query, sites]);
   const results = useMemo(() => {
     const q = query.trim();

@@ -22,6 +22,11 @@ export interface Space {
   activeTabId: Id | null;
   split: SplitLayout | null;
   createdAt: number;
+  /**
+   * Set on a window's instance of a Space shown in another window too (Arc's per-window Today):
+   * the instance has its own Today, active tab and split; pinned, folders and look stay the root's.
+   */
+  parentId?: Id | null;
 }
 
 export interface Folder {
@@ -70,6 +75,11 @@ export interface Tab {
   scrollY: number;
   /** The current page loaded only because the user bypassed a certificate error. */
   certWarning?: boolean;
+  /**
+   * A favorite or pinned tab opened in a second window gets its own page there (Arc keeps one web
+   * contents per window and sidebar item): this tab is that page, listed in no container.
+   */
+  shadowOf?: Id;
 }
 
 export interface SplitLayout {

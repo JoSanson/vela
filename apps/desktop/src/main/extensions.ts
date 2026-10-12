@@ -1,6 +1,6 @@
 import type { ExtensionInfo } from '@vela/shared';
 import { dialog, type Extension, type NativeImage, type Session } from 'electron';
-import { installChromeWebStore, uninstallExtension } from 'electron-chrome-web-store';
+import { installChromeWebStore, installExtension, uninstallExtension } from 'electron-chrome-web-store';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import type { ExtensionApis } from './extensionApis';
@@ -42,6 +42,8 @@ export class ExtensionManager {
   private pending = new Set<string>();
   /** Only one session runs the 5-hourly update check; the others pick updates up by propagation. */
   private updater: string | null = null;
+  private changeListeners = new Set<(list: ExtensionInfo[]) => void>();
+  private changeScheduled = false;
 
   constructor(
     private readonly prefs: PrefsStore,
@@ -72,10 +74,44 @@ export class ExtensionManager {
     return path.startsWith(this.opts.storeDir + sep);
   }
 
+  /** Fires (coalesced) whenever the set of installed extensions or their versions change. */
+  onChange(fn: (list: ExtensionInfo[]) => void): () => void {
+    this.changeListeners.add(fn);
+    return () => this.changeListeners.delete(fn);
+  }
+
+  private changed(): void {
+    if (this.changeScheduled) return;
+    this.changeScheduled = true;
+    setImmediate(() => {
+      this.changeScheduled = false;
+      const list = this.list();
+      this.pinNew(list);
+      for (const fn of this.changeListeners) fn(list);
+    });
+  }
+
+  /** A newly installed extension gets a tile; one the user unpinned stays unpinned. */
+  private pinNew(list: ExtensionInfo[]): void {
+    const { extensionSeen, extensionPins } = this.prefs.value;
+    const fresh = list.filter((e) => e.hasAction && !extensionSeen.includes(e.id)).map((e) => e.id);
+    if (fresh.length === 0) return;
+    this.prefs.set({
+      extensionSeen: [...extensionSeen, ...fresh],
+      extensionPins: [...extensionPins, ...fresh.filter((id) => !extensionPins.includes(id))],
+    });
+  }
+
   private async enableWebStore(ses: Session, partition: string): Promise<void> {
     this.updater ??= partition;
-    ses.extensions.on('extension-loaded', (_e, ext) => void this.propagateLoad(ext, partition));
-    ses.extensions.on('extension-unloaded', (_e, ext) => this.propagateUnload(ext, partition));
+    ses.extensions.on('extension-loaded', (_e, ext) => {
+      this.changed();
+      void this.propagateLoad(ext, partition);
+    });
+    ses.extensions.on('extension-unloaded', (_e, ext) => {
+      this.changed();
+      this.propagateUnload(ext, partition);
+    });
     try {
       await installChromeWebStore({
         session: ses,
@@ -132,6 +168,7 @@ export class ExtensionManager {
         path: entry.path,
         enabled: true,
         source: 'unpacked',
+        ...ExtensionManager.surface(id, ext?.manifest),
       });
     }
     for (const partition of this.sessions.allPartitions()) {
@@ -144,10 +181,38 @@ export class ExtensionManager {
           path: ext.path,
           enabled: true,
           source: 'webstore',
+          ...ExtensionManager.surface(ext.id, ext.manifest),
         });
       }
     }
     return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** What the shell can show for an extension: a toolbar button, an options page. */
+  private static surface(id: string, manifest: unknown): Pick<ExtensionInfo, 'hasAction' | 'optionsUrl'> {
+    const m = (manifest ?? {}) as {
+      action?: unknown;
+      browser_action?: unknown;
+      options_page?: string;
+      options_ui?: { page?: string };
+    };
+    const options = m.options_ui?.page ?? m.options_page;
+    return {
+      hasAction: !!(m.action ?? m.browser_action),
+      optionsUrl: options ? `chrome-extension://${id}/${options.replace(/^\/+/, '')}` : null,
+    };
+  }
+
+  /** Installs from the Chrome Web Store by id (Arc import); other sessions get it by propagation. */
+  async installFromStore(id: string): Promise<{ ok: boolean; error?: string }> {
+    const ses = this.sessions.get(DEFAULT_PARTITION);
+    if (ses.extensions.getExtension(id)) return { ok: true };
+    try {
+      await installExtension(id, { session: ses, extensionsPath: this.opts.storeDir });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   private async loadInto(ses: Session, partition: string, path: string): Promise<Extension | null> {
@@ -157,6 +222,7 @@ export class ExtensionManager {
       const entry = this.loaded.get(ext.id) ?? { path, byPartition: new Map<string, Extension>() };
       entry.byPartition.set(partition, ext);
       this.loaded.set(ext.id, entry);
+      this.changed();
       return ext;
     } catch (err) {
       console.warn('[extensions] failed to load', path, err);
@@ -183,6 +249,7 @@ export class ExtensionManager {
       path,
       enabled: true,
       source: 'unpacked',
+      ...ExtensionManager.surface(first.id, first.manifest),
     };
   }
 
@@ -209,6 +276,7 @@ export class ExtensionManager {
       }
       this.loaded.delete(id);
       this.prefs.set({ extensionPaths: this.prefs.value.extensionPaths.filter((p) => p !== entry.path) });
+      this.changed();
       return;
     }
     // Web Store: the first session deletes the folder, the unload event clears the others.

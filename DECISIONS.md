@@ -173,6 +173,8 @@ being dropped when the disk is full.
 
 ## D024 — Windows show Spaces; a Space lives in one window at a time
 
+> Superseded by D037 (a Space may be shown in several windows through per-window instances).
+
 Multi-window replaces D011. Every main window displays exactly one Space; opening a Space that
 another window already shows swaps the two windows' Spaces, so a tab's native view only ever has
 one parent. `WindowManager.main` is "the window to act on" (focused, else most recently focused):
@@ -326,3 +328,24 @@ element is injected by the shell preload (inlined in the bundle, sandboxed prelo
 node_modules) and its icons come over the `crx:` scheme, allowed in the shell CSP's `img-src` only.
 Why: that row is where Arc shows extensions, it is always visible with the sidebar, and it costs no
 new chrome.
+
+## D037 — Windows work like Arc's: per-window Today, shared pinned and favorites, tear-off
+
+Supersedes D024. Read from Arc's binary: each window keeps a `windowContentSidebarItemMap` (its own web
+contents per sidebar item), unpinned containers come `shared` or tied to a `windowID`, and the sidebar
+drag handler has `onDragWillPresentPlaceholderWindow`, `onDragDidUpdateTargetWindow`,
+`moveDraggingItemsToTargetWindow` and `acceptDropIntoNewWindow(position:)`.
+
+- A Space shown in a second window is shown through an instance (`Space.parentId`): own Today, active
+  tab and split; pinned tabs, folders, name, theme and profile stay the root's (the reducer maps an
+  instance's pinned container and folders to the root, `space/update` mirrors to instances).
+- A favorite or pinned tab on screen in another window gets its own page in this one: a shadow tab
+  (`Tab.shadowOf`), in no container, highlighted as its item, closed with it, never archived.
+  `settleSharedTabs` turns any leftover double display into a shadow for the window not in front.
+- ⌘N and dragging a tab out of the window open the same Space; a drag over another Vela window
+  moves the tab there. A scaled snapshot follows the cursor outside every window meanwhile.
+- Closing a window folds its instances: their Today tabs join the top of the root's Today, so
+  nothing is lost (Arc archives them instead). Only one window comes back at launch, so
+  `foldInstances` runs on load, export and import.
+- ⌘-click on a favorite or a pinned tab opens its current page as a new Today tab (⌘⇧ in the
+  background), leaving the item in place.

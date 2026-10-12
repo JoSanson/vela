@@ -22,6 +22,10 @@ export interface Prefs {
   glass: boolean;
   /** Unpacked extension folders to load at startup. */
   extensionPaths: string[];
+  /** Extension ids shown as tiles under the URL field, in order. */
+  extensionPins: string[];
+  /** Every extension id ever installed, so a new one is pinned once and an unpin sticks. */
+  extensionSeen: string[];
   /** Host → zoom factor. */
   zoomByHost: Record<string, number>;
   windowBounds: { x: number; y: number; width: number; height: number } | null;
@@ -59,6 +63,8 @@ export const DEFAULT_PREFS: Prefs = {
   autoUpdate: true,
   glass: false,
   extensionPaths: [],
+  extensionPins: [],
+  extensionSeen: [],
   zoomByHost: {},
   windowBounds: null,
   httpsUpgrade: true,

@@ -76,16 +76,10 @@ test.describe('Chrome Web Store', () => {
       expect(asked[0]?.detail).toContain('Read and change all your data on all websites');
       expect(asked[0]?.detail).toContain('every space and profile');
 
-      // Its button is in the sidebar.
-      await expect
-        .poll(() =>
-          vela.shell.evaluate(() => {
-            const list = document.querySelector('[data-testid="extension-actions"]');
-            // electron-chrome-extensions renders <button is="browser-action" class="action"> in its shadow root.
-            return list?.shadowRoot?.querySelectorAll('button.action').length ?? 0;
-          }),
-        )
-        .toBeGreaterThan(0);
+      // Its button is pinned in the sidebar's extension bar.
+      await expect(vela.shell.getByTestId('extension-bar').getByTestId('extension-tile')).toHaveCount(1, {
+        timeout: 20_000,
+      });
       await vela.shot('70-webstore-extension-button');
 
       // A Space with its own profile gets the extension too.

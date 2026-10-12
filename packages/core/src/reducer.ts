@@ -1,5 +1,6 @@
 import { isEphemeralSpace } from './privacy';
 import type { CoreAction } from './actions';
+import { rootSpaceId } from './selectors';
 import { toArchived } from './factories';
 import type {
   ArchiveReason,
@@ -48,11 +49,21 @@ function updateFolder(state: CoreState, id: Id, fn: (f: Folder) => Folder): Core
   return { ...state, folders: { ...state.folders, [id]: fn(folder) } };
 }
 
+/** Every Space, per-window instances included (`spaceOrder` lists only the user's Spaces). */
+function allSpaceIds(state: CoreState): Id[] {
+  return Object.keys(state.spaces);
+}
+
+/** Pinned tabs live in the root Space: an instance's pinned container is its root's. */
+function rootContainer(state: CoreState, c: Container): Container {
+  return c.kind === 'pinned' ? { kind: 'pinned', spaceId: rootSpaceId(state, c.spaceId) } : c;
+}
+
 /** Removes an item id (tab or folder) from every container it may sit in. */
 function detach(state: CoreState, id: Id): CoreState {
   let next = state;
   if (next.favorites.includes(id)) next = { ...next, favorites: without(next.favorites, id) };
-  for (const sid of next.spaceOrder) {
+  for (const sid of allSpaceIds(next)) {
     const s = next.spaces[sid];
     if (!s) continue;
     if (s.today.includes(id) || s.pinned.includes(id)) {
@@ -74,7 +85,7 @@ function detach(state: CoreState, id: Id): CoreState {
 export function findContainer(state: CoreState, id: Id): MoveTarget | null {
   const fi = state.favorites.indexOf(id);
   if (fi >= 0) return { container: { kind: 'favorites' }, index: fi };
-  for (const sid of state.spaceOrder) {
+  for (const sid of allSpaceIds(state)) {
     const s = state.spaces[sid];
     if (!s) continue;
     const ti = s.today.indexOf(id);
@@ -118,7 +129,7 @@ function attach(state: CoreState, id: Id, target: MoveTarget): CoreState {
 }
 
 function removeFromSplit(state: CoreState, spaceId: Id | null, tabId: Id): CoreState {
-  const ids = spaceId ? [spaceId] : state.spaceOrder;
+  const ids = spaceId ? [spaceId] : allSpaceIds(state);
   let next = state;
   for (const sid of ids) {
     const s = next.spaces[sid];
@@ -151,36 +162,56 @@ function nextActiveTab(state: CoreState, space: Space, closedId: Id): Id | null 
 }
 
 function archiveTab(state: CoreState, tab: Tab, now: number, reason: ArchiveReason): CoreState {
-  const spaceName = (tab.spaceId && state.spaces[tab.spaceId]?.name) || 'Favorites';
-  const entry = toArchived(tab, spaceName, now, reason);
+  const spaceId = tab.spaceId ? rootSpaceId(state, tab.spaceId) : null;
+  const spaceName = (spaceId && state.spaces[spaceId]?.name) || 'Favorites';
+  const entry = toArchived({ ...tab, spaceId }, spaceName, now, reason);
   return { ...state, archive: [entry, ...state.archive.filter((a) => a.id !== tab.id)] };
 }
 
 function deleteTab(state: CoreState, id: Id, now: number, reason: ArchiveReason | null): CoreState {
   const tab = state.tabs[id];
   if (!tab) return state;
-  let next = detach(state, id);
+  let next: CoreState = state;
+  // A favorite or pinned tab takes its per-window pages with it.
+  for (const t of Object.values(state.tabs)) if (t.shadowOf === id) next = deleteTab(next, t.id, now, null);
+  const before = next;
+  next = detach(next, id);
   next = removeFromSplit(next, null, id);
-  for (const sid of next.spaceOrder) {
+  for (const sid of allSpaceIds(next)) {
     const s = next.spaces[sid];
     if (s?.activeTabId === id) {
       // Use the pre-detach space so the closed tab's position in `today` still resolves neighbours.
-      const replacement = nextActiveTab(next, state.spaces[sid] ?? s, id);
+      const replacement = nextActiveTab(next, before.spaces[sid] ?? s, id);
       next = updateSpace(next, sid, (sp) => ({ ...sp, activeTabId: replacement }));
     }
   }
   const tabs = { ...next.tabs };
   delete tabs[id];
   next = { ...next, tabs, mru: without(next.mru, id) };
-  if (reason && tab.url && !tab.url.startsWith('vela://') && !isEphemeralSpace(state, tab.spaceId))
+  if (
+    reason &&
+    !tab.shadowOf &&
+    tab.url &&
+    !tab.url.startsWith('vela://') &&
+    !isEphemeralSpace(state, tab.spaceId)
+  )
     next = archiveTab(next, tab, now, reason);
   return next;
 }
 
-function activateTab(state: CoreState, id: Id, now: number): CoreState {
+/**
+ * `inSpace` is the window's Space the click came from: a favorite or a pinned tab of that Space's
+ * root shows there; Today tabs always show in their own Space.
+ */
+function activateTab(state: CoreState, id: Id, now: number, inSpace?: Id): CoreState {
   const tab = state.tabs[id];
   if (!tab) return state;
-  const spaceId = tab.spaceId ?? state.activeSpaceId;
+  const shared =
+    inSpace !== undefined &&
+    tab.kind !== 'today' &&
+    (tab.kind === 'favorite' ||
+      (!!tab.spaceId && rootSpaceId(state, tab.spaceId) === rootSpaceId(state, inSpace)));
+  const spaceId = shared ? inSpace : (tab.spaceId ?? state.activeSpaceId);
   if (!state.spaces[spaceId]) return state;
   let next = updateSpace(state, spaceId, (s) => ({ ...s, activeTabId: id }));
   next = updateTab(next, id, (t) => ({ ...t, lastActiveAt: now }));
@@ -194,9 +225,10 @@ function kindForContainer(c: Container): Tab['kind'] {
   return 'pinned';
 }
 
-function moveTab(state: CoreState, id: Id, to: MoveTarget, now: number): CoreState {
+function moveTab(state: CoreState, id: Id, rawTo: MoveTarget, now: number): CoreState {
   const tab = state.tabs[id];
-  if (!tab) return state;
+  if (!tab || tab.shadowOf) return state;
+  const to = { ...rawTo, container: rootContainer(state, rawTo.container) };
   const targetSpaceId = containerSpaceId(state, to.container);
   if (to.container.kind !== 'favorites' && !targetSpaceId) return state;
   const kind = kindForContainer(to.container);
@@ -236,11 +268,62 @@ function isDescendantFolder(state: CoreState, folderId: Id, maybeAncestorId: Id)
   return f.children.some((c) => state.folders[c] !== undefined && isDescendantFolder(state, folderId, c));
 }
 
+/**
+ * A window closed (or the app restarted): its instance's Today joins the top of the root's, its
+ * shadows close, and the instance goes away. Nothing the user opened is lost.
+ */
+function foldSpace(state: CoreState, id: Id): CoreState {
+  const inst = state.spaces[id];
+  if (!inst?.parentId) return state;
+  const rootId = inst.parentId;
+  let next = state;
+  for (const t of Object.values(state.tabs))
+    if (t.shadowOf && t.spaceId === id) next = deleteTab(next, t.id, 0, null);
+  const root = next.spaces[rootId];
+  const moved = (next.spaces[id]?.today ?? []).filter((tid) => next.tabs[tid]);
+  if (root) {
+    next = updateSpace(next, rootId, (r) => ({ ...r, today: [...moved, ...r.today] }));
+    const tabs = { ...next.tabs };
+    for (const tid of moved) {
+      const t = tabs[tid];
+      if (t) tabs[tid] = { ...t, spaceId: rootId };
+    }
+    next = { ...next, tabs };
+  } else {
+    for (const tid of moved) next = deleteTab(next, tid, 0, null);
+  }
+  const spaces = { ...next.spaces };
+  delete spaces[id];
+  const activeSpaceId =
+    next.activeSpaceId === id ? (root ? rootId : (next.spaceOrder[0] ?? id)) : next.activeSpaceId;
+  return { ...next, spaces, activeSpaceId };
+}
+
+/** Folds every per-window instance and drops every shadow: the state of a single fresh window. */
+export function foldInstances(state: CoreState): CoreState {
+  let next = state;
+  for (const s of Object.values(state.spaces)) if (s.parentId) next = foldSpace(next, s.id);
+  for (const t of Object.values(next.tabs)) {
+    if (!t.shadowOf) continue;
+    const original = t.shadowOf;
+    for (const sid of allSpaceIds(next))
+      if (next.spaces[sid]?.activeTabId === t.id)
+        next = updateSpace(next, sid, (sp) => ({
+          ...sp,
+          activeTabId: next.tabs[original] ? original : null,
+        }));
+    next = deleteTab(next, t.id, 0, null);
+  }
+  return next;
+}
+
 function deleteSpace(state: CoreState, id: Id, now: number): CoreState {
-  if (state.spaceOrder.length <= 1) return state;
   const space = state.spaces[id];
   if (!space) return state;
+  if (space.parentId) return foldSpace(state, id);
+  if (state.spaceOrder.length <= 1) return state;
   let next = state;
+  for (const s of Object.values(state.spaces)) if (s.parentId === id) next = foldSpace(next, s.id);
   const tabIds = Object.values(next.tabs)
     .filter((t) => t.spaceId === id)
     .map((t) => t.id);
@@ -263,14 +346,27 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
 
     case 'space/create': {
       if (state.spaces[action.space.id]) return state;
+      const parent = action.space.parentId ? state.spaces[action.space.parentId] : undefined;
+      if (action.space.parentId) {
+        if (!parent || parent.parentId) return state;
+        const { name, emoji, theme, profileId } = parent;
+        const inst: Space = { ...action.space, name, emoji, theme, profileId, pinned: [] };
+        return { ...state, spaces: { ...state.spaces, [inst.id]: inst } };
+      }
       return {
         ...state,
         spaces: { ...state.spaces, [action.space.id]: action.space },
         spaceOrder: insertAt(state.spaceOrder, action.space.id, action.index),
       };
     }
-    case 'space/update':
-      return updateSpace(state, action.id, (s) => ({ ...s, ...action.patch }));
+    case 'space/update': {
+      // Name, emoji, theme and profile belong to the root; its window instances mirror them.
+      const rootId = rootSpaceId(state, action.id);
+      let next = updateSpace(state, rootId, (s) => ({ ...s, ...action.patch }));
+      for (const s of Object.values(state.spaces))
+        if (s.parentId === rootId) next = updateSpace(next, s.id, (sp) => ({ ...sp, ...action.patch }));
+      return next;
+    }
     case 'space/delete':
       return deleteSpace(state, action.id, action.now);
     case 'space/reorder': {
@@ -299,6 +395,12 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
       const tab = action.tab;
       if (state.tabs[tab.id]) return state;
       let next: CoreState = { ...state, tabs: { ...state.tabs, [tab.id]: tab } };
+      if (tab.shadowOf) {
+        if (!state.tabs[tab.shadowOf] || !tab.spaceId || !state.spaces[tab.spaceId]) return state;
+        if (!action.activate) return next;
+        next = updateSpace(next, tab.spaceId, (s) => ({ ...s, activeTabId: tab.id }));
+        return { ...touchMru(next, tab.id), activeSpaceId: tab.spaceId };
+      }
       if (tab.kind === 'favorite') {
         next = attach(next, tab.id, {
           container: { kind: 'favorites' },
@@ -310,15 +412,17 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
         if (tab.spaceId !== spaceId) next = updateTab(next, tab.id, (t) => ({ ...t, spaceId }));
         const kind = tab.kind === 'pinned' ? 'pinned' : 'today';
         const index = action.index ?? (kind === 'today' ? 0 : undefined);
+        const home = kind === 'pinned' ? rootSpaceId(state, spaceId) : spaceId;
+        if (home !== spaceId) next = updateTab(next, tab.id, (t) => ({ ...t, spaceId: home }));
         next = attach(next, tab.id, {
-          container: { kind, spaceId },
+          container: { kind, spaceId: home },
           index: index ?? Number.MAX_SAFE_INTEGER,
         });
       }
       return action.activate ? activateTab(next, tab.id, tab.createdAt) : next;
     }
     case 'tab/activate':
-      return activateTab(state, action.id, action.now);
+      return activateTab(state, action.id, action.now, action.spaceId);
     case 'tab/close': {
       const tab = state.tabs[action.id];
       if (!tab) return state;
@@ -371,7 +475,7 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
       }));
 
     case 'folder/create': {
-      const folder = action.folder;
+      const folder = { ...action.folder, spaceId: rootSpaceId(state, action.folder.spaceId) };
       if (state.folders[folder.id] || !state.spaces[folder.spaceId]) return state;
       let next: CoreState = { ...state, folders: { ...state.folders, [folder.id]: folder } };
       const parent = action.parentFolderId ? next.folders[action.parentFolderId] : undefined;
@@ -401,11 +505,11 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
     case 'folder/move': {
       const folder = state.folders[action.id];
       if (!folder) return state;
-      const c = action.to.container;
+      const c = rootContainer(state, action.to.container);
       if (c.kind === 'today' || c.kind === 'favorites') return state;
       if (c.kind === 'folder' && isDescendantFolder(state, c.folderId, action.id)) return state;
       if (containerSpaceId(state, c) !== folder.spaceId) return state;
-      return attach(detach(state, action.id), action.id, action.to);
+      return attach(detach(state, action.id), action.id, { ...action.to, container: c });
     }
 
     case 'archive/restore': {
@@ -447,7 +551,7 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
       const keep = new Set(action.keepTabIds ?? []);
       const cutoff = action.now - action.maxAgeMs;
       let next = state;
-      for (const sid of state.spaceOrder) {
+      for (const sid of allSpaceIds(state)) {
         const s = state.spaces[sid];
         if (!s) continue;
         for (const tid of s.today) {
@@ -532,7 +636,7 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
       const profiles = { ...state.profiles };
       delete profiles[action.id];
       let next: CoreState = { ...state, profiles };
-      for (const sid of next.spaceOrder) {
+      for (const sid of allSpaceIds(next)) {
         if (next.spaces[sid]?.profileId === action.id)
           next = updateSpace(next, sid, (s) => ({ ...s, profileId: null }));
       }

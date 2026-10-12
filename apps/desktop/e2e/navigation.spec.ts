@@ -205,10 +205,7 @@ test.describe('little window', () => {
 });
 
 test.describe('windows', () => {
-  test('⌘N opens a second window on another space; tabs of that space live there', async ({
-    vela,
-    fixtures,
-  }) => {
+  test('⌘N opens a second window on the same Space with a Today of its own', async ({ vela, fixtures }) => {
     const first = await vela.openTab(`${fixtures}/page/One`);
     await vela.command('newWindow');
     await expect
@@ -222,6 +219,12 @@ test.describe('windows', () => {
     const firstSpace = (await vela.state()).spaceOrder[0];
     const second = wins.find((w) => w.spaceId !== firstSpace) ?? wins[1];
     if (!second) throw new Error('no second window');
+    expect(
+      await evalMain<string | null>(
+        vela,
+        `return __vela.ctx.store.state.spaces[${JSON.stringify(second.spaceId)}]?.parentId ?? null`,
+      ),
+    ).toBe(firstSpace);
     await evalMain(
       vela,
       `__vela.ctx.tabs.openUrl({ input: ${JSON.stringify(`${fixtures}/page/Two`)}, spaceId: ${JSON.stringify(second.spaceId)}, noAtc: true })`,

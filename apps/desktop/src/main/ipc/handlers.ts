@@ -10,12 +10,15 @@ import { findInTab, stopFind } from '../find';
 import { fetchSuggestions } from '../suggest';
 import { extractReadable } from '../reader';
 import { paletteFromFile, pickImageAndExtract } from '../themeFromImage';
-import { detectSources, runImport } from '../importer';
+import { arcExtensions, detectSources, runImport } from '../importer';
 import { exportState, importFromFile, importState, saveExportToFile } from '../exporter';
 import { emit, handle, isTrustedShell, pageOrigin } from './typed';
 import { ipcMain } from 'electron';
 import { channel, UNRESERVED_SHORTCUTS, resolveShortcuts, unreservedOf } from '@vela/shared';
 import { WEB_STORE_URL } from '../extensions';
+import { existsSync } from 'node:fs';
+import { TearOff } from '../windows/tearOff';
+import { activateInWindow } from '../tabs/shadows';
 
 const UNRESERVED_IDS = new Set(UNRESERVED_SHORTCUTS.map((s) => s.id));
 
@@ -62,6 +65,10 @@ export function registerCoreHandlers(ctx: AppContext): void {
         windows.byShell(event.sender) ??
         (overlay.view?.webContents.id === event.sender.id ? overlay.host : null);
       ctx.activateSpace(action.id, mw ?? windows.main);
+      return undefined;
+    }
+    if (fromShell && action.type === 'tab/activate' && action.spaceId) {
+      activateInWindow(ctx, action.id, action.spaceId);
       return undefined;
     }
     if (!fromShell) {
@@ -128,6 +135,16 @@ export function registerCoreHandlers(ctx: AppContext): void {
     tabId,
     dataUrl: await tabs.capture(tabId, width),
   }));
+
+  const tearOff = new TearOff(ctx);
+  handle('tab/dragOut', 'shell', async (req, event) => {
+    await tearOff.drag(req, event.sender);
+    return undefined;
+  });
+  handle('tab/dropOut', 'shell', async (req, event) => {
+    await tearOff.drop(req, event.sender);
+    return undefined;
+  });
 
   handle('layout/set', 'shell', (layout, event) => {
     const mw = windows.byShell(event.sender);
@@ -258,6 +275,21 @@ export function registerCoreHandlers(ctx: AppContext): void {
   handle('downloads/list', 'internal', () => ctx.downloads.list());
   handle('downloads/action', 'internal', ({ id, action }) => {
     ctx.downloads.action(id, action);
+    return undefined;
+  });
+  handle('downloads/icon', 'shell', async ({ id }) => {
+    const item = ctx.downloads.list().find((d) => d.id === id);
+    if (!item?.path || !existsSync(item.path)) return null;
+    try {
+      return (await app.getFileIcon(item.path, { size: 'normal' })).toDataURL();
+    } catch {
+      return null;
+    }
+  });
+  handle('downloads/drag', 'shell', async ({ id }, event) => {
+    const item = ctx.downloads.list().find((d) => d.id === id);
+    if (!item?.path || item.state !== 'completed' || !existsSync(item.path)) return undefined;
+    event.sender.startDrag({ file: item.path, icon: await app.getFileIcon(item.path, { size: 'small' }) });
     return undefined;
   });
   handle('downloads/clear', 'internal', () => {
@@ -417,6 +449,11 @@ export function registerCoreHandlers(ctx: AppContext): void {
     await ctx.extensions.remove(id);
     return undefined;
   });
+  handle('extensions/fromArc', 'internal', () => {
+    const installed = new Set(ctx.extensions.list().map((e) => e.id));
+    return arcExtensions().map((e) => ({ ...e, installed: installed.has(e.id) }));
+  });
+  handle('extensions/installFromStore', 'internal', ({ id }) => ctx.extensions.installFromStore(id));
   handle('extensions/openStore', 'internal', () => {
     tabs.openUrl({ input: WEB_STORE_URL, noAtc: true });
     return undefined;

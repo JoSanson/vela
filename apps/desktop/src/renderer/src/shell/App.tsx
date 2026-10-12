@@ -13,7 +13,6 @@ import { invoke, modKey, vela } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { connectStore, selectActiveTab, useShell } from '../lib/store';
 import { applyTheme, systemPrefersDark } from '../lib/theme';
-import { DownloadsPanel } from './DownloadsPanel';
 import { EdgeHint } from './EdgeHint';
 import { FindBar } from './FindBar';
 import { SiteControl } from './SiteControl';
@@ -67,7 +66,6 @@ export function App() {
   const setSidebarWidth = useShell((s) => s.setSidebarWidth);
   const setFindOpen = useShell((s) => s.setFindOpen);
   const setTopStrip = useShell((s) => s.setTopStrip);
-  const downloadsOpen = useShell((s) => s.downloadsOpen);
   const siteControlOpen = useShell((s) => s.siteControlOpen);
   const setSiteControlOpen = useShell((s) => s.setSiteControlOpen);
   const activeTab = useShell(selectActiveTab);
@@ -170,7 +168,6 @@ export function App() {
       if (id === 'toggleSidebar') toggleSidebar();
       if (id === 'findInPage') openFind();
       if (id === 'toggleDownloads') setDownloadsOpen(!useShell.getState().downloadsOpen);
-      if (id === 'showDownloads') setDownloadsOpen(true);
       if (id === 'editSpace') void invoke('overlay/show', { kind: 'spaceEditor', payload });
       if (id === 'toast') {
         const p = payload as
@@ -280,7 +277,6 @@ export function App() {
           aria-hidden={!sidebarVisible}
         >
           <Sidebar width={sidebarWidth} onToggle={toggleSidebar} />
-          {downloadsOpen && <DownloadsPanel onClose={() => setDownloadsOpen(false)} />}
           {siteControlOpen && activeTab && (
             <SiteControl tab={activeTab} onClose={() => setSiteControlOpen(false)} />
           )}

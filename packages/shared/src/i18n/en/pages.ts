@@ -224,6 +224,16 @@ export const pages = {
   'pages.import.none':
     'No Arc, Chrome, Brave, Edge, Safari or Firefox data was found on this Mac. You can still import a Vela export from a file.',
   'pages.import.structureHint': 'Spaces, folders, pinned and open tabs, favorites.',
+  'pages.import.arcExtensions.title': 'Extensions from Arc',
+  'pages.import.arcExtensions.desc':
+    'Install the same extensions from the Chrome Web Store. Uncheck the ones you no longer need.',
+  'pages.import.arcExtensions.install': 'Install {n, plural, one {# extension} other {# extensions}}',
+  'pages.import.arcExtensions.installing': 'Installing…',
+  'pages.import.arcExtensions.installed': 'Installed',
+  'pages.import.arcExtensions.already': 'Already in Vela',
+  'pages.import.arcExtensions.failed': 'Not on the Web Store',
+  'pages.import.arcExtensions.done':
+    '{n, plural, one {# extension installed} other {# extensions installed}}',
   'pages.import.safariAccess': 'Needs Full Disk Access: System Settings > Privacy & Security.',
   'pages.import.accessDenied': 'macOS refused access to the {name} data folder.',
   'pages.import.structure': 'Recreate Spaces, pinned tabs and favorites',

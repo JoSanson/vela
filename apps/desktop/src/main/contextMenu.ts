@@ -1,4 +1,4 @@
-import { displayTitle, type Id } from '@vela/core';
+import { displayTitle, rootSpaceId, type Id } from '@vela/core';
 import type { ContextMenuKind } from '@vela/shared';
 import { clipboard, Menu, shell, type MenuItemConstructorOptions, type WebContents } from 'electron';
 import { savePageAs } from './commands';
@@ -14,7 +14,7 @@ function moveToSpaceItems(ctx: AppContext, tabId: Id): MenuItemConstructorOption
   const { state } = ctx.store;
   const tab = state.tabs[tabId];
   return state.spaceOrder
-    .filter((sid) => sid !== tab?.spaceId)
+    .filter((sid) => !tab?.spaceId || sid !== rootSpaceId(state, tab.spaceId))
     .map((sid) => {
       const sp = state.spaces[sid];
       return {
@@ -137,8 +137,12 @@ export function sidebarMenu(ctx: AppContext, kind: ContextMenuKind, id?: Id): Me
 
   if (kind === 'space') {
     const sid = id ?? state.activeSpaceId;
+    const rootId = rootSpaceId(state, sid);
     return [
-      { label: t('menu.context.editSpace'), click: () => ctx.overlay.show('spaceEditor', { spaceId: sid }) },
+      {
+        label: t('menu.context.editSpace'),
+        click: () => ctx.overlay.show('spaceEditor', { spaceId: rootId }),
+      },
       { label: t('menu.context.newSpace'), click: () => ctx.overlay.show('spaceEditor', { spaceId: 'new' }) },
       { label: t('menu.context.newFolder'), click: () => toShell(ctx, 'newFolder', {}) },
       { type: 'separator' },
@@ -153,8 +157,34 @@ export function sidebarMenu(ctx: AppContext, kind: ContextMenuKind, id?: Id): Me
       {
         label: t('menu.context.deleteSpace'),
         enabled: state.spaceOrder.length > 1,
-        click: () => store.dispatch({ type: 'space/delete', id: sid, now }),
+        click: () => store.dispatch({ type: 'space/delete', id: rootId, now }),
       },
+    ];
+  }
+
+  if (kind === 'extension' && id) {
+    const ext = ctx.extensions.list().find((e) => e.id === id);
+    if (!ext) return [];
+    const pins = ctx.prefs.value.extensionPins;
+    const pinned = pins.includes(id);
+    return [
+      {
+        label: pinned ? t('menu.context.extension.unpin') : t('menu.context.extension.pin'),
+        click: () => ctx.prefs.set({ extensionPins: pinned ? pins.filter((p) => p !== id) : [...pins, id] }),
+      },
+      {
+        label: t('menu.context.extension.options'),
+        enabled: !!ext.optionsUrl,
+        click: () => {
+          if (ext.optionsUrl) tabs.openUrl({ input: ext.optionsUrl, noAtc: true });
+        },
+      },
+      { type: 'separator' },
+      {
+        label: t('menu.context.extension.manage'),
+        click: () => tabs.openUrl({ input: 'vela://settings/#extensions', noAtc: true }),
+      },
+      { label: t('menu.context.extension.remove'), click: () => void ctx.extensions.remove(id) },
     ];
   }
 

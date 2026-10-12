@@ -29,7 +29,10 @@ test.describe('favicons', () => {
 });
 
 test.describe('downloads', () => {
-  test('tracks a download with progress, shows it in the panel and completes', async ({ vela, fixtures }) => {
+  test('tracks a download with progress, shows it in the downloads view and completes', async ({
+    vela,
+    fixtures,
+  }) => {
     const id = await vela.openTab(`${fixtures}/page/Dl`);
     await vela.tabPage('/page/Dl');
     await evalMain(
@@ -37,7 +40,7 @@ test.describe('downloads', () => {
       `__vela.ctx.tabs.webContents(${JSON.stringify(id)}).downloadURL(${JSON.stringify(`${fixtures}/download/blob.bin`)})`,
     );
     await vela.shell.getByTestId('downloads-toggle').click();
-    const panel = vela.shell.getByTestId('downloads-panel');
+    const panel = vela.shell.getByTestId('downloads-view');
     await expect(panel).toBeVisible();
     const item = panel.getByTestId('download-item');
     await expect(item).toHaveCount(1);
