@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="380" viewBox="0 0 880 380" role="img" aria-label="Benchmark, lower is better. Launch → window on screen: Arc 2,116 ms, Vela 237 ms. Memory, 1 tab + 10 real sites: Arc 3,902 MB, Vela 2,635 MB, Vela + blocker 2,052 MB. Idle CPU, same 11 tabs: Arc 82.2 %, Vela 58.6 %, Vela + blocker 9.7 %. Tab switch, keystroke → frame: Arc 12.0 ms, Vela 6.5 ms.">
+  <title>Arc vs Vela benchmark</title>
+  <style>
+    text { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; fill: #1f2328; }
+    .t { font-size: 15px; font-weight: 600; }
+    .m, .f { fill: #59636e; font-size: 12px; }
+    .c { font-weight: 600; fill: #1f2328; }
+    .l { fill: #59636e; }
+    .v { font-variant-numeric: tabular-nums; }
+    .arc { fill: #eb6834; }
+    .vela { fill: #2a78d6; }
+    .hatch { fill-opacity: 0.4; stroke: #2a78d6; stroke-width: 1.5; }
+    .axis { stroke: #d1d9e0; stroke-width: 1; }
+    @media (prefers-color-scheme: dark) {
+      text, .c { fill: #f0f6fc; }
+      .m, .f, .l { fill: #9198a1; }
+      .arc { fill: #d95926; }
+      .vela { fill: #3987e5; }
+      .hatch { stroke: #3987e5; }
+      .axis { stroke: #3d444d; }
+    }
+  </style>
+  <text class="t" x="0" y="20">Launch → window on screen</text>
+  <text class="m" x="0" y="38">ms · lower is better</text>
+  <text class="c" x="420" y="20" text-anchor="end">Vela: 8.9× faster</text>
+  <text class="l" x="102" y="71" text-anchor="end">Arc</text>
+  <path class="arc" d="M112,56h208a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-208z"/>
+  <text class="v" x="332" y="71">2,116 ms</text>
+  <text class="l" x="102" y="103" text-anchor="end">Vela</text>
+  <path class="vela" d="M112,88h19.744801512287335a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-19.744801512287335z"/>
+  <text class="v" x="143.74480151228732" y="103">237 ms</text>
+  <line class="axis" x1="112" x2="112" y1="50" y2="114"/>
+  <text class="t" x="460" y="20">Memory, 1 tab + 10 real sites</text>
+  <text class="m" x="460" y="38">MB · lower is better</text>
+  <text class="c" x="880" y="20" text-anchor="end">Vela: 32 % less</text>
+  <text class="l" x="562" y="71" text-anchor="end">Arc</text>
+  <path class="arc" d="M572,56h208a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-208z"/>
+  <text class="v" x="792" y="71">3,902 MB</text>
+  <text class="l" x="562" y="103" text-anchor="end">Vela</text>
+  <path class="vela" d="M572,88h139.16067260612346a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-139.16067260612346z"/>
+  <text class="v" x="723.1606726061234" y="103">2,635 MB</text>
+  <text class="l" x="562" y="135" text-anchor="end">Vela + blocker</text>
+  <path class="vela hatch" d="M572,120h107.4597483542408a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-107.4597483542408z"/>
+  <text class="v" x="691.4597483542408" y="135">2,052 MB</text>
+  <line class="axis" x1="572" x2="572" y1="50" y2="146"/>
+  <text class="t" x="0" y="188">Idle CPU, same 11 tabs</text>
+  <text class="m" x="0" y="206">% of a core · lower is better</text>
+  <text class="c" x="420" y="188" text-anchor="end">Vela: 29 % less</text>
+  <text class="l" x="102" y="239" text-anchor="end">Arc</text>
+  <path class="arc" d="M112,224h208a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-208z"/>
+  <text class="v" x="332" y="239">82.2 %</text>
+  <text class="l" x="102" y="271" text-anchor="end">Vela</text>
+  <path class="vela" d="M112,256h147.25301513723218a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-147.25301513723218z"/>
+  <text class="v" x="271.2530151372322" y="271">58.6 %</text>
+  <text class="l" x="102" y="303" text-anchor="end">Vela + blocker</text>
+  <path class="vela hatch" d="M112,288h20.98737705897815a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-20.98737705897815z"/>
+  <text class="v" x="144.98737705897815" y="303">9.7 %</text>
+  <line class="axis" x1="112" x2="112" y1="218" y2="314"/>
+  <text class="t" x="460" y="188">Tab switch, keystroke → frame</text>
+  <text class="m" x="460" y="206">ms, median · lower is better</text>
+  <text class="c" x="880" y="188" text-anchor="end">Vela: 1.8× faster</text>
+  <text class="l" x="562" y="239" text-anchor="end">Arc</text>
+  <path class="arc" d="M572,224h208a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-208z"/>
+  <text class="v" x="792" y="239">12.0 ms</text>
+  <text class="l" x="562" y="271" text-anchor="end">Vela</text>
+  <path class="vela" d="M572,256h110.83333333333333a4,4 0 0 1 4,4v12a4,4 0 0 1 -4,4h-110.83333333333333z"/>
+  <text class="v" x="694.8333333333334" y="271">6.5 ms</text>
+  <line class="axis" x1="572" x2="572" y1="218" y2="282"/>
+  <text class="f" x="0" y="372">Measured on Apple M5, 32 GB · Arc 1.168.0 vs Vela 0.3.0 · same machine, same probes · method: apps/desktop/perf/compare</text>
+</svg>

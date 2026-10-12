@@ -1,52 +1,144 @@
-# Vela
+<p align="center">
+  <img src="docs/images/logo.png" width="112" alt="Vela logo">
+</p>
 
-An Arc-inspired desktop browser: Chromium (via Electron), a vertical sidebar with Spaces, a command
-bar instead of a URL bar, and an obsession with staying light. MIT licensed.
+<h1 align="center">Vela</h1>
 
-![Vela demo](docs/demo.gif)
+<p align="center">
+  <b>The open-source Arc browser alternative.</b><br>
+  Spaces, vertical tabs, the command bar, Peek, split view, Boosts. Chromium inside.<br>
+  Imports your whole Arc sidebar in one click. Lighter than Arc, and it keeps shipping.
+</p>
 
-## Highlights
+<p align="center">
+  <a href="https://github.com/JoSanson/vela/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/JoSanson/vela?label=download&color=5B6CFF"></a>
+  <a href="https://github.com/JoSanson/vela/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/JoSanson/vela/total?color=7a5cff"></a>
+  <a href="https://github.com/JoSanson/vela/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/JoSanson/vela/ci.yml?branch=main&label=CI"></a>
+  <a href="apps/desktop/package.json"><img alt="Electron version" src="https://img.shields.io/github/package-json/dependency-version/JoSanson/vela/dev/electron?filename=apps%2Fdesktop%2Fpackage.json&label=engine"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-9A5BFF"></a>
+  <a href="CONTRIBUTING.md"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-1baf7a"></a>
+</p>
 
-- **Sidebar, not tabs.** Favorites → Pinned (with nested folders) → Today. Today tabs archive
-  themselves after 12 h / 24 h / 7 d / 30 d; the archive is searchable and restorable.
-- **Spaces** with their own tabs, gradient theme (+ grain, light/dark, palette from an image, glass)
-  and optional isolated **profile** (separate cookies and logins).
-- **Command bar** (`⌘T` / `⌘L`): URLs with inline completion of hosts you know, search with
-  suggestions, fuzzy search across open tabs, archive, full-text history and favorites, and browser
-  commands with their shortcuts, in a few milliseconds. Type a keyword then Tab (`y` ⇥ YouTube,
-  `p` ⇥ Perplexity, `gh` ⇥ GitHub…) to search a site directly; the list is yours to edit in
-  Settings.
-- **Split view** (2–4 panes), **Peek** for links from pinned tabs, **Little Vela** floating windows
-  for links opened from other apps, **Air Traffic Control** rules that route URLs to spaces,
-  **multiple windows** (one Space per window, ⌘N).
-- **Password manager** built in: saved after sign-in, encrypted with the OS keychain, filled from a
-  popover under the field, never sent anywhere.
-- **Light by design.** Idle tabs go to sleep and free their process (≈ 1 MB residual), the session
-  restores lazily, background views are detached so Chromium throttles them, and the shell idles
-  at ~110 MB. Measured by `pnpm perf` → [PERF.md](PERF.md).
-- **Auto PiP**, **Boosts** (per-site CSS/JS + Zap element picker), built-in **content blocker**,
-  **reader mode**, downloads, history (full-text), per-site permissions, unpacked Chrome
-  extensions, in-app auto-updates.
-- **Daily-driver basics done right.** HTTP auth prompt, inline PDFs, print and save page, local
-  files (open, drop, Finder), private spaces, clear browsing data, HTTPS-first, external-app links
-  with a confirmation, default-browser registration, translate via Peek.
-- **Safe browsing** against public phishing/malware lists, checked locally, with an interstitial
-  you can step through. **Customisable shortcuts** (click a chord, press the new one, conflicts
-  explained). **English and French** UI, following the OS or chosen in Settings.
-- **Switch from anywhere**: Arc (the whole sidebar: Spaces, pinned folders, favorites, history),
-  Safari, Firefox, Chrome, Brave, Edge.
-- **Chromium always fresh.** A scheduled workflow (`engine-watch.yml`) bumps Electron within 24 h
-  of a stable release, runs the full CI and publishes a release automatically.
+<p align="center">
+  <a href="https://github.com/JoSanson/vela/releases/latest"><b>Download for macOS</b></a> ·
+  <a href="https://github.com/JoSanson/vela/releases/latest"><b>Windows</b></a> ·
+  <a href="https://github.com/JoSanson/vela/releases/latest"><b>Linux</b></a> ·
+  <a href="docs/MIGRATING-FROM-ARC.md">Switching from Arc</a> ·
+  <a href="docs/BENCHMARK.md">Benchmark</a> ·
+  <a href="#contributing">Contribute</a>
+</p>
+
+<p align="center">
+  <img src="docs/demo.gif" alt="Vela: command bar, Spaces with their own colours, split view, collapsible sidebar" width="100%">
+</p>
+
+## Why Vela exists
+
+Arc changed how a lot of us use the web: a sidebar instead of a tab strip, Spaces for each part of
+your life, a command bar instead of a URL bar, tabs that tidy themselves up. In May 2025 The Browser
+Company stopped building new Arc features to focus on Dia. Arc still gets security patches, but the
+browser many of us fell for is frozen.
+
+Vela is the answer to "what now?":
+
+- **It feels like home.** Sidebar, Spaces, favorites, pinned folders, Today tabs that archive
+  themselves, `⌘T` command bar, Peek, split view, Little windows, Boosts, Air Traffic Control. The
+  shortcuts you already have in your fingers work.
+- **It cannot be shelved.** MIT licensed, built in the open. No company can freeze it, and anyone can
+  fork it.
+- **It stays fresh.** A bot checks for a new Chromium (via Electron) every 6 hours, runs the whole
+  test suite and ships a release on its own. You get engine and security updates without waiting
+  for anyone.
+- **It is light.** Measured, not claimed: see below.
+
+## Lighter than Arc, measured
+
+<p align="center">
+  <a href="docs/BENCHMARK.md"><img src="docs/benchmark/arc-vs-vela.svg" alt="Benchmark, lower is better. Launch: Arc 2116 ms, Vela 237 ms. Memory with 1 tab + 10 real sites: Arc 3902 MB, Vela 2635 MB, Vela with its built-in blocker 2052 MB. Idle CPU: Arc 82.2 %, Vela 58.6 %, Vela with blocker 9.7 %. Tab switch: Arc 12.0 ms, Vela 6.5 ms." width="100%"></a>
+</p>
+
+Same Mac, same pages, same probes, both browsers driven by the same script: launch timed by the
+macOS WindowServer, memory read as `phys_footprint` over every process (what Activity Monitor
+shows), CPU from the kernel's per-process counters, tab switch from a real `⌘⌥↓` keystroke to the
+next painted frame. "Vela" bars run with the content blocker **off**, so both browsers download
+exactly the same thing. Page loads are a tie: it is the same Blink engine underneath.
+
+Full method, raw numbers, caveats and the script to run it on your own machine:
+[docs/BENCHMARK.md](docs/BENCHMARK.md). Disagree with a number? Run it and open an issue.
+
+## Bring your whole Arc with you
+
+Vela offers it on first launch (later: Settings → Import & export → **Arc**). One click brings
+over:
+
+| From Arc | In Vela |
+| --- | --- |
+| Spaces, with their names, emoji and colours | Spaces |
+| Profiles attached to Spaces | Profiles attached to the same Spaces |
+| Favorites (the top grid) | Favorites, per profile |
+| Pinned tabs and nested folders | Pinned tabs and nested folders |
+| History | Full-text searchable history |
+| Saved passwords and cookies | Encrypted with your OS keychain; you stay logged in |
+
+Run it again later and it merges instead of duplicating. Chrome, Brave, Edge, Safari and Firefox
+imports are there too. Step by step, and the shortcut cheat sheet:
+[docs/MIGRATING-FROM-ARC.md](docs/MIGRATING-FROM-ARC.md).
+
+## A quick tour
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/hero.png" alt="Vela sidebar with favorites, a pinned folder and Today tabs"><br><b>Sidebar, not tabs.</b> Favorites → Pinned (nested folders) → Today. Today tabs archive themselves after 12 h, 24 h, 7 or 30 days; the archive is searchable.</td>
+    <td width="50%"><img src="docs/images/command-bar.png" alt="Command bar with tabs, history and search suggestions"><br><b>Command bar.</b> <code>⌘T</code> searches open tabs, favorites, history (full text), the archive and browser commands in a few milliseconds. <code>y</code> ⇥ YouTube, <code>gh</code> ⇥ GitHub, your own keywords.</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/split-view.png" alt="Two pages side by side in split view"><br><b>Split view</b> with 2 to 4 panes, <b>Peek</b> for links from pinned tabs, <b>Little Vela</b> windows for links opened from other apps.</td>
+    <td width="50%"><img src="docs/images/spaces.png" alt="A second Space with its own warm colour theme"><br><b>Spaces</b> with their own tabs, gradient theme (grain, light/dark, palette from an image, glass) and an optional isolated <b>profile</b>.</td>
+  </tr>
+</table>
+
+Also built in: password manager (OS keychain, never leaves your machine), content blocker, auto
+picture-in-picture, Boosts (per-site CSS/JS and a Zap element picker), reader mode, Air Traffic
+Control rules that route links to the right Space, multiple windows, private Spaces, safe browsing
+checked locally, rebindable shortcuts, English and French UI.
+
+## Arc and Vela, feature by feature
+
+| | Arc | Vela |
+| --- | :-: | :-: |
+| Vertical sidebar, Favorites, Pinned, Today | ✅ | ✅ |
+| Spaces with themes, Profiles | ✅ | ✅ |
+| Command bar, tab search, auto-archive | ✅ | ✅ |
+| Split view, Peek, Little window | ✅ | ✅ |
+| Boosts, Air Traffic Control, auto PiP | ✅ | ✅ |
+| One-click import of your Arc sidebar and passwords | n/a | ✅ |
+| Built-in content blocker | ❌ | ✅ |
+| Linux | ❌ | ✅ |
+| Open source | ❌ | ✅ MIT |
+| New features | frozen since May 2025 | shipping |
+| Chrome extensions | ✅ Web Store | ⚠️ unpacked MV3 ([help wanted](docs/EXTENSIONS.md)) |
+| Netflix / DRM video (Widevine) | ✅ | ❌ not yet ([help wanted](https://github.com/JoSanson/vela/issues?q=is%3Aissue+label%3Aarc-parity)) |
+| Easels, Notes, AI features | ✅ | ❌ not yet |
+| Sync between devices, mobile app | ✅ | ❌ not yet |
+
+Something you used every day in Arc and miss here?
+[Tell us with the "Arc feature I miss" template](https://github.com/JoSanson/vela/issues/new?template=arc_feature.yml).
+The most-upvoted ones are built first.
 
 ## Install
 
-Until the repository is pushed to GitHub (see [DECISIONS.md](DECISIONS.md) D013) there is no public
-release: build locally with `pnpm build` (installers land in `apps/desktop/release/`). Once the
-`release.yml` workflow runs, installers are attached to GitHub Releases (`.dmg`/`.zip` for macOS
-arm64 and x64, `.exe` for Windows, `.AppImage`/`.deb` for Linux) and the in-app updater picks them
-up; the update flow was proven locally against a generic feed ([UPDATE-PROOF.md](UPDATE-PROOF.md)).
-Builds are unsigned until signing secrets are configured (see [RELEASING.md](RELEASING.md)); on
-macOS right-click → Open the first time.
+**macOS** (Apple silicon and Intel): download the `.dmg` from the
+[latest release](https://github.com/JoSanson/vela/releases/latest) and drag Vela to Applications.
+Builds are not notarized by Apple yet, so the first launch needs one extra step: open it, then
+System Settings → Privacy & Security → **Open Anyway**. Or, in Terminal:
+`xattr -dr com.apple.quarantine /Applications/Vela.app`.
+
+**Windows**: run the `.exe` installer. SmartScreen may warn about an unknown publisher: More info →
+Run anyway.
+
+**Linux**: `.AppImage` (any distro) or `.deb` (Debian, Ubuntu).
+
+Vela updates itself from GitHub Releases. Prefer to build it yourself? See [Develop](#develop).
 
 ## Develop
 
@@ -55,44 +147,88 @@ pnpm install          # Node ≥ 22, pnpm 10; rebuilds better-sqlite3 for Electr
 pnpm dev              # electron-vite with HMR
 pnpm build            # installer for the current OS → apps/desktop/release
 pnpm test             # unit tests (Vitest), pnpm coverage for the report
-pnpm e2e              # Playwright _electron suite (headed on macOS, xvfb on Linux)
+pnpm e2e              # Playwright _electron suite
 pnpm perf             # performance budgets → PERF.md
 pnpm ci:local         # everything CI runs
 ```
 
-Read [ARCHITECTURE.md](ARCHITECTURE.md) for the process model, [SECURITY.md](SECURITY.md) for
-the hardening checklist, [DECISIONS.md](DECISIONS.md) for the why, and
-[docs/EXTENSIONS.md](docs/EXTENSIONS.md) for the supported extension subset.
+Electron (no fork, no `<webview>`): one `WebContentsView` per tab, a React 19 shell, a pure
+TypeScript core for tabs, Spaces and the command bar ranking. Sandboxed renderers, context
+isolation, typed IPC, strict CSP. Start with [ARCHITECTURE.md](ARCHITECTURE.md), then
+[SECURITY.md](SECURITY.md) and [DECISIONS.md](DECISIONS.md) for the why.
+
+## Contributing
+
+Vela is built by people who miss Arc. You do not need to be a browser engineer:
+
+- **Good first issues** are labelled
+  [`good first issue`](https://github.com/JoSanson/vela/labels/good%20first%20issue). Translations
+  (one file per language) are a great start.
+- **Arc parity** work is labelled
+  [`arc-parity`](https://github.com/JoSanson/vela/labels/arc-parity): the features that would make
+  the last Arc users switch.
+- **Ideas and questions** go to [Discussions](https://github.com/JoSanson/vela/discussions).
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) (10 minutes from clone to your first change running). Every
+merged PR lands in the next release with your name in the notes.
 
 ## Keyboard shortcuts
 
-`vela://shortcuts` lists everything and lets you rebind any of it. The defaults (⌘ on macOS,
-Ctrl elsewhere):
+`vela://shortcuts` lists everything and lets you rebind any of it. The defaults match Arc where Arc
+had one (⌘ on macOS, Ctrl elsewhere):
 
 | Action                     | Shortcut            |
 | -------------------------- | ------------------- |
 | New tab / command bar      | `⌘T`                |
 | Edit current URL           | `⌘L`                |
-| Close tab                  | `⌘W`                |
-| Reopen closed tab          | `⌘⇧T`               |
+| Close tab / reopen         | `⌘W` / `⌘⇧T`        |
 | Pin / unpin                | `⌘D`                |
 | Copy URL / as Markdown     | `⌘⇧C` / `⌘⇧⌥C`      |
-| Clear unpinned tabs        | `⌘⇧K`               |
+| Next / previous tab        | `⌘⌥↓` / `⌘⌥↑`       |
 | Go to tab N                | `⌘1…9`              |
 | Switch to recent tab       | `Ctrl+Tab`          |
 | Toggle sidebar             | `⌘S`                |
 | Split view / close pane    | `⌃⇧+` / `⌃⇧-`       |
-| Focus split pane N         | `⌃⇧1…4`             |
-| Find in page / stop        | `⌘F` / `⌘.`         |
-| Reader mode                | `⌘⌥R`               |
 | Spaces                     | `Ctrl+1…9`, `⌘⌥←/→` |
 | New space / all spaces     | `⌃⌘N` / `⌘⇧S`       |
 | Archived tabs / History    | `⌘⇧L` / `⌘Y`        |
-| Downloads                  | `⌘⇧J`               |
-| New window / private       | `⌘N` / `⌘⇧N`        |
 | Little Vela window         | `⌘⌥N`               |
+| Find in page / reader mode | `⌘F` / `⌘⌥R`        |
 
-## Status
+## FAQ
 
-v0.3.0 — every P0 and P1 feature from the product spec is implemented and covered by the e2e suite
-(`apps/desktop/e2e`). See [PROGRESS.md](PROGRESS.md) and [CHANGELOG.md](CHANGELOG.md).
+**Is Arc dead?** Not dead, frozen. The Browser Company stopped building new Arc features in May
+2025 and moved the team to Dia (the company was acquired by Atlassian later that year). Arc still
+receives Chromium security patches. If you are happy with Arc as it is, keep it. Vela is for when
+you want it to keep moving.
+
+**Is Vela a fork of Arc?** No. Arc is closed source, so there is nothing to fork. Vela is written
+from scratch and borrows ideas, not code, names or assets.
+
+**Why Chromium and not Firefox?** Sites, web apps and extensions are built and tested for Chromium
+first, and that is what Arc users are used to. If you prefer Gecko, Zen is a great project.
+
+**Why Electron?** It ships a current Chromium within days of Google, on macOS, Windows and Linux,
+without maintaining a fork of 30 million lines. The shell idles at ~110 MB; see the benchmark.
+
+**Will it keep being updated?** Engine updates are automated (a check every 6 hours, full CI, then
+a release). Features ship in regular releases. And because it is MIT, the project does not depend on any one
+person or company.
+
+**Does it phone home?** No telemetry, no account. Crash dumps stay on your disk. Update checks hit
+GitHub Releases.
+
+## Star history
+
+<a href="https://star-history.com/#JoSanson/vela&Date">
+  <img src="https://api.star-history.com/svg?repos=JoSanson/vela&type=Date" alt="Star history" width="600">
+</a>
+
+If Vela is useful to you, a star helps other Arc users find it.
+
+---
+
+<sub>Vela is an independent open-source project, not affiliated with, endorsed by or connected to
+The Browser Company or Atlassian. "Arc" and "Dia" are trademarks of their respective owners and are
+used here only to describe compatibility and compare features. MIT licensed, see
+[LICENSE](LICENSE).</sub>

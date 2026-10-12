@@ -295,3 +295,13 @@ the main world at document-start on http(s) pages; the client-hint brands stay h
 requests whose client-hint headers were rewritten. The probe scripts live outside the repo; the
 behaviour is covered by the user-agent unit test and by hand on accounts.google.com.
 
+
+## D034 — The README names Arc (nominative use)
+Context: the launch positions Vela as the open-source Arc alternative; the earlier rule banned the
+Arc name everywhere.
+Choice: Arc is named in docs, the README, repo topics and the benchmark, only to describe
+compatibility and compare, with a "not affiliated with The Browser Company or Atlassian" notice.
+No Arc logo, screenshot of Arc's UI or asset anywhere; the app's branding and UI stay Vela-only
+(the importer's source list is the one place the UI says "Arc").
+Why: comparative, nominative use is what every "X alternative" project does and is what people
+search for; the notice and the absence of marks keep it from implying endorsement.

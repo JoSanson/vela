@@ -2,7 +2,7 @@
   "name": "vela-monorepo",
   "version": "0.3.0",
   "private": true,
-  "description": "Vela — an Arc-inspired, Chromium-based desktop browser built on Electron",
+  "description": "Vela — the open-source Arc browser alternative: Chromium-based, Spaces, vertical tabs, command bar",
   "license": "MIT",
   "packageManager": "pnpm@10.11.0",
   "engines": {
@@ -37,5 +37,26 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.1",
     "vitest": "5.0.3"
+  },
+  "keywords": [
+    "browser",
+    "arc",
+    "arc-browser",
+    "arc-alternative",
+    "chromium",
+    "electron",
+    "vertical-tabs",
+    "spaces",
+    "sidebar",
+    "productivity",
+    "open-source"
+  ],
+  "homepage": "https://github.com/JoSanson/vela#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JoSanson/vela.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JoSanson/vela/issues"
   }
 }

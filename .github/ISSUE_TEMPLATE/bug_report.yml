@@ -1,0 +1,49 @@
+name: 🐞 Bug report
+description: Something is broken or behaves differently than you expect.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. Screenshots or a recording help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Press …
+        3. See …
+  - type: input
+    id: version
+    attributes:
+      label: Vela version
+      description: Settings → About, or the release you downloaded.
+      placeholder: 0.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Website involved (if any)
+      placeholder: https://…
+  - type: checkboxes
+    id: arc
+    attributes:
+      label: Arc
+      options:
+        - label: The same thing works in Arc

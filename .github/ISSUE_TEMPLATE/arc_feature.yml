@@ -1,0 +1,40 @@
+name: 🧭 Arc feature I miss
+description: Something you used every day in Arc that Vela does not do (yet).
+title: '[Arc parity] '
+labels: [arc-parity, enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Search the [arc-parity issues](https://github.com/JoSanson/vela/issues?q=is%3Aissue+label%3Aarc-parity) first: if yours is there, a 👍 on it counts as a vote. The most-voted ones are built first.
+  - type: input
+    id: feature
+    attributes:
+      label: The Arc feature
+      placeholder: e.g. Easels, Notes, Arc Max "tidy tabs", Profiles per Space…
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How you used it
+      description: Your real workflow. This matters more than a description of Arc's UI.
+      placeholder: Every morning I open my Work Space and…
+    validations:
+      required: true
+  - type: dropdown
+    id: blocker
+    attributes:
+      label: How much does it matter?
+      options:
+        - It keeps me from switching to Vela
+        - I would use it every day
+        - Nice to have
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Want to help build it?
+      options:
+        - label: I would like to work on this (a maintainer will help you get started)

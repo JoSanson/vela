@@ -1,7 +1,9 @@
 # Vela — project rules (read this first, then PROGRESS.md)
 
 Vela is an Arc-inspired desktop browser: Chromium via Electron, one `WebContentsView` per tab,
-React 19 shell. MIT. No Arc / The Browser Company name, logo or assets anywhere.
+React 19 shell. MIT. No Arc / The Browser Company logo or assets anywhere, and no Arc name in the
+product's branding or UI (the importer may say "Arc"). Docs and the README may name Arc to describe
+compatibility and compare (D034), always with the non-affiliation notice.
 
 ## Resume protocol
 1. Read this file, then `PROGRESS.md`. Resume at the first unchecked box. Never redo a checked box.
