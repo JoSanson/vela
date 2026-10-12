@@ -412,17 +412,10 @@ async function boot(): Promise<void> {
     broadcast({ kind: 'actions', fromRev: pendingFrom, rev: pendingFrom + actions.length, actions });
     pendingFrom += actions.length;
   };
-  store.subscribe((next, prev, action) => {
-    // Any path that makes a space active (ATC routing, activating a tab elsewhere, direct
-    // dispatches) must also show it somewhere: the acting window takes it when no window has it.
-    if (next.activeSpaceId !== prev.activeSpaceId && !windows.windowForSpace(next.activeSpaceId)) {
-      const mw = windows.main;
-      if (mw) windows.setSpace(mw, next.activeSpaceId);
-    }
-    for (const w of windows.all()) {
-      const t = next.spaces[w.spaceId]?.theme;
-      if (t && t !== prev.spaces[w.spaceId]?.theme) w.setThemeColor(t.from);
-    }
+  // Queued in reduction order (onApplied), not subscriber order: a subscriber that dispatches
+  // (TabManager activating a new split pane) would otherwise put its action ahead of the one that
+  // caused it, and renderers replaying the batch would end up in a different state than main.
+  store.onApplied((next, action) => {
     if (needsSnapshot(action)) {
       pending = [];
       flushScheduled = false;
@@ -434,6 +427,18 @@ async function boot(): Promise<void> {
         flushScheduled = true;
         setImmediate(flushDeltas);
       }
+    }
+  });
+  store.subscribe((next, prev, action) => {
+    // Any path that makes a space active (ATC routing, activating a tab elsewhere, direct
+    // dispatches) must also show it somewhere: the acting window takes it when no window has it.
+    if (next.activeSpaceId !== prev.activeSpaceId && !windows.windowForSpace(next.activeSpaceId)) {
+      const mw = windows.main;
+      if (mw) windows.setSpace(mw, next.activeSpaceId);
+    }
+    for (const w of windows.all()) {
+      const t = next.spaces[w.spaceId]?.theme;
+      if (t && t !== prev.spaces[w.spaceId]?.theme) w.setThemeColor(t.from);
     }
     if (action.type === 'profile/delete') {
       const partition = `persist:profile-${action.id}`;

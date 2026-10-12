@@ -1,12 +1,4 @@
-import { expect, test, type VelaApp } from './helpers';
-
-async function evalMain<T>(vela: VelaApp, code: string): Promise<T> {
-  return vela.app.evaluate((_e, c) => {
-    const g = globalThis as unknown as { __vela: unknown };
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    return (new Function('__vela', c) as (v: unknown) => T)(g.__vela);
-  }, code);
-}
+import { evalMain, expect, test } from './helpers';
 
 test.describe('command bar', () => {
   test('fuzzy-finds an open tab and switches to it; plain words become a search', async ({
@@ -130,8 +122,9 @@ test.describe('split view', () => {
       const win = BrowserWindow.getAllWindows()[0];
       return win?.contentView.children.map((c) => c.getBounds()) ?? [];
     });
-    await expect(vela.shell.locator('[data-tab-id]').first()).toContainText('Right');
-    await expect(vela.shell.locator('[data-tab-id]').nth(1)).toContainText('Left');
+    // Both panes share one split row (Arc's), in pane order: left, then right.
+    await expect(vela.shell.locator('[data-tab-id]').first()).toContainText('Left');
+    await expect(vela.shell.locator('[data-tab-id]').nth(1)).toContainText('Right');
     const wide = bounds.filter((b) => b.width > 100);
     expect(wide.length).toBe(2);
     expect(Math.abs((wide[0]?.width ?? 0) - (wide[1]?.width ?? 0))).toBeLessThan(4);

@@ -211,6 +211,15 @@ export interface CoreStateLike {
   archive: { id: string; url: string; title: string; reason: string }[];
 }
 
+/** Runs `code` as a function body in the main process with `__vela` in scope. */
+export async function evalMain<T>(vela: VelaApp, code: string): Promise<T> {
+  return vela.app.evaluate((_e, c) => {
+    const g = globalThis as unknown as { __vela: unknown };
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    return (new Function('__vela', c) as (v: unknown) => T)(g.__vela);
+  }, code);
+}
+
 export async function launchVela(
   opts: { userData?: string; fixtures: string; env?: Record<string, string> } = { fixtures: '' },
 ): Promise<VelaApp> {
@@ -300,9 +309,17 @@ export async function launchVela(
   };
   /** Captures shell + every attached tab view + overlay and composites them like the real window. */
   const shot = async (name: string): Promise<void> => {
-    // Let entrance animations finish so captures are deterministic.
+    // Let entrance animations finish so captures are deterministic. Infinite ones (a loading
+    // spinner on the active tab) never finish and are skipped.
     await shell
-      .evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
+      .evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+            .map((a) => a.finished.catch(() => undefined)),
+        ),
+      )
       .catch(() => undefined);
     const layers = await app.evaluate(async ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0];
