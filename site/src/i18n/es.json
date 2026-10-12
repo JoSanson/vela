@@ -2,9 +2,9 @@
   "lang": "es",
   "locale": "es_ES",
   "meta": {
-    "title": "Vela · La alternativa de código abierto al navegador Arc",
-    "description": "Los Spaces, las pestañas verticales y la barra de comandos que te encantaban en Arc. De código abierto, más ligero y en constante evolución. Gratis para macOS y Windows.",
-    "ogAlt": "Vela, la alternativa de código abierto a Arc: una ventana de navegador con una barra lateral de Spaces y pestañas."
+    "title": "Vela · La alternativa de código abierto a Arc",
+    "description": "Todo lo que te gustaba de Arc, los Spaces, las pestañas verticales y la barra de comandos, en un navegador de código abierto más ligero y que sigue mejorando. Gratis para macOS y Windows.",
+    "ogAlt": "Vela, la alternativa de código abierto a Arc: una ventana del navegador con sus Spaces y pestañas en la barra lateral."
   },
   "a11y": {
     "skip": "Ir al contenido",
@@ -12,87 +12,101 @@
     "close": "Cerrar el menú",
     "language": "Idioma",
     "home": "Inicio de Vela",
-    "demo": "Película del producto: páginas reales en Vela mientras cambia de Space, abre la barra de comandos, divide la vista, abre un Peek, saca una pestaña a una ventana nueva y ordena Hoy.",
-    "pause": "Pausar el recorrido",
-    "play": "Reanudar el recorrido"
+    "demo": "Vídeo de presentación: Vela con páginas reales, del cambio de Space a la barra de comandos, la vista dividida, la vista previa Peek, una pestaña que se convierte en ventana y el orden automático de pestañas.",
+    "pause": "Pausar el vídeo",
+    "play": "Reproducir el vídeo"
   },
   "nav": {
     "features": "Funciones",
     "benchmark": "Benchmark",
-    "import": "Importar",
+    "import": "Migrar",
     "open": "Código abierto",
     "faq": "Preguntas",
     "download": "Descargar"
   },
   "hero": {
     "eyebrow": "Gratis y de código abierto",
-    "eyebrowLink": "Ya está aquí la v0.5",
-    "title": "Tu internet,<br>en calma otra vez.",
-    "lead": "Vela es el hogar de código abierto de todo lo que te encantaba de Arc: los Spaces, las pestañas verticales, la barra de comandos. Más ligero, más rápido y sigue avanzando.",
-    "note": "macOS, Apple silicon e Intel · Windows · Importa tu barra lateral de Arc en un clic"
+    "eyebrowLink": "Nueva versión 0.5",
+    "title": "Tu internet,<br>por fin en calma.",
+    "lead": "Vela recupera todo lo que te gustaba de Arc: los Spaces, las pestañas verticales, la barra de comandos. Más ligero, más rápido y de código abierto, para que nunca se quede parado.",
+    "note": "macOS (Apple silicon e Intel) y Windows · Tu barra lateral de Arc importada en un clic"
   },
   "cta": {
     "mac": "Descargar para macOS",
     "win": "Descargar para Windows",
-    "github": "Dale una estrella en GitHub",
-    "other": "Todas las descargas"
+    "github": "Ver en GitHub",
+    "other": "Todas las versiones"
   },
   "demo": {
     "captions": {
-      "spaces": "Un Space para cada parte de tu vida",
-      "command": "Una barra de comandos, no una barra de direcciones",
-      "split": "Vista dividida, lado a lado",
-      "peek": "Echa un vistazo a un enlace sin salir",
-      "tear": "Arrastra una pestaña fuera: su propia ventana",
-      "tidy": "Las pestañas de hoy se ordenan solas"
+      "spaces": "Un Space para el trabajo y otro para todo lo demás",
+      "command": "Una barra de comandos en lugar de la barra de direcciones",
+      "split": "Dos páginas, una al lado de la otra",
+      "peek": "Un vistazo al enlace sin salir de la página",
+      "tear": "Saca una pestaña de la ventana y se convierte en ventana",
+      "tidy": "Las pestañas olvidadas se ordenan solas"
     }
   },
   "proof": {
-    "kicker": "Medido, no prometido",
-    "title": "Más ligero que Arc. Mucho más.",
-    "lead": "El mismo Mac, las mismas páginas y el mismo script para los dos navegadores. Gana la barra más corta.",
+    "kicker": "Con datos en la mano",
+    "title": "Mucho más ligero que Arc.",
+    "lead": "El mismo Mac, las mismas páginas y el mismo script para los dos navegadores. Cuanto más corta la barra, mejor.",
     "rows": {
-      "launch": "Del arranque a la ventana en pantalla",
-      "memory": "Memoria con 11 pestañas reales",
-      "cpu": "CPU en reposo, app en primer plano",
+      "launch": "Tiempo de arranque",
+      "memory": "Memoria con 11 pestañas abiertas",
+      "cpu": "CPU en reposo, ventana en primer plano",
       "switch": "Cambio de pestaña"
     },
-    "faster": "más rápido",
-    "less": "menos",
-    "foot": "Vela funciona con su bloqueador de contenido integrado activado, tal como viene. Método, cifras en bruto y el script para repetirlo tú mismo:",
-    "link": "el benchmark completo"
+    "foot": "Medido con el bloqueador de contenido integrado activado, tal como viene. El método, las cifras en bruto y el script para repetir la prueba tú mismo están en",
+    "link": "el benchmark completo",
+    "gains": {
+      "launch": "7,6× más rápido",
+      "memory": "−50 % de memoria",
+      "cpu": "−95 % de CPU",
+      "switch": "4× más rápido"
+    },
+    "values": {
+      "arcLaunch": "2058 ms",
+      "velaLaunch": "271 ms",
+      "arcMem": "3149 MB",
+      "velaMem": "1576 MB",
+      "arcCpu": "111 %",
+      "velaCpu": "5,9 %",
+      "arcSwitch": "12 ms",
+      "velaSwitch": "3 ms"
+    }
   },
   "features": {
     "kicker": "Cada cosa en su sitio",
-    "title": "El Arc que conoces, todavía en marcha.",
+    "title": "Lo que te gustaba de Arc, todavía mejor.",
     "items": {
       "spaces": {
         "title": "Spaces",
-        "body": "Trabajo, estudio, casa. Cada Space conserva sus pestañas y su color, y puede tener su propio perfil, sesiones y cookies. Pasa de uno a otro con un gesto."
+        "body": "Trabajo, proyectos personales, familia: cada Space tiene sus pestañas, su color y, si quieres, su propio perfil con sus cuentas y cookies. Pasas de uno a otro con un gesto."
       },
       "command": {
         "title": "Barra de comandos",
-        "body": "Un solo campo para pestañas abiertas, historial, archivo y la web, con respuesta en milisegundos. Escribe y y luego Tab para buscar en YouTube."
+        "body": "Un solo campo para encontrar una pestaña abierta, una página del historial o del archivo, o lanzar una búsqueda, en milisegundos. Escribe y y pulsa Tab para buscar directamente en YouTube."
       },
       "split": {
         "title": "Vista dividida y Peek",
-        "body": "Suelta una pestaña sobre otra para leerlas lado a lado. Los enlaces de las pestañas fijadas se abren en un Peek que puedes conservar o cerrar."
+        "body": "Suelta una pestaña sobre otra para verlas lado a lado. Los enlaces que abres desde una pestaña fijada aparecen en una vista previa que puedes conservar o cerrar."
       },
       "windows": {
-        "title": "Ventanas que te siguen",
-        "body": "Arrastra una pestaña fuera de la ventana para darle la suya, en el mismo Space, con su propio Hoy."
+        "title": "Una ventana nueva con un gesto",
+        "body": "Arrastra una pestaña fuera de la ventana: se abre en una nueva, en el mismo Space y con su propia lista de pestañas de hoy."
       },
       "tidy": {
-        "title": "Pestañas que se ordenan",
-        "body": "Las pestañas de hoy que dejas de usar se archivan solas tras 12 horas, un día, una semana o un mes. El archivo se puede buscar: nada se pierde."
+        "title": "Pestañas que se ordenan solas",
+        "body": "Las pestañas de hoy que no tocas se archivan automáticamente tras 12 horas, un día, una semana o un mes. El archivo se puede consultar: no se pierde nada."
       }
     },
-    "more": "También incluye: Boosts, Air Traffic Control, ventanas pequeñas, modo lectura, imagen en imagen, bloqueador de contenido, gestor de contraseñas y atajos personalizables."
+    "more": "Y además: Boosts, Air Traffic Control, ventanas pequeñas, modo lectura, imagen en imagen, bloqueador de anuncios, gestor de contraseñas y atajos totalmente personalizables."
   },
   "real": {
-    "kicker": "No es una maqueta",
-    "title": "Es el producto de verdad.",
-    "lead": "Capturas de Vela tal como es hoy.",
+    "kicker": "Nada de maquetas",
+    "title": "Así es Vela de verdad.",
+    "lead": "Capturas de pantalla de la versión actual.",
     "alts": {
       "hero": "Vela con un Space de Trabajo: favoritos, una carpeta fijada y pestañas de hoy junto a una página web.",
       "command": "La barra de comandos de Vela con pestañas abiertas, historial y sugerencias de búsqueda.",
@@ -101,93 +115,93 @@
     }
   },
   "import": {
-    "kicker": "La mudanza, en un clic",
-    "title": "Llévate todo tu Arc contigo.",
-    "lead": "En el primer arranque, Vela te ofrece importarlo todo. Si lo repites más tarde, fusiona en lugar de duplicar.",
+    "kicker": "Deja Arc en un clic",
+    "title": "Llévate todo tu Arc.",
+    "lead": "La primera vez que abres Vela, te ofrece importarlo todo. Si repites la importación más adelante, completa lo que ya tienes en lugar de duplicarlo.",
     "button": "Importar desde Arc",
     "done": "Importado",
     "items": [
-      "Los Spaces, con sus nombres, emoji y colores",
-      "Los perfiles, unidos a los mismos Spaces",
-      "Los favoritos, por perfil",
-      "Las pestañas fijadas y las carpetas anidadas",
+      "Tus Spaces, con sus nombres, emojis y colores",
+      "Tus perfiles, asociados a los mismos Spaces",
+      "Tus favoritos, perfil por perfil",
+      "Tus pestañas fijadas y sus carpetas",
       "Todo tu historial, con búsqueda",
-      "Contraseñas y cookies: sigues con la sesión iniciada",
+      "Tus contraseñas y cookies: sigues con la sesión iniciada en todas partes",
       "Tus extensiones de Chrome Web Store, reinstaladas en un clic"
     ],
-    "other": "¿Vienes de Chrome, Brave, Edge, Safari o Firefox? También puedes importar desde ellos.",
+    "other": "¿Vienes de Chrome, Brave, Edge, Safari o Firefox? Vela también importa desde ellos.",
     "guide": "Leer la guía de migración"
   },
   "extensions": {
-    "title": "Tus extensiones también vienen.",
-    "lead": "Instálalas directamente desde Chrome Web Store. 16 de las 20 más usadas ya funcionan.",
-    "link": "Ver la lista completa"
+    "title": "Tus extensiones vienen contigo.",
+    "lead": "Instálalas directamente desde Chrome Web Store: 16 de las 20 extensiones más usadas ya funcionan.",
+    "link": "Ver la lista"
   },
   "open": {
-    "kicker": "Abierto, para siempre",
-    "title": "Nadie puede congelarlo.",
-    "lead": "Vela es GPL-3.0 y se desarrolla en abierto. Cada versión, y cada fork, sigue siendo de código abierto.",
+    "kicker": "Código abierto, de verdad",
+    "title": "Nadie podrá congelarlo.",
+    "lead": "Vela tiene licencia GPL-3.0 y se desarrolla en público. Cada versión, y cada fork, seguirá siendo de código abierto.",
     "points": {
       "privacy": {
-        "title": "Sin cuenta. Sin telemetría.",
-        "body": "Los informes de fallos se quedan en tu disco. Las contraseñas viven en el llavero del sistema. Safe Browsing se comprueba en tu equipo."
+        "title": "Sin cuenta y sin telemetría.",
+        "body": "Los informes de errores se quedan en tu ordenador, las contraseñas en el llavero del sistema, y la detección de sitios peligrosos se hace en local."
       },
       "fresh": {
-        "title": "Un Chromium al día, por sí solo.",
-        "body": "Un bot busca un motor nuevo cada 6 horas, ejecuta toda la batería de pruebas y publica la versión."
+        "title": "Chromium siempre al día.",
+        "body": "Cada 6 horas, un bot comprueba si hay una versión nueva del motor, ejecuta todas las pruebas y publica la actualización."
       },
       "yours": {
-        "title": "Tuyo para leerlo y cambiarlo.",
+        "title": "Un código abierto a todos.",
         "body": "TypeScript y Electron, cada decisión documentada, pruebas de extremo a extremo en macOS y Windows. Issues y pull requests bienvenidos."
       }
     },
-    "cta": "Leer el código"
+    "cta": "Ver el código"
   },
   "faq": {
-    "title": "Preguntas, respondidas.",
+    "title": "Preguntas frecuentes",
     "items": [
       {
-        "q": "¿Ha muerto Arc?",
-        "a": "No ha muerto, está congelado. The Browser Company dejó de desarrollar funciones nuevas para Arc en mayo de 2025 para centrarse en Dia. Arc sigue recibiendo los parches de seguridad de Chromium. Si Arc te sirve tal como está, quédatelo. Vela es para cuando quieres que siga avanzando."
+        "q": "¿Se acabó Arc?",
+        "a": "No del todo: está congelado. The Browser Company dejó de añadir funciones a Arc en mayo de 2025 para centrarse en Dia. Arc sigue recibiendo los parches de seguridad de Chromium. Si te sirve tal como está, quédate con él. Vela es para quien quiere que siga evolucionando."
       },
       {
         "q": "¿Vela es un fork de Arc?",
-        "a": "No. Arc es de código cerrado, así que no hay nada que bifurcar. Vela está escrito desde cero y toma ideas, nunca código, nombres ni recursos."
+        "a": "No. El código de Arc no es público, así que no hay nada que bifurcar. Vela está escrito desde cero: toma ideas, nunca código, nombres ni recursos gráficos."
       },
       {
         "q": "¿De verdad es gratis?",
-        "a": "Sí, y lo seguirá siendo. Vela es GPL-3.0: sin suscripción, sin cuenta, sin versión de pago."
+        "a": "Sí, y lo seguirá siendo. Vela tiene licencia GPL-3.0: sin suscripción, sin cuenta y sin versión de pago."
       },
       {
         "q": "¿Funcionan mis extensiones de Chrome?",
-        "a": "Instálalas desde Chrome Web Store. De las 20 más usadas, 16 funcionan del todo o con pequeños fallos, probadas una a una. Los bloqueadores de anuncios dependen de una API que Electron no tiene, así que el bloqueador integrado de Vela hace ese trabajo."
+        "a": "Instálalas desde Chrome Web Store. De las 20 más usadas, 16 funcionan del todo o casi, probadas una a una. Los bloqueadores de anuncios necesitan una API que Electron no ofrece, así que el bloqueador integrado de Vela hace ese trabajo."
       },
       {
-        "q": "¿Envía datos a algún sitio?",
-        "a": "Sin telemetría y sin cuenta. Los volcados de fallos se quedan en tu disco. La única conexión es la comprobación de actualizaciones, hecha a GitHub Releases."
+        "q": "¿Vela recopila mis datos?",
+        "a": "No: ni telemetría ni cuenta. Los informes de errores se quedan en tu disco. La única conexión que hace es para comprobar actualizaciones en GitHub."
       },
       {
-        "q": "¿Seguirá actualizándose?",
-        "a": "Las actualizaciones del motor están automatizadas: una comprobación cada 6 horas, todas las pruebas y luego una versión. Las funciones llegan en versiones regulares. Y al ser GPL-3.0, Vela no depende de ninguna persona ni empresa."
+        "q": "¿Se seguirá manteniendo?",
+        "a": "Las actualizaciones del motor son automáticas: una comprobación cada 6 horas, todas las pruebas y una versión nueva. Las novedades llegan en versiones periódicas. Y gracias a la GPL-3.0, Vela no depende de ninguna persona ni empresa."
       }
     ]
   },
   "final": {
     "title": "Zarpa.",
-    "lead": "Gratis, de código abierto y tuyo. Descarga Vela y llévate tus Spaces."
+    "lead": "Gratis, de código abierto y tuyo para siempre. Descarga Vela y llévate tus Spaces."
   },
   "footer": {
-    "tagline": "La alternativa de código abierto al navegador Arc.",
+    "tagline": "La alternativa de código abierto a Arc.",
     "product": "Producto",
     "project": "Proyecto",
     "releases": "Versiones",
-    "changelog": "Registro de cambios",
+    "changelog": "Novedades",
     "benchmark": "Benchmark",
     "migrate": "Migrar desde Arc",
     "extensions": "Extensiones",
     "license": "Licencia GPL-3.0",
     "security": "Seguridad",
     "contribute": "Contribuir",
-    "notice": "Vela es un proyecto independiente de código abierto. No está afiliado, respaldado ni vinculado a The Browser Company ni a Atlassian. Arc es una marca de su propietario, mencionada aquí solo para describir la compatibilidad."
+    "notice": "Vela es un proyecto independiente de código abierto, sin relación con The Browser Company ni con Atlassian, que no lo respaldan ni lo aprueban. Arc es una marca de su propietario, citada aquí solo para hablar de compatibilidad."
   }
 }

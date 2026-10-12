@@ -237,13 +237,15 @@
               <dd>
                 <span class="bar arc"
                   ><span class="who">Arc</span
-                  ><span class="track"><i></i><span class="val">2058 ms</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.arcLaunch}}</span></span></span
                 >
                 <span class="bar vela"
                   ><span class="who">Vela</span
-                  ><span class="track"><i></i><span class="val">271 ms</span></span></span
+                  ><span class="track"
+                    ><i></i><span class="val">{{proof.values.velaLaunch}}</span></span
+                  ></span
                 >
-                <span class="gain">7.6× {{proof.faster}}</span>
+                <span class="gain">{{proof.gains.launch}}</span>
               </dd>
             </div>
             <div class="bar-row rv d1" style="--arc: 1; --vela: 0.5005">
@@ -251,13 +253,13 @@
               <dd>
                 <span class="bar arc"
                   ><span class="who">Arc</span
-                  ><span class="track"><i></i><span class="val">3149 MB</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.arcMem}}</span></span></span
                 >
                 <span class="bar vela"
                   ><span class="who">Vela</span
-                  ><span class="track"><i></i><span class="val">1576 MB</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.velaMem}}</span></span></span
                 >
-                <span class="gain">−50% {{proof.less}}</span>
+                <span class="gain">{{proof.gains.memory}}</span>
               </dd>
             </div>
             <div class="bar-row rv d2" style="--arc: 1; --vela: 0.0532">
@@ -265,13 +267,13 @@
               <dd>
                 <span class="bar arc"
                   ><span class="who">Arc</span
-                  ><span class="track"><i></i><span class="val">111%</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.arcCpu}}</span></span></span
                 >
                 <span class="bar vela"
                   ><span class="who">Vela</span
-                  ><span class="track"><i></i><span class="val">5.9%</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.velaCpu}}</span></span></span
                 >
-                <span class="gain">−95% {{proof.less}}</span>
+                <span class="gain">{{proof.gains.cpu}}</span>
               </dd>
             </div>
             <div class="bar-row rv d3" style="--arc: 1; --vela: 0.25">
@@ -279,13 +281,15 @@
               <dd>
                 <span class="bar arc"
                   ><span class="who">Arc</span
-                  ><span class="track"><i></i><span class="val">12 ms</span></span></span
+                  ><span class="track"><i></i><span class="val">{{proof.values.arcSwitch}}</span></span></span
                 >
                 <span class="bar vela"
                   ><span class="who">Vela</span
-                  ><span class="track"><i></i><span class="val">3 ms</span></span></span
+                  ><span class="track"
+                    ><i></i><span class="val">{{proof.values.velaSwitch}}</span></span
+                  ></span
                 >
-                <span class="gain">4× {{proof.faster}}</span>
+                <span class="gain">{{proof.gains.switch}}</span>
               </dd>
             </div>
           </dl>

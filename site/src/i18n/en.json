@@ -57,10 +57,24 @@
       "cpu": "Idle CPU, app in front",
       "switch": "Switching tabs"
     },
-    "faster": "faster",
-    "less": "less",
     "foot": "Vela runs with its built-in content blocker on, as it ships. Method, raw numbers and the script to run it yourself:",
-    "link": "the full benchmark"
+    "link": "the full benchmark",
+    "gains": {
+      "launch": "7.6× faster",
+      "memory": "−50% memory",
+      "cpu": "−95% CPU",
+      "switch": "4× faster"
+    },
+    "values": {
+      "arcLaunch": "2058 ms",
+      "velaLaunch": "271 ms",
+      "arcMem": "3149 MB",
+      "velaMem": "1576 MB",
+      "arcCpu": "111%",
+      "velaCpu": "5.9%",
+      "arcSwitch": "12 ms",
+      "velaSwitch": "3 ms"
+    }
   },
   "features": {
     "kicker": "Everything in its place",

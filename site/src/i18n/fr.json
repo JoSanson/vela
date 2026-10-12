@@ -2,192 +2,206 @@
   "lang": "fr",
   "locale": "fr_FR",
   "meta": {
-    "title": "Vela · L'alternative open source au navigateur Arc",
-    "description": "Les Spaces, les onglets verticaux et la barre de commande que vous aimiez dans Arc. Open source, plus léger, et toujours en mouvement. Gratuit pour macOS et Windows.",
-    "ogAlt": "Vela, l'alternative open source à Arc : une fenêtre de navigateur avec une barre latérale de Spaces et d'onglets."
+    "title": "Vela · L'alternative open source à Arc",
+    "description": "Tout ce qu'on aimait dans Arc, les Spaces, les onglets verticaux, la barre de commande, dans un navigateur open source, plus léger et qui continue d'évoluer. Gratuit sur macOS et Windows.",
+    "ogAlt": "Vela, l'alternative open source à Arc : une fenêtre de navigateur avec ses Spaces et ses onglets dans la barre latérale."
   },
   "a11y": {
     "skip": "Aller au contenu",
     "menu": "Menu",
     "close": "Fermer le menu",
     "language": "Langue",
-    "home": "Accueil Vela",
-    "demo": "Film du produit : de vraies pages dans Vela, qui change de Space, ouvre la barre de commande, partage la vue, ouvre un Peek, détache un onglet dans une nouvelle fenêtre et range Aujourd'hui.",
-    "pause": "Mettre la visite en pause",
-    "play": "Relancer la visite"
+    "home": "Accueil de Vela",
+    "demo": "Vidéo de présentation : Vela avec de vraies pages, du changement de Space à la barre de commande, la vue partagée, l'aperçu Peek, un onglet détaché dans une nouvelle fenêtre et le rangement automatique des onglets.",
+    "pause": "Mettre la vidéo en pause",
+    "play": "Lire la vidéo"
   },
   "nav": {
     "features": "Fonctionnalités",
     "benchmark": "Benchmark",
-    "import": "Import",
+    "import": "Migrer",
     "open": "Open source",
     "faq": "FAQ",
     "download": "Télécharger"
   },
   "hero": {
     "eyebrow": "Gratuit et open source",
-    "eyebrowLink": "La v0.5 est sortie",
+    "eyebrowLink": "Nouvelle version 0.5",
     "title": "Votre internet,<br>enfin calme.",
-    "lead": "Vela est la maison open source de tout ce que vous aimiez dans Arc : les Spaces, les onglets verticaux, la barre de commande. Plus léger, plus rapide, et il continue d'avancer.",
-    "note": "macOS, Apple silicon et Intel · Windows · Importe votre barre latérale Arc en un clic"
+    "lead": "Vela reprend tout ce qu'on aimait dans Arc : les Spaces, les onglets verticaux, la barre de commande. En plus léger, en plus rapide, et en open source pour qu'il ne s'arrête jamais.",
+    "note": "macOS (Apple silicon et Intel) et Windows · Votre barre latérale Arc importée en un clic"
   },
   "cta": {
     "mac": "Télécharger pour macOS",
     "win": "Télécharger pour Windows",
-    "github": "Étoiler sur GitHub",
-    "other": "Tous les téléchargements"
+    "github": "Voir sur GitHub",
+    "other": "Toutes les versions"
   },
   "demo": {
     "captions": {
-      "spaces": "Un Space pour chaque partie de votre vie",
-      "command": "Une barre de commande, pas une barre d'adresse",
-      "split": "La vue partagée, côte à côte",
-      "peek": "Jeter un œil à un lien sans partir",
-      "tear": "Glissez un onglet dehors : sa propre fenêtre",
-      "tidy": "Les onglets du jour se rangent seuls"
+      "spaces": "Un Space pour le travail, un autre pour le reste",
+      "command": "Une barre de commande à la place de la barre d'adresse",
+      "split": "Deux pages côte à côte",
+      "peek": "Un aperçu du lien, sans quitter la page",
+      "tear": "Glissez un onglet hors de la fenêtre, il devient une fenêtre",
+      "tidy": "Les onglets oubliés se rangent tout seuls"
     }
   },
   "proof": {
-    "kicker": "Mesuré, pas promis",
-    "title": "Plus léger qu'Arc. Nettement.",
-    "lead": "Le même Mac, les mêmes pages, le même script pour piloter les deux navigateurs. La barre la plus courte gagne.",
+    "kicker": "Chiffres à l'appui",
+    "title": "Bien plus léger qu'Arc.",
+    "lead": "Même Mac, mêmes pages, même script pour les deux navigateurs. Plus la barre est courte, mieux c'est.",
     "rows": {
-      "launch": "Du lancement à la fenêtre à l'écran",
-      "memory": "Mémoire avec 11 vrais onglets",
-      "cpu": "Processeur au repos, app au premier plan",
-      "switch": "Changement d'onglet"
+      "launch": "Temps de lancement",
+      "memory": "Mémoire avec 11 onglets ouverts",
+      "cpu": "Processeur au repos, fenêtre au premier plan",
+      "switch": "Passage d'un onglet à l'autre"
     },
-    "faster": "plus rapide",
-    "less": "en moins",
-    "foot": "Vela tourne avec son bloqueur de contenu intégré activé, comme à l'installation. Méthode, chiffres bruts et script pour refaire le test chez vous :",
-    "link": "le benchmark complet"
+    "foot": "Mesures faites avec le bloqueur de contenu intégré activé, comme à l'installation. La méthode, les chiffres bruts et le script pour refaire le test vous-même sont dans",
+    "link": "le benchmark complet",
+    "gains": {
+      "launch": "7,6× plus rapide",
+      "memory": "−50 % de mémoire",
+      "cpu": "−95 % de processeur",
+      "switch": "4× plus rapide"
+    },
+    "values": {
+      "arcLaunch": "2 058 ms",
+      "velaLaunch": "271 ms",
+      "arcMem": "3 149 Mo",
+      "velaMem": "1 576 Mo",
+      "arcCpu": "111 %",
+      "velaCpu": "5,9 %",
+      "arcSwitch": "12 ms",
+      "velaSwitch": "3 ms"
+    }
   },
   "features": {
-    "kicker": "Chaque chose à sa place",
-    "title": "L'Arc que vous connaissez, qui avance encore.",
+    "kicker": "Tout est à sa place",
+    "title": "Ce que vous aimiez dans Arc, en mieux.",
     "items": {
       "spaces": {
         "title": "Spaces",
-        "body": "Travail, studio, maison. Chaque Space garde ses onglets et sa couleur, et peut avoir son propre profil, ses connexions et ses cookies. Passez de l'un à l'autre d'un geste."
+        "body": "Travail, projets perso, vie de famille : chaque Space a ses onglets, sa couleur, et peut avoir son propre profil avec ses comptes et ses cookies. On passe de l'un à l'autre d'un simple geste."
       },
       "command": {
         "title": "Barre de commande",
-        "body": "Un seul champ pour les onglets ouverts, l'historique, l'archive et le web, avec une réponse en quelques millisecondes. Tapez y puis Tab pour chercher sur YouTube."
+        "body": "Un seul champ pour retrouver un onglet ouvert, une page de l'historique ou de l'archive, ou lancer une recherche, en quelques millisecondes. Tapez y puis Tab pour chercher directement sur YouTube."
       },
       "split": {
         "title": "Vue partagée et Peek",
-        "body": "Déposez un onglet sur un autre pour les lire côte à côte. Les liens des onglets épinglés s'ouvrent dans un Peek, à garder ou à fermer."
+        "body": "Déposez un onglet sur un autre pour afficher les deux côte à côte. Les liens ouverts depuis un onglet épinglé s'affichent en aperçu, à garder ou à fermer."
       },
       "windows": {
-        "title": "Des fenêtres qui vous suivent",
-        "body": "Glissez un onglet hors de la fenêtre pour lui donner la sienne, sur le même Space, avec son propre Aujourd'hui."
+        "title": "Une nouvelle fenêtre en un geste",
+        "body": "Glissez un onglet hors de la fenêtre : il s'ouvre dans une nouvelle, sur le même Space, avec sa propre liste d'onglets du jour."
       },
       "tidy": {
-        "title": "Des onglets qui se rangent",
-        "body": "Les onglets du jour que vous n'utilisez plus s'archivent seuls après 12 heures, un jour, une semaine ou un mois. L'archive se recherche : rien ne se perd."
+        "title": "Des onglets qui se rangent seuls",
+        "body": "Les onglets du jour que vous ne touchez plus sont archivés automatiquement, au bout de 12 heures, d'un jour, d'une semaine ou d'un mois. L'archive reste consultable : rien ne se perd."
       }
     },
-    "more": "Aussi intégrés : Boosts, Air Traffic Control, petites fenêtres, mode lecture, image dans l'image, bloqueur de contenu, gestionnaire de mots de passe et raccourcis personnalisables."
+    "more": "Et aussi : les Boosts, Air Traffic Control, les petites fenêtres, le mode lecture, l'image dans l'image, un bloqueur de pubs, un gestionnaire de mots de passe et des raccourcis entièrement personnalisables."
   },
   "real": {
-    "kicker": "Pas une maquette",
-    "title": "C'est le vrai produit.",
-    "lead": "Des captures de Vela tel qu'il est aujourd'hui.",
+    "kicker": "Pas de maquette",
+    "title": "Le vrai Vela, tel qu'il est.",
+    "lead": "Captures d'écran de la version actuelle.",
     "alts": {
       "hero": "Vela avec un Space Travail : grille de favoris, dossier épinglé et onglets du jour à côté d'une page web.",
       "command": "La barre de commande de Vela avec des onglets ouverts, l'historique et des suggestions de recherche.",
       "split": "Deux pages côte à côte dans la vue partagée de Vela.",
-      "spaces": "Un second Space dans Vela, avec son thème de couleur chaude."
+      "spaces": "Un autre Space de Vela, avec un thème aux couleurs chaudes."
     }
   },
   "import": {
-    "kicker": "Le déménagement, en un clic",
-    "title": "Emportez tout votre Arc avec vous.",
-    "lead": "Au premier lancement, Vela propose de tout importer. Relancez l'import plus tard : il fusionne au lieu de dupliquer.",
+    "kicker": "Quitter Arc en un clic",
+    "title": "Retrouvez tout votre Arc.",
+    "lead": "Au premier lancement, Vela vous propose de tout importer. Si vous relancez l'import plus tard, il complète ce qui existe déjà au lieu de créer des doublons.",
     "button": "Importer depuis Arc",
     "done": "Importé",
     "items": [
-      "Les Spaces, avec leurs noms, emoji et couleurs",
-      "Les profils, rattachés aux mêmes Spaces",
-      "Les favoris, par profil",
-      "Les onglets épinglés et les dossiers imbriqués",
-      "Tout l'historique, consultable",
-      "Mots de passe et cookies : vous restez connecté",
+      "Vos Spaces, avec leurs noms, emojis et couleurs",
+      "Vos profils, associés aux mêmes Spaces",
+      "Vos favoris, profil par profil",
+      "Vos onglets épinglés et leurs dossiers",
+      "Tout votre historique, avec la recherche",
+      "Vos mots de passe et cookies : vous restez connecté partout",
       "Vos extensions du Chrome Web Store, réinstallées en un clic"
     ],
-    "other": "Vous venez de Chrome, Brave, Edge, Safari ou Firefox ? Ces imports existent aussi.",
+    "other": "Vous venez de Chrome, Brave, Edge, Safari ou Firefox ? Vela sait aussi les importer.",
     "guide": "Lire le guide de migration"
   },
   "extensions": {
-    "title": "Vos extensions suivent.",
-    "lead": "Installez-les directement depuis le Chrome Web Store. 16 des 20 plus utilisées fonctionnent déjà.",
-    "link": "Voir la liste complète"
+    "title": "Vos extensions vous suivent.",
+    "lead": "Installez-les directement depuis le Chrome Web Store : 16 des 20 extensions les plus utilisées fonctionnent déjà.",
+    "link": "Voir la liste"
   },
   "open": {
-    "kicker": "Ouvert, pour de bon",
-    "title": "Personne ne peut le figer.",
-    "lead": "Vela est sous licence GPL-3.0 et développé au grand jour. Chaque version, et chaque fork, reste open source.",
+    "kicker": "Open source, pour de bon",
+    "title": "Personne ne pourra le figer.",
+    "lead": "Vela est sous licence GPL-3.0 et développé publiquement. Chaque version, comme chaque fork, restera open source.",
     "points": {
       "privacy": {
-        "title": "Pas de compte. Pas de télémétrie.",
-        "body": "Les rapports de plantage restent sur votre disque. Les mots de passe vivent dans le trousseau du système. Safe Browsing est vérifié sur votre machine."
+        "title": "Ni compte, ni télémétrie.",
+        "body": "Les rapports de plantage restent sur votre ordinateur, les mots de passe dans le trousseau du système, et la détection des sites dangereux se fait en local."
       },
       "fresh": {
-        "title": "Un Chromium à jour, tout seul.",
-        "body": "Un robot cherche un nouveau moteur toutes les 6 heures, lance toute la suite de tests et publie la version."
+        "title": "Chromium toujours à jour.",
+        "body": "Toutes les 6 heures, un robot vérifie s'il existe une nouvelle version du moteur, lance tous les tests et publie la mise à jour."
       },
       "yours": {
-        "title": "À vous de le lire et de le changer.",
-        "body": "TypeScript et Electron, chaque décision écrite noir sur blanc, des tests de bout en bout sur macOS et Windows. Issues et pull requests bienvenues."
+        "title": "Un code ouvert à tous.",
+        "body": "TypeScript et Electron, chaque choix documenté, des tests de bout en bout sur macOS et Windows. Issues et pull requests bienvenues."
       }
     },
-    "cta": "Lire le code"
+    "cta": "Voir le code"
   },
   "faq": {
-    "title": "Vos questions, nos réponses.",
+    "title": "Questions fréquentes",
     "items": [
       {
-        "q": "Arc est-il mort ?",
-        "a": "Pas mort, figé. The Browser Company a arrêté de développer de nouvelles fonctionnalités pour Arc en mai 2025 pour se concentrer sur Dia. Arc reçoit encore les correctifs de sécurité de Chromium. Si Arc vous convient tel quel, gardez-le. Vela est là pour quand vous voulez qu'il continue d'avancer."
+        "q": "Arc, c'est fini ?",
+        "a": "Pas tout à fait : il est figé. The Browser Company a cessé d'ajouter des fonctionnalités à Arc en mai 2025 pour se consacrer à Dia. Arc reçoit toujours les correctifs de sécurité de Chromium. S'il vous convient tel quel, gardez-le. Vela est fait pour ceux qui veulent qu'il continue d'évoluer."
       },
       {
         "q": "Vela est-il un fork d'Arc ?",
-        "a": "Non. Arc est propriétaire, il n'y a donc rien à forker. Vela est écrit de zéro et reprend des idées, jamais du code, des noms ou des visuels."
+        "a": "Non. Le code d'Arc n'est pas public, il n'y a donc rien à forker. Vela a été écrit de zéro : il reprend des idées, jamais du code, des noms ou des visuels."
       },
       {
         "q": "C'est vraiment gratuit ?",
-        "a": "Oui, et ça le restera. Vela est sous GPL-3.0 : pas d'abonnement, pas de compte, pas d'offre payante."
+        "a": "Oui, et ça le restera. Vela est sous GPL-3.0 : pas d'abonnement, pas de compte, pas de version payante."
       },
       {
-        "q": "Mes extensions Chrome fonctionnent-elles ?",
-        "a": "Installez-les depuis le Chrome Web Store. Sur les 20 plus utilisées, 16 fonctionnent pleinement ou avec de petits défauts, chacune testée à la main. Les bloqueurs de pub dépendent d'une API absente d'Electron : le bloqueur intégré de Vela prend le relais."
+        "q": "Mes extensions Chrome marchent-elles ?",
+        "a": "Installez-les depuis le Chrome Web Store. Sur les 20 plus utilisées, 16 fonctionnent entièrement ou presque, chacune testée à la main. Les bloqueurs de pubs ont besoin d'une API qu'Electron ne fournit pas : le bloqueur intégré de Vela fait ce travail à leur place."
       },
       {
-        "q": "Vela envoie-t-il des données ?",
-        "a": "Aucune télémétrie, aucun compte. Les rapports de plantage restent sur votre disque. Le seul appel sortant est la vérification des mises à jour, faite auprès de GitHub Releases."
+        "q": "Vela collecte-t-il mes données ?",
+        "a": "Non : ni télémétrie, ni compte. Les rapports de plantage restent sur votre disque. La seule connexion sortante sert à vérifier les mises à jour, sur GitHub."
       },
       {
-        "q": "Sera-t-il mis à jour dans la durée ?",
-        "a": "Les mises à jour du moteur sont automatiques : une vérification toutes les 6 heures, toute la suite de tests, puis une version. Les fonctionnalités arrivent dans des versions régulières. Et grâce à la GPL-3.0, Vela ne dépend d'aucune personne ni d'aucune entreprise."
+        "q": "Vela sera-t-il maintenu dans le temps ?",
+        "a": "Les mises à jour du moteur sont automatiques : une vérification toutes les 6 heures, tous les tests, puis une nouvelle version. Les nouveautés arrivent dans des versions régulières. Et grâce à la GPL-3.0, Vela ne dépend d'aucune personne ni d'aucune entreprise."
       }
     ]
   },
   "final": {
     "title": "Larguez les amarres.",
-    "lead": "Gratuit, open source, et à vous. Téléchargez Vela et emportez vos Spaces."
+    "lead": "Gratuit, open source, et à vous pour de bon. Téléchargez Vela et emmenez vos Spaces avec vous."
   },
   "footer": {
-    "tagline": "L'alternative open source au navigateur Arc.",
+    "tagline": "L'alternative open source à Arc.",
     "product": "Produit",
     "project": "Projet",
     "releases": "Versions",
-    "changelog": "Journal des changements",
+    "changelog": "Nouveautés",
     "benchmark": "Benchmark",
     "migrate": "Migrer depuis Arc",
     "extensions": "Extensions",
     "license": "Licence GPL-3.0",
     "security": "Sécurité",
     "contribute": "Contribuer",
-    "notice": "Vela est un projet open source indépendant. Il n'est ni affilié à The Browser Company ou à Atlassian, ni soutenu ou approuvé par eux. Arc est une marque de son propriétaire, citée ici uniquement pour décrire la compatibilité."
+    "notice": "Vela est un projet open source indépendant, sans lien avec The Browser Company ni Atlassian, qui ne le soutiennent ni ne l'approuvent. Arc est une marque de son propriétaire, citée ici uniquement pour parler de compatibilité."
   }
 }

@@ -816,7 +816,7 @@ section {
   display: grid;
   gap: 10px;
   margin: 0;
-  padding-right: 150px;
+  padding-right: 250px;
 }
 .bar {
   display: grid;
@@ -884,12 +884,14 @@ section {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  width: 220px;
   font-family: var(--f-display);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-align: right;
   color: var(--ink);
-  white-space: nowrap;
 }
 
 /* features */
