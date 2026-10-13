@@ -821,10 +821,7 @@ function RowIcon({
     /^https?:/i.test(row.url)
   ) {
     return (
-      <Favicon
-        tab={{ url: row.url, favicon: row.favicon ?? null, emoji: null, sleeping: false, loading: false }}
-        size={18}
-      />
+      <Favicon tab={{ url: row.url, favicon: row.favicon ?? null, emoji: null, loading: false }} size={18} />
     );
   }
   let icon: IconName = 'search';

@@ -1,4 +1,3 @@
-import { visibleTabIds } from '@vela/core';
 import type { AppContext } from './context';
 
 const SLEEP_TICK_MS = 30_000;
@@ -20,15 +19,10 @@ export function installMaintenance(ctx: AppContext): Maintenance {
     const prefs = ctx.prefs.value;
     if (!prefs.memorySaverEnabled || prefs.memorySaverMinutes <= 0) return;
     const state = ctx.store.state;
-    const visible = new Set(visibleTabIds(state));
-    // Each live tab costs ~20 MB of renderer plus ~25 MB of GPU memory: past a dozen, background
-    // tabs are put to sleep sooner than the configured delay.
-    const live = ctx.tabs.liveTabIds();
-    const minutes = live.length > 12 ? Math.min(prefs.memorySaverMinutes, 5) : prefs.memorySaverMinutes;
-    const cutoff = Date.now() - minutes * 60_000;
-    for (const id of live) {
+    const cutoff = Date.now() - prefs.memorySaverMinutes * 60_000;
+    for (const id of ctx.tabs.liveTabIds()) {
       const tab = state.tabs[id];
-      if (!tab || visible.has(id) || tab.sleeping || tab.alwaysActive || tab.audible) continue;
+      if (!tab || ctx.tabs.wantedWindow(id) || tab.sleeping || tab.alwaysActive || tab.audible) continue;
       if (tab.lastActiveAt > cutoff) continue;
       const wc = ctx.tabs.webContents(id);
       if (!wc || wc.isDevToolsOpened() || wc.isLoading()) continue;

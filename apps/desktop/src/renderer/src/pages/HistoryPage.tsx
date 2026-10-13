@@ -241,7 +241,6 @@ export function HistoryPage() {
                         favicon: row.entry.favicon,
                         emoji: null,
                         url: row.entry.url,
-                        sleeping: false,
                         loading: false,
                       }}
                     />

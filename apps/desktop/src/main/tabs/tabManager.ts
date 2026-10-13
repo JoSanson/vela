@@ -802,7 +802,7 @@ export class TabManager {
   async sleep(tabId: Id): Promise<void> {
     const wc = this.webContents(tabId);
     const tab = this.state.tabs[tabId];
-    if (!wc || !tab || tab.sleeping || visibleTabIds(this.state).includes(tabId)) return;
+    if (!wc || !tab || tab.sleeping || this.wantedWindow(tabId)) return;
     const scrollY = await Promise.race([
       wc.executeJavaScript('window.scrollY', false) as Promise<number>,
       new Promise<number>((r) => setTimeout(() => r(0), 300)),
@@ -810,8 +810,7 @@ export class TabManager {
       .then((v) => Math.max(0, Math.min(1e7, Number(v) || 0)))
       .catch(() => 0);
     // The user may have switched to this tab while we were asking for its scroll position.
-    if (wc.isDestroyed() || this.webContents(tabId) !== wc || visibleTabIds(this.state).includes(tabId))
-      return;
+    if (wc.isDestroyed() || this.webContents(tabId) !== wc || this.wantedWindow(tabId)) return;
     this.patch(tabId, {
       sleeping: true,
       loaded: false,

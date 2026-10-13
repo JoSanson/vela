@@ -210,6 +210,17 @@ describe('tab/activate and MRU', () => {
     expect(sp(s, 's1').activeTabId).toBe('t1');
   });
 
+  it('stamps the tab being left, so a long-used tab does not look idle once hidden', () => {
+    let s = withSpace(withToday(2), 's2');
+    s = open(s, 'u1', 's2', { now: NOW + 10 });
+    s = reduce(s, { type: 'tab/activate', id: 't1', now: NOW + 5000 });
+    expect(tb(s, 'u1').lastActiveAt).toBe(NOW + 5000);
+    s = reduce(s, { type: 'tab/activate', id: 't2', now: NOW + 9000 });
+    expect(tb(s, 't1').lastActiveAt).toBe(NOW + 9000);
+    s = reduce(s, { type: 'space/activate', id: 's2', now: NOW + 12000 });
+    expect(tb(s, 't2').lastActiveAt).toBe(NOW + 12000);
+  });
+
   it('is a no-op when the tab references a missing space', () => {
     const s = withToday(1);
     const broken: CoreState = { ...s, tabs: { ...s.tabs, t1: { ...tb(s, 't1'), spaceId: 'gone' } } };
@@ -383,7 +394,7 @@ describe('tab/pin, tab/unpin, tab/favorite', () => {
     expect(tb(s, 't1')).toMatchObject({
       kind: 'pinned',
       homeUrl: 'https://t1.example.com/',
-      lastActiveAt: NOW + 1,
+      lastActiveAt: NOW + 2,
     });
   });
 

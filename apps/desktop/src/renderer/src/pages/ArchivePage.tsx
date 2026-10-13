@@ -194,9 +194,7 @@ export function ArchivePage() {
                 onDoubleClick={() => void restore(tab)}
               >
                 <span className={rows.icon}>
-                  <Favicon
-                    tab={{ favicon: tab.favicon, emoji: null, url: tab.url, sleeping: false, loading: false }}
-                  />
+                  <Favicon tab={{ favicon: tab.favicon, emoji: null, url: tab.url, loading: false }} />
                 </span>
                 <span className={rows.text}>
                   <span className={rows.title}>

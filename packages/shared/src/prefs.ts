@@ -53,7 +53,7 @@ export const DEFAULT_PREFS: Prefs = {
   sidebarHidden: false,
   autoArchiveHours: 24,
   memorySaverEnabled: true,
-  memorySaverMinutes: 20,
+  memorySaverMinutes: 60,
   autoPip: true,
   theme: 'system',
   onboardingDone: false,

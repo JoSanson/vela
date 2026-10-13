@@ -35,7 +35,7 @@ export function PeekChrome() {
       </button>
       <div className={styles.title}>
         <Favicon
-          tab={{ favicon: peek.favicon, emoji: null, url: peek.url, sleeping: false, loading: peek.loading }}
+          tab={{ favicon: peek.favicon, emoji: null, url: peek.url, loading: peek.loading }}
           size={14}
         />
         <span className={styles.text}>{peek.title || prettyUrl(peek.url)}</span>

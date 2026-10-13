@@ -1,6 +1,6 @@
 import { isEphemeralSpace } from './privacy';
 import type { CoreAction } from './actions';
-import { rootSpaceId } from './selectors';
+import { rootSpaceId, visibleTabIds } from './selectors';
 import { toArchived } from './factories';
 import type {
   ArchiveReason,
@@ -203,6 +203,18 @@ function deleteTab(state: CoreState, id: Id, now: number, reason: ArchiveReason 
  * `inSpace` is the window's Space the click came from: a favorite or a pinned tab of that Space's
  * root shows there; Today tabs always show in their own Space.
  */
+/**
+ * `lastActiveAt` means "last on screen": the tabs being hidden are stamped too, otherwise a tab
+ * used for an hour would look idle for an hour the moment you leave it (memory saver, auto-archive).
+ */
+function stampLeaving(state: CoreState, spaceIds: readonly Id[], now: number): CoreState {
+  let next = state;
+  for (const spaceId of spaceIds)
+    for (const id of visibleTabIds(next, spaceId))
+      next = updateTab(next, id, (t) => ({ ...t, lastActiveAt: now }));
+  return next;
+}
+
 function activateTab(state: CoreState, id: Id, now: number, inSpace?: Id): CoreState {
   const tab = state.tabs[id];
   if (!tab) return state;
@@ -213,7 +225,8 @@ function activateTab(state: CoreState, id: Id, now: number, inSpace?: Id): CoreS
       (!!tab.spaceId && rootSpaceId(state, tab.spaceId) === rootSpaceId(state, inSpace)));
   const spaceId = shared ? inSpace : (tab.spaceId ?? state.activeSpaceId);
   if (!state.spaces[spaceId]) return state;
-  let next = updateSpace(state, spaceId, (s) => ({ ...s, activeTabId: id }));
+  let next = stampLeaving(state, [spaceId, state.activeSpaceId], now);
+  next = updateSpace(next, spaceId, (s) => ({ ...s, activeTabId: id }));
   next = updateTab(next, id, (t) => ({ ...t, lastActiveAt: now }));
   next = touchMru(next, id);
   return { ...next, activeSpaceId: spaceId };
@@ -378,7 +391,10 @@ export function reduce(state: CoreState, action: CoreAction): CoreState {
     case 'space/activate': {
       const space = state.spaces[action.id];
       if (!space) return state;
-      let next: CoreState = { ...state, activeSpaceId: action.id };
+      let next: CoreState = {
+        ...stampLeaving(state, [state.activeSpaceId], action.now),
+        activeSpaceId: action.id,
+      };
       if (space.activeTabId && next.tabs[space.activeTabId]) {
         next = touchMru(next, space.activeTabId);
         next = updateTab(next, space.activeTabId, (t) => ({ ...t, lastActiveAt: action.now }));

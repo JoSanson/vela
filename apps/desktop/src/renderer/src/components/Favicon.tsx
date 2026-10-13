@@ -5,7 +5,7 @@ import { Icon, type IconName } from './Icon';
 import styles from './Favicon.module.css';
 
 interface Props {
-  tab: Pick<Tab, 'favicon' | 'emoji' | 'url' | 'sleeping' | 'loading'>;
+  tab: Pick<Tab, 'favicon' | 'emoji' | 'url' | 'loading'>;
   size?: number;
 }
 
@@ -60,7 +60,7 @@ export function Favicon({ tab, size = 16 }: Props) {
   } else if (tab.favicon && !broken) {
     inner = (
       <img
-        className={`${styles.img} ${tab.sleeping ? styles.sleeping : ''}`}
+        className={styles.img}
         style={style}
         src={faviconSrc(tab.favicon)}
         alt=""
@@ -71,11 +71,7 @@ export function Favicon({ tab, size = 16 }: Props) {
   } else {
     const letter = (hostOf(tab.url) || '?').charAt(0).toUpperCase();
     inner = (
-      <span
-        className={`${styles.badge} ${tab.sleeping ? styles.sleeping : ''}`}
-        style={style}
-        aria-hidden="true"
-      >
+      <span className={styles.badge} style={style} aria-hidden="true">
         {letter}
       </span>
     );
