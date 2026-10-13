@@ -4,7 +4,7 @@
   "private": true,
   "description": "Vela — the open-source Arc browser alternative: Chromium-based, Spaces, vertical tabs, command bar",
   "license": "GPL-3.0-or-later",
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.34.7",
   "engines": {
     "node": ">=22"
   },
