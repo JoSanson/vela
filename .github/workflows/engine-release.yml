@@ -26,7 +26,7 @@ jobs:
     name: bump version & tag
     # Quoted: the ": " inside the string would otherwise be read as a YAML mapping.
     if: "contains(github.event.head_commit.message, 'chore(engine): bump electron')"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}

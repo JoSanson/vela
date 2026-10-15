@@ -47,7 +47,7 @@ jobs:
   check:
     name: check & bump
     if: github.event_name != 'workflow_run'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
@@ -58,12 +58,13 @@ jobs:
           ref: main
           token: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
+      # No `cache: pnpm`: when Electron is already current nothing is installed, the store never
+      # exists and the post-step cache save errors out.
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Compare pinned vs latest Electron
         id: check
@@ -171,7 +172,7 @@ jobs:
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'failure' &&
       startsWith(github.event.workflow_run.head_branch, 'engine/electron-')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/github-script@v8

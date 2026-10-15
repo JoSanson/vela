@@ -36,7 +36,7 @@ env:
 jobs:
   verify:
     name: verify tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -87,7 +87,7 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v5
         with:
@@ -146,7 +146,7 @@ jobs:
   publish:
     name: publish GitHub Release
     needs: [verify, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
