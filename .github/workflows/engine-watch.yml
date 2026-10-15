@@ -63,7 +63,7 @@ jobs:
       # No pnpm cache: when Electron is already current nothing is installed, the store never
       # exists and the post-step cache save errors out. setup-node v5 enables it on its own from
       # `packageManager`, hence the explicit opt-out.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           package-manager-cache: false
