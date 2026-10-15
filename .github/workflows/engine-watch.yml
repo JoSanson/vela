@@ -65,7 +65,7 @@ jobs:
       # `packageManager`, hence the explicit opt-out.
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           package-manager-cache: false
 
       - name: Compare pinned vs latest Electron
