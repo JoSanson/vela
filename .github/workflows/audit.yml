@@ -33,7 +33,7 @@ jobs:
           pnpm audit --audit-level=high 2>&1 | tee audit.txt
 
       - name: Open / update / close the security issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           AUDIT_FAILED: ${{ steps.audit.outcome == 'failure' }}
         with:
