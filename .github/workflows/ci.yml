@@ -32,14 +32,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5.1.0
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.1.0
         # No `version:` — pnpm/action-setup reads `packageManager` from package.json.
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v5.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: pnpm
 
       - name: Install
@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload coverage summary
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: coverage-summary
           path: coverage/coverage-summary.json
@@ -75,13 +75,13 @@ jobs:
         # whole suite on both supported platforms.
         os: [macos-14, windows-2022]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5.1.0
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.1.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v5.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: pnpm
 
       - name: Install
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload e2e artifacts (traces, screenshots, HTML report)
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: e2e-artifacts-${{ matrix.os }}
           path: apps/desktop/e2e-artifacts
@@ -128,13 +128,13 @@ jobs:
             os: windows-2022
             args: --win --x64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5.1.0
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.1.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v5.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           cache: pnpm
 
       - name: Install
@@ -149,7 +149,7 @@ jobs:
         run: pnpm build ${{ matrix.args }}
 
       - name: Upload installers
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: installers-${{ matrix.name }}
           # File globs only: this skips the *-unpacked/ and mac-*/ directories.
