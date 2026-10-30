@@ -53,19 +53,19 @@ jobs:
       GH_TOKEN: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
       HAS_PAT: ${{ secrets.ENGINE_WATCH_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5.1.0
         with:
           ref: main
           token: ${{ secrets.ENGINE_WATCH_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.1.0
 
       # No pnpm cache: when Electron is already current nothing is installed, the store never
       # exists and the post-step cache save errors out. setup-node v5 enables it on its own from
       # `packageManager`, hence the explicit opt-out.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v5.0.0
         with:
-          node-version: 22
+          node-version: 22.23.4
           package-manager-cache: false
 
       - name: Compare pinned vs latest Electron
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v8.0.0
         with:
           script: |
             const run = context.payload.workflow_run;
