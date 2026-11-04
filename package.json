@@ -6,7 +6,7 @@
   "license": "GPL-3.0-or-later",
   "packageManager": "pnpm@10.11.0",
   "engines": {
-    "node": ">=22"
+    "node": "v26.13.0"
   },
   "scripts": {
     "dev": "pnpm --filter @vela/desktop dev",
